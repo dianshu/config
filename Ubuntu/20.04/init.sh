@@ -19,6 +19,9 @@ git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions ~/.zsh/plug
 rm -rf ~/.zsh/plugins/zsh-syntax-highlighting
 git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting ~/.zsh/plugins/zsh-syntax-highlighting
 
+rm -rf ~/.zsh/plugins/zsh-history-substring-search
+git clone --depth 1 https://github.com/zsh-users/zsh-history-substring-search ~/.zsh/plugins/zsh-history-substring-search
+
 # install homebrew
 apt install -y build-essential procps curl file git
 NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -26,4 +29,4 @@ eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 brew doctor
 
 # install packages
-brew install gcc vim kubectl azure-cli
+brew install vim kubectl azure-cli
