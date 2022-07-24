@@ -22,6 +22,7 @@ git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting ~/.zsh/
 # install homebrew
 apt install -y build-essential procps curl file git
 NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 brew doctor
 
 # install packages
