@@ -1,4 +1,4 @@
-# 初始化 Ubunut20.04
+# 初始化 Ubuntu20.04
 
 ## Install
 ```shell
