@@ -5,6 +5,12 @@ echo "`whoami`  ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/`whoami`
 # upgrade packages
 apt update && apt upgrade -y
 
+# timezone related work
+export DEBIAN_FRONTEND=noninteractive
+export TZ=Asia/Shanghai
+apt install -y tzdata
+ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 # zsh related work
 apt install -y zsh
 curl https://raw.githubusercontent.com/dianshu/config/master/zsh/.zshrc > ~/.zshrc
@@ -29,4 +35,4 @@ eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 brew doctor
 
 # install packages
-brew install vim kubectl azure-cli
+brew install vim kubectl azure-cli yq
