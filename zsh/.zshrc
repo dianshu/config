@@ -30,6 +30,7 @@ PROMPT='❰%{$reset_color%}%{$fg[red]%}[$(date +%H:%M)]%{$reset_color%}%{$fg[gre
 # 设置常用的命令别名
 git config --global alias.l "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
 git config --global log.date "format-local:%Y-%m-%d %H:%M:%S"
+git config --global core.editor vim
 abbr --quiet -S gl='git l'
 abbr --quiet -S gp='git push'
 abbr --quiet -S gb='git branch'
