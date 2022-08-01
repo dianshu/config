@@ -57,8 +57,8 @@ setopt HIST_FIND_NO_DUPS
 # 命令写入历史时仅写入非重复的命令
 setopt HIST_IGNORE_ALL_DUPS
 
-# 启用 k8s 命令自动补全
-source <(kubectl completion zsh)
-
 # 引入 homebrew 相关环境变量
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+# 启用 k8s 命令自动补全
+source <(kubectl completion zsh)
