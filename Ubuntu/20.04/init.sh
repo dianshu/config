@@ -28,8 +28,8 @@ apt install -y build-essential procps curl file git
 git config --global alias.l "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
 git config --global log.date "format-local:%Y-%m-%d %H:%M:%S"
 git config --global core.editor vim
-git config --global user.name ${GitUserName}
-git config --global user.email ${GitUserEmail}
+git config --global --replace-all user.name ${GitUserName}
+git config --global --replace-all user.email ${GitUserEmail}
 
 # ssh key
 rm -f ~/.ssh/id_rsa ~/.ssh/id_rsa.pub
