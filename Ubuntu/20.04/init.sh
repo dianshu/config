@@ -3,8 +3,8 @@ set -euo pipefail
 shopt -s inherit_errexit
 
 # set env
-export username=${SUDO_USER:-`whoami`}
-echo "Current User: ${username}"
+read -p "User Name: " UserName
+export username=${UserName}
 
 read -p "Git User Name: " GitUserName
 read -p "Git User Email: " GitUserEmail
