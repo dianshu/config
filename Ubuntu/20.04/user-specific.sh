@@ -51,3 +51,9 @@ ln -sf ${Pip3Path} ${Pip3Dir}/pip
 
 python -m pip install --upgrade pip
 pip install ipython requests
+
+# ssh key
+rm -f ~/.ssh/id_rsa ~/.ssh/id_rsa.pub
+mkdir -p ~/.ssh
+ssh-keygen -t rsa -b 4096 -C "ubuntu" -f ~/.ssh/id_rsa -N ''
+echo "ssh-public-key: " `cat ~/.ssh/id_rsa.pub`
