@@ -30,7 +30,7 @@ git config --global user.name ${GitUserName}
 git config --global user.email ${GitUserEmail}
 
 # ssh key
-rm ~/.ssh/id_rsa ~/.ssh/id_rsa.pub
+rm -f ~/.ssh/id_rsa ~/.ssh/id_rsa.pub
 ssh-keygen -t rsa -b 4096 -C ${GitUserEmail} -f ~/.ssh/id_rsa -N ''
 echo "ssh-public-key:\n" `cat id_rsa.pub`
 
