@@ -4,14 +4,14 @@ shopt -s inherit_errexit
 
 # set env
 read -p "User Name: " UserName
-export username=${UserName}
+export UserName=${UserName}
 
 read -p "Git User Name: " GitUserName
 read -p "Git User Email: " GitUserEmail
 
 # add sudo right to current user
 mkdir -p /etc/sudoers.d/
-echo "${username}  ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${username}
+echo "${UserName}  ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${UserName}
 
 # upgrade existing packages
 apt update && apt upgrade -y
@@ -32,8 +32,8 @@ git config --global --replace-all user.name ${GitUserName}
 git config --global --replace-all user.email ${GitUserEmail}
 
 # ssh key
-rm -f ~/.ssh/id_rsa ~/.ssh/id_rsa.pub
+rm -f /home/${UserName}/.ssh/id_rsa /home/${UserName}/.ssh/id_rsa.pub
 ssh-keygen -t rsa -b 4096 -C ${GitUserEmail} -f ~/.ssh/id_rsa -N ''
-echo "ssh-public-key:\n" `cat ~/.ssh/id_rsa.pub`
+echo "ssh-public-key: " `cat /home/${UserName}/.ssh/id_rsa.pub`
 
-sudo -u ${username} /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/dianshu/config/HEAD/Ubuntu/20.04/user-specific.sh?${RANDOM})"
+sudo -u ${UserName} /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/dianshu/config/HEAD/Ubuntu/20.04/user-specific.sh?${RANDOM})"
