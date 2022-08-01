@@ -1,9 +1,8 @@
 set -euo pipefail
 shopt -s inherit_errexit
 
-echo +++++++++++++
-echo $1
-echo +++++++++++++
+export username=${SUDO_USER:-`whoami`}
+echo "Current User: ${username}"
 
 # install homebrew
 NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" < /dev/null
@@ -31,7 +30,7 @@ rm -rf ~/.zsh/plugins/zsh-history-substring-search
 git clone --depth 1 https://github.com/zsh-users/zsh-history-substring-search ~/.zsh/plugins/zsh-history-substring-search
 
 command -v zsh | sudo tee -a /etc/shells
-sudo chsh -s `command -v zsh` $1
+sudo chsh -s `command -v zsh` ${username}
 
 # vim related work
 cat > ~/.vimrc << EOF
