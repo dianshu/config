@@ -27,7 +27,7 @@ rm -rf ~/.zsh/plugins/zsh-history-substring-search
 git clone --depth 1 https://github.com/zsh-users/zsh-history-substring-search ~/.zsh/plugins/zsh-history-substring-search
 
 command -v zsh | sudo tee -a /etc/shells
-sudo chsh -s `command -v zsh` ${SUDO_USER:-`whoami`}
+sudo chsh -s `command -v zsh` $1
 
 # vim related work
 cat > ~/.vimrc << EOF
