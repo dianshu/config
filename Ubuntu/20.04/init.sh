@@ -33,7 +33,7 @@ git config --global --replace-all user.email ${GitUserEmail}
 
 # ssh key
 rm -f /home/${UserName}/.ssh/id_rsa /home/${UserName}/.ssh/id_rsa.pub
-ssh-keygen -t rsa -b 4096 -C ${GitUserEmail} -f ~/.ssh/id_rsa -N ''
+ssh-keygen -t rsa -b 4096 -C ${GitUserEmail} -f /home/${UserName}/.ssh/id_rsa -N ''
 echo "ssh-public-key: " `cat /home/${UserName}/.ssh/id_rsa.pub`
 
 sudo -u ${UserName} /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/dianshu/config/HEAD/Ubuntu/20.04/user-specific.sh?${RANDOM})"
