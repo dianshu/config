@@ -28,9 +28,6 @@ PROMPT='❰%{$reset_color%}%{$fg[red]%}[$(date +%H:%M)]%{$reset_color%}%{$fg[gre
 %# '
 
 # 设置常用的命令别名
-git config --global alias.l "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
-git config --global log.date "format-local:%Y-%m-%d %H:%M:%S"
-git config --global core.editor vim
 abbr --quiet -S gl='git l'
 abbr --quiet -S gp='git push'
 abbr --quiet -S gb='git branch'
@@ -38,7 +35,6 @@ abbr --quiet -S gs='git status'
 abbr --quiet -S gco='git checkout'
 abbr --quiet -S gbd='git branch --merged | grep --color=auto -v "master" | xargs -L 1 -p git branch -d'
 abbr --quiet -S check='git status --porcelain | awk "/.py/ {print \$2}" | xargs -t flake8 --max-line-length=120'
-
 abbr --quiet -S check2='git status --porcelain | awk "/.py/ {print \$2}" | cut -c 24- | xargs -t flake8 --max-line-length=120'
 abbr --quiet -S grep='grep --color=auto'
 abbr --quiet -S k='kubectl'
