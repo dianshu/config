@@ -1,11 +1,17 @@
 #! /bin/bash
+
+# set env
 export username=${SUDO_USER:-`whoami`}
+echo "Current User: ${username}"
+
+read -p "Git User Name: " GitUserName
+read -p "Git User Email: " GitUserEmail
 
 # add sudo right to current user
 mkdir -p /etc/sudoers.d/
 echo "${username}  ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${username}
 
-# upgrade packages
+# upgrade existing packages
 apt update && apt upgrade -y
 
 # timezone related work
@@ -13,29 +19,18 @@ export TZ=Asia/Shanghai
 DEBIAN_FRONTEND=noninteractive apt install -y tzdata
 ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# zsh related work
-apt install -y zsh
-curl https://raw.githubusercontent.com/dianshu/config/master/zsh/.zshrc > /home/${username}/.zshrc
-chsh -s `which zsh` ${username}
-
-rm -rf /home/${username}/.zsh/plugins/zsh-abbr
-git clone --depth 1 https://github.com/olets/zsh-abbr /home/${username}/.zsh/plugins/zsh-abbr
-
-rm -rf /home/${username}/.zsh/plugins/zsh-autosuggestions
-git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions /home/${username}/.zsh/plugins/zsh-autosuggestions
-
-rm -rf /home/${username}/.zsh/plugins/zsh-syntax-highlighting
-git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting /home/${username}/.zsh/plugins/zsh-syntax-highlighting
-
-rm -rf /home/${username}/.zsh/plugins/zsh-history-substring-search
-git clone --depth 1 https://github.com/zsh-users/zsh-history-substring-search /home/${username}/.zsh/plugins/zsh-history-substring-search
-
-# install homebrew
+# install basic packages
 apt install -y build-essential procps curl file git
-NONINTERACTIVE=1 su - ${username} -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-brew doctor
 
-# install packages
-brew install vim kubectl azure-cli yq jq npm
-npm install -g tldr
+# git
+git config --global alias.l "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
+git config --global log.date "format-local:%Y-%m-%d %H:%M:%S"
+git config --global core.editor vim
+git config --global user.name ${GitUserName}
+git config --global user.email ${GitUserEmail}
+
+# ssh key
+ssh-keygen -t rsa -b 4096 -C ${GitUserEmail} -f ~/.ssh/id_rsa -N ''
+echo "ssh-public-key:\n" `cat id_rsa.pub`
+
+sudo -u ${username} /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/dianshu/config/master/Ubuntu/20.04/user-specific.sh)"
