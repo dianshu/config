@@ -33,6 +33,7 @@ git config --global --replace-all user.email ${GitUserEmail}
 
 # ssh key
 rm -f /home/${UserName}/.ssh/id_rsa /home/${UserName}/.ssh/id_rsa.pub
+mkdir -p /home/${UserName}/.ssh
 ssh-keygen -t rsa -b 4096 -C ${GitUserEmail} -f /home/${UserName}/.ssh/id_rsa -N ''
 echo "ssh-public-key: " `cat /home/${UserName}/.ssh/id_rsa.pub`
 
