@@ -1,9 +1,6 @@
 set -euo pipefail
 shopt -s inherit_errexit
 
-export username=${SUDO_USER:-`whoami`}
-echo "Current User: ${username}"
-
 # install homebrew
 NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" < /dev/null
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
