@@ -32,6 +32,6 @@ git config --global user.email ${GitUserEmail}
 # ssh key
 rm -f ~/.ssh/id_rsa ~/.ssh/id_rsa.pub
 ssh-keygen -t rsa -b 4096 -C ${GitUserEmail} -f ~/.ssh/id_rsa -N ''
-echo "ssh-public-key:\n" `cat id_rsa.pub`
+echo "ssh-public-key:\n" `cat ~/.ssh/id_rsa.pub`
 
 sudo -u ${username} /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/dianshu/config/master/Ubuntu/20.04/user-specific.sh)"
