@@ -35,3 +35,16 @@ set autoindent
 set expandtab
 set cursorline
 EOF
+
+# python related work
+brew install python3
+Python3Path=`which python3`
+Python3Dir=`dirname ${Python3Path}`
+ln -sf ${Python3Path} ${Python3Dir}/python
+
+brew install pip3
+Pip3Path=`which pip3`
+Pip3Dir=`dirname ${Pip3Path}`
+ln -sf ${Pip3Path} ${Pip3Dir}/pip
+
+pip install ipython requests venv
