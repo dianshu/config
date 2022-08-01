@@ -49,4 +49,4 @@ Pip3Path=`which pip3`
 Pip3Dir=`dirname ${Pip3Path}`
 ln -sf ${Pip3Path} ${Pip3Dir}/pip
 
-pip install ipython requests venv
+pip install ipython requests
