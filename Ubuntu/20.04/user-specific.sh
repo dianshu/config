@@ -25,3 +25,13 @@ git clone --depth 1 https://github.com/zsh-users/zsh-history-substring-search ~/
 
 command -v zsh | sudo tee -a /etc/shells
 sudo chsh -s `command -v zsh` ${SUDO_USER:-`whoami`}
+
+# vim related work
+cat > ~/.vimrc << EOF
+set number
+syntax on
+set tabstop=4
+set autoindent
+set expandtab
+set cursorline
+EOF
