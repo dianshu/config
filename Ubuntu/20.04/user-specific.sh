@@ -1,6 +1,10 @@
 set -euo pipefail
 shopt -s inherit_errexit
 
+echo +++++++++++++
+echo $1
+echo +++++++++++++
+
 # install homebrew
 NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" < /dev/null
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
