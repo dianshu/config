@@ -12,7 +12,7 @@ npm install -g tldr
 
 # zsh related work
 brew install zsh
-curl https://raw.githubusercontent.com/dianshu/config/master/zsh/.zshrc > ~/.zshrc
+curl https://raw.githubusercontent.com/dianshu/config/HEAD/zsh/.zshrc > ~/.zshrc
 
 rm -rf ~/.zsh/plugins/zsh-abbr
 git clone --depth 1 https://github.com/olets/zsh-abbr ~/.zsh/plugins/zsh-abbr
