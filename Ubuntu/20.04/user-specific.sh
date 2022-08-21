@@ -61,23 +61,6 @@ ln -sf ${Pip3Path} ${Pip3Dir}/pip
 python -m pip install --upgrade pip
 pip install ipython requests
 
-# install vscode extensions
-code \
-    --install-extension adpyke.codesnap \
-    --install-extension eamodio.gitlens \
-    --install-extension hediet.vscode-drawio \
-    --install-extension ms-azure-devops.azure-pipelines \
-    --install-extension ms-dotnettools.csharp \
-    --install-extension ms-dotnettools.vscode-dotnet-runtime \
-    --install-extension ms-python.python \
-    --install-extension ms-python.vscode-pylance \
-    --install-extension ms-toolsai.jupyter \
-    --install-extension ms-toolsai.jupyter-keymap \
-    --install-extension ms-toolsai.jupyter-renderers \
-    --install-extension ms-vscode-remote.remote-wsl \
-    --install-extension ms-vscode.azure-account \
-    --install-extension redhat.vscode-yaml
-
 # ssh key
 rm -f ~/.ssh/id_rsa ~/.ssh/id_rsa.pub
 mkdir -p ~/.ssh
