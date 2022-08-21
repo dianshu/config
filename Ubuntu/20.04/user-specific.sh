@@ -1,6 +1,28 @@
 set -euo pipefail
 shopt -s inherit_errexit
 
+# vscode related work
+wget -q https://packages.microsoft.com/keys/microsoft.asc -O- | apt-key add -
+add-apt-repository "deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main"
+apt install -y code
+
+# install vscode extensions
+code \
+    --install-extension adpyke.codesnap \
+    --install-extension eamodio.gitlens \
+    --install-extension hediet.vscode-drawio \
+    --install-extension ms-azure-devops.azure-pipelines \
+    --install-extension ms-dotnettools.csharp \
+    --install-extension ms-dotnettools.vscode-dotnet-runtime \
+    --install-extension ms-python.python \
+    --install-extension ms-python.vscode-pylance \
+    --install-extension ms-toolsai.jupyter \
+    --install-extension ms-toolsai.jupyter-keymap \
+    --install-extension ms-toolsai.jupyter-renderers \
+    --install-extension ms-vscode-remote.remote-wsl \
+    --install-extension ms-vscode.azure-account \
+    --install-extension redhat.vscode-yaml
+
 # install homebrew
 NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" < /dev/null
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
