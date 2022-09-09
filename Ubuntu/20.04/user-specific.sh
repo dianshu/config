@@ -7,8 +7,7 @@ eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 brew doctor
 
 # install packages
-brew install vim kubectl azure-cli yq jq npm
-npm install -g tldr
+brew install vim kubectl azure-cli yq jq
 
 # zsh related work
 brew install zsh
