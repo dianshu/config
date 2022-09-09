@@ -1,27 +1,43 @@
 set -euo pipefail
 shopt -s inherit_errexit
 
-# vscode related work
-wget -q https://packages.microsoft.com/keys/microsoft.asc -O- | sudo apt-key add -
-sudo add-apt-repository "deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main"
-sudo apt install -y code
+if uname -a | grep -qi "WSL"; then
+    echo 'can not install vscode and related extensions, please install them manually:\n'
+    echo 'code \'
+    echo '    --install-extension adpyke.codesnap \'
+    echo '    --install-extension eamodio.gitlens \'
+    echo '    --install-extension ms-azure-devops.azure-pipelines \'
+    echo '    --install-extension ms-python.python \'
+    echo '    --install-extension ms-python.vscode-pylance \'
+    echo '    --install-extension ms-toolsai.jupyter \'
+    echo '    --install-extension ms-toolsai.jupyter-keymap \'
+    echo '    --install-extension ms-toolsai.jupyter-renderers \'
+    echo '    --install-extension ms-vscode-remote.remote-wsl \'
+    echo '    --install-extension ms-vscode.azure-account \'
+    echo '    --install-extension redhat.vscode-yaml'
+    echo ''
+else
+    wget -q https://packages.microsoft.com/keys/microsoft.asc -O- | sudo apt-key add -
+    sudo add-apt-repository "deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main"
+    sudo apt install -y code
 
-# install vscode extensions
-code \
-    --install-extension adpyke.codesnap \
-    --install-extension eamodio.gitlens \
-    --install-extension hediet.vscode-drawio \
-    --install-extension ms-azure-devops.azure-pipelines \
-    --install-extension ms-dotnettools.csharp \
-    --install-extension ms-dotnettools.vscode-dotnet-runtime \
-    --install-extension ms-python.python \
-    --install-extension ms-python.vscode-pylance \
-    --install-extension ms-toolsai.jupyter \
-    --install-extension ms-toolsai.jupyter-keymap \
-    --install-extension ms-toolsai.jupyter-renderers \
-    --install-extension ms-vscode-remote.remote-wsl \
-    --install-extension ms-vscode.azure-account \
-    --install-extension redhat.vscode-yaml
+    # install vscode extensions
+    code \
+        --install-extension adpyke.codesnap \
+        --install-extension eamodio.gitlens \
+        --install-extension hediet.vscode-drawio \
+        --install-extension ms-azure-devops.azure-pipelines \
+        --install-extension ms-dotnettools.csharp \
+        --install-extension ms-dotnettools.vscode-dotnet-runtime \
+        --install-extension ms-python.python \
+        --install-extension ms-python.vscode-pylance \
+        --install-extension ms-toolsai.jupyter \
+        --install-extension ms-toolsai.jupyter-keymap \
+        --install-extension ms-toolsai.jupyter-renderers \
+        --install-extension ms-vscode-remote.remote-wsl \
+        --install-extension ms-vscode.azure-account \
+        --install-extension redhat.vscode-yaml
+fi
 
 # install homebrew
 NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" < /dev/null
