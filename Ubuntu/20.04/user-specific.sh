@@ -1,13 +1,20 @@
 set -euo pipefail
 shopt -s inherit_errexit
 
+# git
+git config --global alias.l "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
+git config --global log.date "format-local:%Y-%m-%d %H:%M:%S"
+git config --global core.editor vim
+git config --global --replace-all user.name $0
+git config --global --replace-all user.email $1
+
 # install homebrew
 NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" < /dev/null
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 brew doctor
 
 # install packages
-brew install vim kubectl azure-cli yq jq
+brew install vim kubectl azure-cli yq jq docker
 
 # zsh related work
 brew install zsh
