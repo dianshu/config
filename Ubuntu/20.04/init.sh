@@ -24,11 +24,4 @@ ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 # install basic packages
 apt install -y build-essential procps curl file git software-properties-common apt-transport-https wget
 
-# git
-git config --global alias.l "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
-git config --global log.date "format-local:%Y-%m-%d %H:%M:%S"
-git config --global core.editor vim
-git config --global --replace-all user.name ${GitUserName}
-git config --global --replace-all user.email ${GitUserEmail}
-
-sudo -u ${UserName} /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/dianshu/config/HEAD/Ubuntu/20.04/user-specific.sh?${RANDOM})"
+sudo -u ${UserName} /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/dianshu/config/HEAD/Ubuntu/20.04/user-specific.sh?${RANDOM})" ${GitUserName} ${GitUserEmail}
