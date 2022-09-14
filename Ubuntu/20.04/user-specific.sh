@@ -118,8 +118,8 @@ else
 fi
 
 # locale related workd
-sudo apt install -y language-pack-zh-hans
-sudo update-locale LANG=zh_CN.utf8 LANGUAGE=zh_CN.utf8 LC_ALL=zh_CN.utf8
+# sudo apt install -y language-pack-zh-hans
+# sudo update-locale LANG=zh_CN.utf8 LANGUAGE=zh_CN.utf8 LC_ALL=zh_CN.utf8
 
 # ssh key
 rm -f ~/.ssh/id_rsa ~/.ssh/id_rsa.pub
