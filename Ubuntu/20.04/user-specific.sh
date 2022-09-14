@@ -1,10 +1,6 @@
 set -euo pipefail
 shopt -s inherit_errexit
 
-# locale related workd
-sudo apt install -y language-pack-zh-hans
-sudo update-locale LANG=zh_CN.utf8 LANGUAGE=zh_CN.utf8 LC_ALL=zh_CN.utf8
-
 # install homebrew
 NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" < /dev/null
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
@@ -120,6 +116,10 @@ else
         --install-extension ms-vscode.azure-account \
         --install-extension redhat.vscode-yaml
 fi
+
+# locale related workd
+sudo apt install -y language-pack-zh-hans
+sudo update-locale LANG=zh_CN.utf8 LANGUAGE=zh_CN.utf8 LC_ALL=zh_CN.utf8
 
 # ssh key
 rm -f ~/.ssh/id_rsa ~/.ssh/id_rsa.pub
