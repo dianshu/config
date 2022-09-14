@@ -6,6 +6,8 @@ NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Ho
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 brew doctor
 
+ulimit -n 100000
+
 # install packages
 brew install vim kubectl azure-cli yq jq tldr
 
