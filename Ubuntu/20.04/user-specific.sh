@@ -7,7 +7,7 @@ eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 brew doctor
 
 # install packages
-brew install vim kubectl azure-cli yq jq docker
+brew install vim kubectl azure-cli yq jq tldr
 
 # git
 git config --global alias.l "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
@@ -68,6 +68,19 @@ python -m pip install --upgrade pip
 pip install ipython requests
 
 if uname -a | grep -qi "WSL"; then
+    # add wsl.conf
+    sudo wget https://raw.githubusercontent.com/dianshu/config/master/Ubuntu/20.04/wsl.conf -O /etc/wsl.conf
+    
+    # install docker
+    sudo apt install -y ca-certificates curl gnupg lsb-release
+    sudo mkdir -p /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    sudo apt update
+    sudo apt install -y docker-ce docker-ce-cli containerd.io
+    sudo usermod -aG docker $2
+    
+    # vscode related work
     echo 'can not install vscode and related extensions, please install them manually:'
     echo 'code \'
     echo '    --install-extension adpyke.codesnap \'
