@@ -21,6 +21,10 @@ export TZ=Asia/Shanghai
 DEBIAN_FRONTEND=noninteractive apt install -y tzdata
 ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
+# locale related workd
+apt install -y language-pack-zh-hans
+update-locale LANG=zh_CN.utf8 LC_ALL=zh_CN.utf8
+
 # install basic packages
 apt install -y build-essential procps curl file git software-properties-common apt-transport-https wget
 
