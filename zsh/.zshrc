@@ -62,3 +62,5 @@ eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 # 启用 k8s 命令自动补全
 source <(kubectl completion zsh)
+
+export DOCKER_BUILDKIT=1
