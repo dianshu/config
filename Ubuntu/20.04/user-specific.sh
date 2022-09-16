@@ -54,6 +54,7 @@ set hlsearch
 set foldenable
 set foldlevelstart=10
 set foldmethod=indent
+set backspace=indent,eol,start
 EOF
 
 # python related work
