@@ -11,11 +11,11 @@ source ~/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 # 启动历史命令搜索插件
 source ~/.zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
 # Linux & Mac
-# bindkey '^[[A' history-substring-search-up
-# bindkey '^[[B' history-substring-search-down
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
 # Window
-bindkey '^[OA' history-substring-search-up
-bindkey '^[OB' history-substring-search-down
+# bindkey '^[OA' history-substring-search-up
+# bindkey '^[OB' history-substring-search-down
 
 # 启用彩色提示符
 autoload -U colors && colors
