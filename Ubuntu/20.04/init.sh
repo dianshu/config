@@ -22,6 +22,6 @@ DEBIAN_FRONTEND=noninteractive apt install -y tzdata
 ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # install basic packages
-apt install -y build-essential procps curl file git software-properties-common apt-transport-https wget net-tools
+apt install -y build-essential procps curl file git software-properties-common apt-transport-https wget
 
 sudo -u ${UserName} /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/dianshu/config/HEAD/Ubuntu/20.04/user-specific.sh?${RANDOM})" ${GitUserName} ${GitUserEmail} ${UserName}
