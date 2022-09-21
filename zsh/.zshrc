@@ -63,4 +63,16 @@ eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 # 启用 k8s 命令自动补全
 source <(kubectl completion zsh)
 
+# enable docker buildkit
 export DOCKER_BUILDKIT=1
+
+####################################################################################
+#                                     Functions                                    #
+####################################################################################
+function docker_build() {
+    docker build --add-host $(ifconfig eth0 | grep "inet " | awk '{print "host.docker.internal:"$2}') $@
+}
+
+function docker_run() {
+    docker run --init --rm $@                                                                                                                  
+}  
