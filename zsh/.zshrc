@@ -63,6 +63,10 @@ eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 # 启用 k8s 命令自动补全
 source <(kubectl completion zsh)
 
+# 启用 az-cli 命令自动补全
+autoload -U +X bashcompinit && bashcompinit
+source /home/linuxbrew/.linuxbrew/etc/bash_completion.d/az
+
 # enable docker buildkit
 export DOCKER_BUILDKIT=1
 
