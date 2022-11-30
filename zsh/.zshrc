@@ -57,6 +57,9 @@ setopt HIST_FIND_NO_DUPS
 # 命令写入历史时仅写入非重复的命令
 setopt HIST_IGNORE_ALL_DUPS
 
+# 索引 snap 安装的命令
+export PATH=/snap:$PATH
+
 # 引入 homebrew 相关环境变量
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
