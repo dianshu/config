@@ -9,7 +9,7 @@ brew doctor
 ulimit -n 100000
 
 # install packages
-brew install vim kubectl azure-cli yq jq tldr net-tools helm git
+brew install vim kubectl azure-cli yq jq tldr net-tools helm git tree
 
 # git
 git config --global alias.l "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
