@@ -52,6 +52,10 @@ set foldenable
 set foldlevelstart=10
 set foldmethod=indent
 set backspace=indent,eol,start
+
+set cursorcolumn
+set cursorline
+highlight CursorLine   cterm=NONE ctermbg=black ctermfg=yellow
 EOF
 
 # python related work
