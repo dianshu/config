@@ -31,9 +31,6 @@ git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting ~/.zsh/
 rm -rf ~/.zsh/plugins/zsh-history-substring-search
 git clone --depth 1 https://github.com/zsh-users/zsh-history-substring-search ~/.zsh/plugins/zsh-history-substring-search
 
-command -v zsh | sudo tee -a /etc/shells
-sudo chsh -s `command -v zsh` ${USER}
-
 # vim related work
 cat > ~/.vimrc << EOF
 " Doc: https://linuxhint.com/vimrc_tutorial/
