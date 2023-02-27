@@ -4,8 +4,6 @@ shopt -s inherit_errexit
 
 # timezone related work
 export TZ=Asia/Shanghai
-DEBIAN_FRONTEND=noninteractive apt install -y tzdata
-ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # install homebrew
 NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" < /dev/null
