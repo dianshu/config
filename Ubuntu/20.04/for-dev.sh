@@ -68,7 +68,3 @@ ln -sf ${Pip3Path} ${Pip3Dir}/pip
 python -m pip install --upgrade pip
 pip install ipython requests
 
-# locale related workd
-sudo apt install -y language-pack-zh-hans
-sudo sed -i 's/# zh_CN.UTF-8 UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen
-sudo locale-gen
