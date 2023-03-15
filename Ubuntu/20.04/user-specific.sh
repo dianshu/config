@@ -15,6 +15,7 @@ brew install vim kubectl azure-cli yq jq tldr net-tools helm git tree
 git config --global alias.l "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
 git config --global log.date "format-local:%Y-%m-%d %H:%M:%S"
 git config --global core.editor vim
+git config --global --bool push.autoSetupRemote true
 git config --global --replace-all user.name $0
 git config --global --replace-all user.email $1
 
