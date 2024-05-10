@@ -63,17 +63,17 @@ highlight CursorLine   cterm=NONE ctermbg=black ctermfg=yellow
 EOF
 
 # python related work
-brew install python3
-Python3Path=`which python3`
-Python3Dir=`dirname ${Python3Path}`
-ln -sf ${Python3Path} ${Python3Dir}/python
+# brew install python3
+# Python3Path=`which python3`
+# Python3Dir=`dirname ${Python3Path}`
+# ln -sf ${Python3Path} ${Python3Dir}/python
 
-Pip3Path=`which pip3`
-Pip3Dir=`dirname ${Pip3Path}`
-ln -sf ${Pip3Path} ${Pip3Dir}/pip
+# Pip3Path=`which pip3`
+# Pip3Dir=`dirname ${Pip3Path}`
+# ln -sf ${Pip3Path} ${Pip3Dir}/pip
 
-python -m pip install --upgrade pip
-pip install ipython requests
+# python -m pip install --upgrade pip
+# pip install ipython requests
 
 if uname -a | grep -qi "WSL"; then
     # add wsl.conf
