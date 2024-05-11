@@ -11,6 +11,10 @@ ulimit -n 100000
 # install packages
 brew install vim kubectl azure-cli yq jq tldr net-tools helm git tree
 
+# azure cli
+# add ml extension
+az extension add --upgrade --yes --name ml
+
 # git
 git config --global alias.l "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
 git config --global log.date "format-local:%Y-%m-%d %H:%M:%S"
