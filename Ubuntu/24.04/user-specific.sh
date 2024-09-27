@@ -22,6 +22,8 @@ git config --global core.editor vim
 git config --global --bool push.autoSetupRemote true
 git config --global --replace-all user.name $0
 git config --global --replace-all user.email $1
+git config --global credential.helper "/mnt/c/Program\ Files/Git/mingw64/bin/git-credential-manager.exe"
+git config --global credential.https://dev.azure.com.useHttpPath true
 
 # zsh related work
 brew install zsh
