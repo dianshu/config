@@ -93,6 +93,10 @@ if uname -a | grep -qi "WSL"; then
     sudo apt update
     sudo apt install -y docker-ce docker-ce-cli containerd.io
     sudo usermod -aG docker $2
+
+    # use browser in windows
+    sudo apt install -y wslu
+    export BROWSER=wslview
 else
     wget -q https://packages.microsoft.com/keys/microsoft.asc -O- | sudo apt-key add -
     sudo add-apt-repository "deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main"
