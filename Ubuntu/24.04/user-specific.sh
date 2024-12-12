@@ -96,7 +96,7 @@ if uname -a | grep -qi "WSL"; then
 
     # use browser in windows
     sudo apt install -y wslu
-    export BROWSER=wslview
+    echo "export BROWSER=wslview" >> ~/.zshrc
 else
     wget -q https://packages.microsoft.com/keys/microsoft.asc -O- | sudo apt-key add -
     sudo add-apt-repository "deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main"
