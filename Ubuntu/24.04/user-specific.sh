@@ -41,6 +41,9 @@ git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-syntax
 rm -rf ~/.zsh/plugins/zsh-history-substring-search
 git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-history-substring-search ~/.zsh/plugins/zsh-history-substring-search
 
+# replace "/usr/bin/env zsh" to actually zsh "/home/linuxbrew/.linuxbrew/bin/zsh" to avoid error "/usr/bin/env: 'zsh': Permission denied"
+find ~/.zsh/plugins/ -type f -name "*.zsh" -exec sed -i 's|^#!/usr/bin/env zsh|#!/home/linuxbrew/.linuxbrew/bin/zsh|' {} +
+
 command -v zsh | sudo tee -a /etc/shells
 sudo chsh -s `command -v zsh` ${USER}
 
