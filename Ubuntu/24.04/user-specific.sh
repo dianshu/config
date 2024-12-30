@@ -30,16 +30,16 @@ brew install zsh
 curl https://raw.githubusercontent.com/dianshu/config/HEAD/zsh/.zshrc?${RANDOM} > ~/.zshrc
 
 rm -rf ~/.zsh/plugins/zsh-abbr
-git clone --depth 1 https://github.com/olets/zsh-abbr ~/.zsh/plugins/zsh-abbr
+git clone --depth 1 --recurse-submodules https://github.com/olets/zsh-abbr ~/.zsh/plugins/zsh-abbr
 
 rm -rf ~/.zsh/plugins/zsh-autosuggestions
-git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions ~/.zsh/plugins/zsh-autosuggestions
+git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-autosuggestions ~/.zsh/plugins/zsh-autosuggestions
 
 rm -rf ~/.zsh/plugins/zsh-syntax-highlighting
-git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting ~/.zsh/plugins/zsh-syntax-highlighting
+git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-syntax-highlighting ~/.zsh/plugins/zsh-syntax-highlighting
 
 rm -rf ~/.zsh/plugins/zsh-history-substring-search
-git clone --depth 1 https://github.com/zsh-users/zsh-history-substring-search ~/.zsh/plugins/zsh-history-substring-search
+git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-history-substring-search ~/.zsh/plugins/zsh-history-substring-search
 
 command -v zsh | sudo tee -a /etc/shells
 sudo chsh -s `command -v zsh` ${USER}
