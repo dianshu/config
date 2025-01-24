@@ -9,7 +9,8 @@ brew doctor
 ulimit -n 100000
 
 # install packages
-brew install vim kubectl azure-cli yq jq tldr net-tools helm git tree
+brew install vim kubectl azure-cli yq
+brew install jq tldr net-tools helm git tree
 
 # azure cli
 # add ml extension
