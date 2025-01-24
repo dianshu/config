@@ -22,7 +22,8 @@ $packages = @(
 	"Microsoft.AzureCLI",
 	"OpenJS.NodeJS.LTS",
 	"Microsoft.NuGet",
- 	"Genivia.ugrep"
+ 	"Genivia.ugrep",
+  	"ByteDance.Feishu"
 )
 $locations = @(
 	"Sublime",
@@ -36,7 +37,8 @@ $locations = @(
 	"AzureCLI",
 	"NodeJS",
 	"NuGet",
-	"Ugrep"
+	"Ugrep",
+ 	"Feishu"
 )
 for ($i = 0; $i -lt $packages.Length; $i++) {
     $package = $packages[$i]
