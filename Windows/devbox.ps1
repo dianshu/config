@@ -21,24 +21,26 @@ $packages = @(
 	"Microsoft.DotNet.SDK.9",
 	"Microsoft.AzureCLI",
 	"OpenJS.NodeJS.LTS",
-	"Microsoft.NuGet"
+	"Microsoft.NuGet",
+ 	"Genivia.ugrep"
 )
 $locations = @(
-	"Q:\Programs\Sublime",
-	"Q:\Programs\VisualStudioCode",
-	"Q:\Programs\PowerShell",
-	"Q:\Programs\WeChat",
-	"Q:\Programs\NetEastCloudMusic",
-	"Q:\Programs\Yq",
-	"Q:\Programs\DockerDesktop",
-	"Q:\Programs\DotNet9",
-	"Q:\Programs\AzureCLI",
-	"Q:\Programs\NodeJS",
-	"Q:\Programs\NuGet"
+	"Sublime",
+	"VisualStudioCode",
+	"PowerShell",
+	"WeChat",
+	"NetEastCloudMusic",
+	"Yq",
+	"DockerDesktop",
+	"DotNet9",
+	"AzureCLI",
+	"NodeJS",
+	"NuGet",
+	"Ugrep"
 )
 for ($i = 0; $i -lt $packages.Length; $i++) {
     $package = $packages[$i]
-    $location = $locations[$i]
+    $location = "Q:\Programs\" + $locations[$i]
     Write-Output "Going to install $package..."
     
     winget install --accept-package-agreements --accept-source-agreements -i -l $location -e $package
@@ -47,4 +49,4 @@ for ($i = 0; $i -lt $packages.Length; $i++) {
 wsl --update
 
 Write-Output "Going to install Azure Artifacts Credential Provider..."
-sh -c "$(curl -fsSL https://aka.ms/install-artifacts-credprovider.sh)"
+iex "& { $(irm https://aka.ms/install-artifacts-credprovider.ps1) } -InstallNet8"
