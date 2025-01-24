@@ -1,9 +1,9 @@
 $needToUninstallPackages = @(
 	"Microsoft.VisualStudioCode",
 	"Anaconda.Anaconda3",
-  "Notepad++.Notepad++",
-  "Oracle.JavaRuntimeEnvironment",
-  "Microsoft.Edge.Beta"
+  	"Notepad++.Notepad++",
+  	"Oracle.JavaRuntimeEnvironment",
+  	"Microsoft.Edge.Beta"
 )
 foreach ($package in $needToUninstallPackages) {
 	Write-Output "Going to uninstall $package..."
