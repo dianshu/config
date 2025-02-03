@@ -1,6 +1,4 @@
 version: 7
-profiles: []
-groups: []
 configSync:
   parts: {}
 hotkeys:
@@ -12,8 +10,8 @@ hotkeys:
   copy:
     - Ctrl-Shift-C
   paste:
-    - Ctrl-Shift-V
     - Shift-Insert
+    - Ctrl-V
   select-all:
     - Ctrl-Shift-A
   clear: []
@@ -221,7 +219,7 @@ terminal:
       - '#7dd6cf'
       - '#f5f5f5'
   customColorSchemes: []
-ssh: {}
+  bracketedPaste: false
 clickableLinks:
   modifier: ctrlKey
 accessibility: {}
@@ -248,3 +246,5 @@ profileBlacklist:
   - local:wsl-docker-desktop
   - local:wsl-Ubuntu2204
 recoverTabs: false
+groups: []
+profiles: []
