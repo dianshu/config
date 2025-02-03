@@ -23,7 +23,8 @@ $packages = @(
 	"OpenJS.NodeJS.LTS",
 	"Microsoft.NuGet",
  	"Genivia.ugrep",
-  	"ByteDance.Feishu"
+  	"ByteDance.Feishu",
+   	"Eugeny.Tabby"
 )
 $locations = @(
 	"Sublime",
@@ -38,7 +39,8 @@ $locations = @(
 	"NodeJS",
 	"NuGet",
 	"Ugrep",
- 	"Feishu"
+ 	"Feishu",
+  	"Tabby"
 )
 for ($i = 0; $i -lt $packages.Length; $i++) {
     $package = $packages[$i]
