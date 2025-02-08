@@ -12,6 +12,10 @@ ulimit -n 100000
 brew install vim kubectl azure-cli yq
 brew install jq tldr net-tools helm git tree
 
+sudo apt install -y uidmap
+brew install podman
+brew services start podman
+
 # azure cli
 # add ml extension
 az extension add --upgrade --yes --name ml
@@ -72,48 +76,16 @@ set cursorline
 highlight CursorLine   cterm=NONE ctermbg=black ctermfg=yellow
 EOF
 
-# python related work
-# brew install python3
-# Python3Path=`which python3`
-# Python3Dir=`dirname ${Python3Path}`
-# ln -sf ${Python3Path} ${Python3Dir}/python
-
-# Pip3Path=`which pip3`
-# Pip3Dir=`dirname ${Pip3Path}`
-# ln -sf ${Pip3Path} ${Pip3Dir}/pip
-
-# python -m pip install --upgrade pip
-# pip install ipython requests
-
 if uname -a | grep -qi "WSL"; then
     # add wsl.conf
     sudo wget https://raw.githubusercontent.com/dianshu/config/master/Ubuntu/24.04/wsl.conf -O /etc/wsl.conf
-    
-    # install docker
-    # sudo apt install -y ca-certificates curl gnupg lsb-release
-    # sudo mkdir -p /etc/apt/keyrings
-    # curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-    # echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-    # sudo apt update
-    # sudo apt install -y docker-ce docker-ce-cli containerd.io
-    # sudo usermod -aG docker $2
 
     # use browser in windows
     sudo apt install -y wslu
     echo "export BROWSER=wslview" >> ~/.zshrc
-else
-    wget -q https://packages.microsoft.com/keys/microsoft.asc -O- | sudo apt-key add -
-    sudo add-apt-repository "deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main"
-    sudo apt install -y code
 fi
 
 # locale related work
 sudo apt install -y language-pack-zh-hans
 sudo sed -i 's/# zh_CN.UTF-8 UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen
 sudo locale-gen
-
-# ssh key
-rm -f ~/.ssh/id_rsa ~/.ssh/id_rsa.pub
-mkdir -p ~/.ssh
-ssh-keygen -t rsa -b 4096 -C "ubuntu" -f ~/.ssh/id_rsa -N ''
-echo "ssh-public-key:\n" `cat ~/.ssh/id_rsa.pub`
