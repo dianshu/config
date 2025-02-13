@@ -78,12 +78,13 @@
                 "source": "Windows.Terminal.PowershellCore"
             },
             {
+                "commandline": "C:\\Windows\\system32\\wsl.exe --distribution-id {28bcd3b3-00f2-455c-b445-03c90891479d} --cd ~/repos",
                 "guid": "{5cac1aaf-1542-56ad-a1e0-87a7f3fb1e32}",
                 "hidden": false,
                 "name": "Ubuntu-24.04",
-                "source": "Microsoft.WSL"
+                "source": "Microsoft.WSL",
+                "startingDirectory": null
             }
-
         ]
     },
     "schemes": [],
