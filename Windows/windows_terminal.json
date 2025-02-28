@@ -9,17 +9,14 @@
                 "action": "copy",
                 "singleLine": false
             },
-            "id": "User.copy.644BA8F2",
             "keys": "ctrl+c"
         },
         {
             "command": "paste",
-            "id": "User.paste",
             "keys": "ctrl+v"
         },
         {
             "command": "find",
-            "id": "User.find",
             "keys": "ctrl+shift+f"
         },
         {
@@ -29,16 +26,14 @@
                 "split": "auto",
                 "splitMode": "duplicate"
             },
-            "id": "User.splitPane.A6751878",
             "keys": "alt+shift+d"
         }
     ],
     "confirmCloseAllTabs": false,
     "copyFormatting": "none",
     "copyOnSelect": true,
-    "defaultInputScope": "alphanumericHalfWidth",
-    "defaultProfile": "{5cac1aaf-1542-56ad-a1e0-87a7f3fb1e32}",
-    "newTabMenu": 
+    "defaultProfile": "{cafc8168-f1e8-4838-93a3-67957ac3bb3f}",
+    "newTabMenu":
     [
         {
             "type": "remainingProfiles"
@@ -49,11 +44,11 @@
     {
         "defaults": 
         {
-            "colorScheme": "Dark+",
+            "colorScheme": "One Half Dark",
             "font": 
             {
                 "face": "Consolas",
-                "size": 13
+                "size": 13.0
             },
             "opacity": 95
         },
@@ -78,16 +73,41 @@
                 "source": "Windows.Terminal.PowershellCore"
             },
             {
-                "commandline": "C:\\Windows\\system32\\wsl.exe --distribution-id {28bcd3b3-00f2-455c-b445-03c90891479d} --cd ~/repos",
-                "guid": "{5cac1aaf-1542-56ad-a1e0-87a7f3fb1e32}",
+                "commandline": "C:\\Windows\\system32\\wsl.exe -d Ubuntu-24.04",
+                "guid": "{cafc8168-f1e8-4838-93a3-67957ac3bb3f}",
                 "hidden": false,
-                "name": "Ubuntu-24.04",
-                "source": "Microsoft.WSL",
-                "startingDirectory": null
+                "icon": "ms-appx:///ProfileIcons/{9acb9455-ca41-5af7-950f-6bca1bc9722f}.png",
+                "name": "Ubuntu-24.04 (Copy)",
+                "startingDirectory": "~/repos"
             }
         ]
     },
-    "schemes": [],
+    "schemes": 
+    [
+        {
+            "background": "#282C34",
+            "black": "#282C34",
+            "blue": "#61AFEF",
+            "brightBlack": "#5A6374",
+            "brightBlue": "#61AFEF",
+            "brightCyan": "#56B6C2",
+            "brightGreen": "#98C379",
+            "brightPurple": "#C678DD",
+            "brightRed": "#E06C75",
+            "brightWhite": "#DCDFE4",
+            "brightYellow": "#E5C07B",
+            "cursorColor": "#FFFFFF",
+            "cyan": "#56B6C2",
+            "foreground": "#DCDFE4",
+            "green": "#98C379",
+            "name": "One Half Dark",
+            "purple": "#C678DD",
+            "red": "#E06C75",
+            "selectionBackground": "#FFFFFF",
+            "white": "#DCDFE4",
+            "yellow": "#E5C07B"
+        }
+    ],
     "theme": "dark",
     "themes": [],
     "windowingBehavior": "useExisting"
