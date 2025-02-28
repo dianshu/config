@@ -48,7 +48,8 @@ for ($i = 0; $i -lt $packages.Length; $i++) {
     winget install --accept-package-agreements --accept-source-agreements -i -l $location -e $package
 }
 
-wsl --update
-
 Write-Output "Going to install Azure Artifacts Credential Provider..."
 iex "& { $(irm https://aka.ms/install-artifacts-credprovider.ps1) } -InstallNet8"
+
+wsl --update
+wsl --install Ubuntu-24.04
