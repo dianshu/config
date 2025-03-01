@@ -3,7 +3,11 @@ $needToUninstallPackages = @(
 	"Anaconda.Anaconda3",
   	"Notepad++.Notepad++",
   	"Oracle.JavaRuntimeEnvironment",
-  	"Microsoft.Edge.Beta"
+  	"Microsoft.Edge.Beta",
+   	"Microsoft.Office",
+    "OpenJS.NodeJS.LTS",
+	"GoLang.Go",
+ 	"Microsoft.AzureCLI"
 )
 foreach ($package in $needToUninstallPackages) {
 	Write-Output "Going to uninstall $package..."
@@ -18,11 +22,8 @@ $packages = @(
 	"NetEase.CloudMusic",
 	"MikeFarah.yq",
 	"Docker.DockerDesktop",
-	"Microsoft.DotNet.SDK.9",
 	"Microsoft.AzureCLI",
-	"OpenJS.NodeJS.LTS",
 	"Microsoft.NuGet",
- 	"Genivia.ugrep",
   	"ByteDance.Feishu"
 )
 $locations = @(
@@ -33,11 +34,8 @@ $locations = @(
 	"NetEastCloudMusic",
 	"Yq",
 	"DockerDesktop",
-	"DotNet9",
 	"AzureCLI",
-	"NodeJS",
 	"NuGet",
-	"Ugrep",
  	"Feishu"
 )
 for ($i = 0; $i -lt $packages.Length; $i++) {
