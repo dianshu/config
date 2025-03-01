@@ -50,4 +50,6 @@ Write-Output "Going to install Azure Artifacts Credential Provider..."
 iex "& { $(irm https://aka.ms/install-artifacts-credprovider.ps1) } -InstallNet8"
 
 wsl --update
-wsl --install Ubuntu-24.04
+wsl --install --no-launch Ubuntu-24.04
+Write-Output 'Init script for Ubuntu-24.04: sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/dianshu/config/HEAD/Ubuntu/24.04/init.sh?${RANDOM})"'
+Write-Output 'Windows Terminal json config: https://raw.githubusercontent.com/dianshu/config/refs/heads/master/Windows/windows_terminal.json'
