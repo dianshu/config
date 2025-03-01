@@ -11,7 +11,7 @@ $needToUninstallPackages = @(
 )
 foreach ($package in $needToUninstallPackages) {
 	Write-Output "Going to uninstall $package..."
-	winget uninstall -i -e $package
+ 	winget uninstall -e $package --nowarn --disable-interactivity --silent --purge --accept-source-agreements
 }
 
 $packages = @(
