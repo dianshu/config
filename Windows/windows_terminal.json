@@ -56,6 +56,12 @@
         "list": 
         [
             {
+                "commandline": "C:\\Windows\\system32\\wsl.exe -d Ubuntu-24.04",
+                "hidden": false,
+                "name": "Ubuntu-24.04",
+                "startingDirectory": "~/repos"
+            },
+            {
                 "commandline": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
                 "hidden": true,
                 "name": "Windows PowerShell"
@@ -69,12 +75,6 @@
                 "commandline": "pwsh",
                 "hidden": false,
                 "name": "PowerShell",
-            },
-            {
-                "commandline": "C:\\Windows\\system32\\wsl.exe -d Ubuntu-24.04",
-                "hidden": false,
-                "name": "Ubuntu-24.04",
-                "startingDirectory": "~/repos"
             }
         ]
     },
