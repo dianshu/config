@@ -24,7 +24,8 @@ $packages = @(
 	"Docker.DockerDesktop",
 	"Microsoft.AzureCLI",
 	"Microsoft.NuGet",
-  	"ByteDance.Feishu"
+  	"ByteDance.Feishu",
+   	"voidtools.Everything",
 )
 $locations = @(
 	"Sublime",
@@ -36,7 +37,8 @@ $locations = @(
 	"DockerDesktop",
 	"AzureCLI",
 	"NuGet",
- 	"Feishu"
+ 	"Feishu",
+  	"Everything",
 )
 for ($i = 0; $i -lt $packages.Length; $i++) {
     $package = $packages[$i]
