@@ -51,6 +51,10 @@ for ($i = 0; $i -lt $packages.Length; $i++) {
 Write-Output "Going to install Azure Artifacts Credential Provider..."
 iex "& { $(irm https://aka.ms/install-artifacts-credprovider.ps1) } -InstallNet8"
 
+Write-Ouput "Going to delete redundant directories..."
+Remove-Item -Path "Q:\Edge" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "Q:\src" -Recurse -Force -ErrorAction SilentlyContinue
+
 wsl --update
 wsl --install --no-launch Ubuntu-24.04
 Write-Output 'Init script for Ubuntu-24.04: sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/dianshu/config/HEAD/Ubuntu/24.04/init.sh?${RANDOM})"'
