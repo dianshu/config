@@ -5,10 +5,10 @@ $needToUninstallPackages = @(
   	"Oracle.JavaRuntimeEnvironment",
   	"Microsoft.Edge.Beta",
    	"Microsoft.Office",
-        "OpenJS.NodeJS.LTS",
+	"OpenJS.NodeJS.LTS",
 	"GoLang.Go",
  	"Microsoft.AzureCLI",
-        "Unity.UnityHub",
+	"Unity.UnityHub",
 	"GitHub.cli",
  	"Microsoft.Azure.CosmosEmulator"
 )
@@ -29,6 +29,8 @@ $packages = @(
 	"Microsoft.NuGet",
   	"ByteDance.Feishu",
    	"voidtools.Everything",
+	"Ollama.Ollama",
+ 	"Python.Python.3.13"
 )
 $locations = @(
 	"Sublime",
@@ -42,6 +44,8 @@ $locations = @(
 	"NuGet",
  	"Feishu",
   	"Everything",
+    "Ollama",
+	"Python313"
 )
 for ($i = 0; $i -lt $packages.Length; $i++) {
     $package = $packages[$i]
@@ -54,9 +58,17 @@ for ($i = 0; $i -lt $packages.Length; $i++) {
 Write-Output "Going to install Azure Artifacts Credential Provider..."
 iex "& { $(irm https://aka.ms/install-artifacts-credprovider.ps1) } -InstallNet8"
 
-Write-Ouput "Going to delete redundant directories..."
-Remove-Item -Path "Q:\Edge" -Recurse -Force -ErrorAction SilentlyContinue
-Remove-Item -Path "Q:\src" -Recurse -Force -ErrorAction SilentlyContinue
+Write-Ouput "Going to delete redundant directories and files..."
+$needToDeletePaths = @(
+	"Q:\Edge",
+ 	"Q:\src",
+  	"Q:\.tools\QuickBuild",
+   	"C:\CommonTools\*"
+)
+foreach ($path in $needToDeletePaths) {
+	Write-Output "Going to delete $path..."
+ 	Remove-Item -Path $path -Recurse -Force -ErrorAction SilentlyContinue
+}
 
 Write-Output "Going to create new directories..."
 New-Item -ItemType Directory -Path "Q:\Repos" -Force
