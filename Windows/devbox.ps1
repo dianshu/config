@@ -73,6 +73,21 @@ foreach ($path in $needToDeletePaths) {
 Write-Output "Going to create new directories..."
 New-Item -ItemType Directory -Path "Q:\Repos" -Force
 
+Write-Output "Going to install vscode extensions..."
+$vscodeExtensions = @(
+	"alefragnani.project-manager",
+ 	"ms-azuretools.vscode-bicep",
+  	"github.copilot",
+   	"github.copilot-chat",
+	"ms-python.python",
+	"ms-vscode-remote.remote-wsl",
+	"panxiaoan.themes-falcon-vscode"
+)
+for ($extension in $vscodeExtensions) {
+	Write-Output "Going to install vscode extension: $extension..."
+ 	code --install-extension $extension
+}
+
 wsl --update
 wsl --install --no-launch Ubuntu-24.04
 Write-Output 'Init script for Ubuntu-24.04: sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/dianshu/config/HEAD/Ubuntu/24.04/init.sh?${RANDOM})"'
