@@ -5,9 +5,12 @@ $needToUninstallPackages = @(
   	"Oracle.JavaRuntimeEnvironment",
   	"Microsoft.Edge.Beta",
    	"Microsoft.Office",
-    "OpenJS.NodeJS.LTS",
+        "OpenJS.NodeJS.LTS",
 	"GoLang.Go",
- 	"Microsoft.AzureCLI"
+ 	"Microsoft.AzureCLI",
+        "Unity.UnityHub",
+	"GitHub.cli",
+ 	"Microsoft.Azure.CosmosEmulator"
 )
 foreach ($package in $needToUninstallPackages) {
 	Write-Output "Going to uninstall $package..."
@@ -54,6 +57,9 @@ iex "& { $(irm https://aka.ms/install-artifacts-credprovider.ps1) } -InstallNet8
 Write-Ouput "Going to delete redundant directories..."
 Remove-Item -Path "Q:\Edge" -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item -Path "Q:\src" -Recurse -Force -ErrorAction SilentlyContinue
+
+Write-Output "Going to create new directories..."
+New-Item -ItemType Directory -Path "Q:\Repos" -Force
 
 wsl --update
 wsl --install --no-launch Ubuntu-24.04
