@@ -29,7 +29,8 @@ $packages = @(
   	"ByteDance.Feishu",
    	"voidtools.Everything",
 	"Ollama.Ollama",
- 	"Python.Python.3.13"
+ 	"Python.Python.3.13",
+  	"Yuanli.uTools"
 )
 $locations = @(
 	"Sublime",
@@ -43,8 +44,9 @@ $locations = @(
 	"NuGet",
  	"Feishu",
   	"Everything",
-    "Ollama",
-	"Python313"
+	"Ollama",
+	"Python313",
+ 	"uTools"
 )
 for ($i = 0; $i -lt $packages.Length; $i++) {
     $package = $packages[$i]
