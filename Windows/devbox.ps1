@@ -56,13 +56,13 @@ for ($i = 0; $i -lt $packages.Length; $i++) {
     winget install --accept-package-agreements --accept-source-agreements -i -l $location -e $package
 }
 
-Write-Ouput "Going to install Azure Powershell..."
+Write-Output "Going to install Azure Powershell..."
 Install-Module -Name Az -Repository PSGallery -Force
 
 Write-Output "Going to install Azure Artifacts Credential Provider..."
 iex "& { $(irm https://aka.ms/install-artifacts-credprovider.ps1) } -InstallNet8"
 
-Write-Ouput "Going to delete redundant directories and files..."
+Write-Output "Going to delete redundant directories and files..."
 $needToDeletePaths = @(
 	"Q:\Edge",
  	"Q:\src",
