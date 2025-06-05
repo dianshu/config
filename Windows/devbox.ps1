@@ -9,9 +9,7 @@ $needToUninstallPackages = @(
 	"GoLang.Go",
  	"Microsoft.AzureCLI",
 	"Unity.UnityHub",
-	"GitHub.cli",
- 	"Microsoft.Azure.CosmosEmulator",
-  	"Microsoft Azure PowerShell - April 2018"
+ 	"Microsoft.Azure.CosmosEmulator"
 )
 foreach ($package in $needToUninstallPackages) {
 	Write-Output "Going to uninstall $package..."
@@ -89,7 +87,7 @@ $vscodeExtensions = @(
 )
 for ($extension in $vscodeExtensions) {
 	Write-Output "Going to install vscode extension: $extension..."
- 	code --install-extension $extension
+ 	Q:\Programs\VisualStudioCode\bin\code.cmd --install-extension $extension
 }
 
 wsl --update
