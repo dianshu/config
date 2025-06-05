@@ -87,7 +87,7 @@ $vscodeExtensions = @(
 	"ms-vscode-remote.remote-wsl",
 	"panxiaoan.themes-falcon-vscode"
 )
-for ($extension in $vscodeExtensions) {
+foreach ($extension in $vscodeExtensions) {
 	Write-Output "Going to install vscode extension: $extension..."
  	Q:\Programs\VisualStudioCode\bin\code.cmd --install-extension $extension
 }
