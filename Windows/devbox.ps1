@@ -30,7 +30,8 @@ $packages = @(
    	"voidtools.Everything",
 	"Ollama.Ollama",
  	"Python.Python.3.13",
-  	"Yuanli.uTools"
+  	"Yuanli.uTools",
+   	"OpenJS.NodeJS.LTS"
 )
 $locations = @(
 	"Sublime",
@@ -46,7 +47,8 @@ $locations = @(
   	"Everything",
 	"Ollama",
 	"Python313",
- 	"uTools"
+ 	"uTools",
+  	"NodeJS"
 )
 for ($i = 0; $i -lt $packages.Length; $i++) {
     $package = $packages[$i]
