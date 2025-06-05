@@ -10,7 +10,7 @@ ulimit -n 100000
 
 # install packages
 brew install vim kubectl azure-cli yq
-brew install jq tldr net-tools helm git tree
+brew install jq net-tools helm git tree
 
 # sudo apt install -y uidmap
 # brew install podman
