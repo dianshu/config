@@ -9,12 +9,14 @@ brew doctor
 ulimit -n 100000
 
 # install packages
-brew install vim kubectl azure-cli yq
-brew install jq net-tools helm git tree
+brew install vim azure-cli yq
+brew install jq net-tools git tree
 
 # azure cli
 # add ml extension
 az extension add --upgrade --yes --name ml
+az config set extension.dynamic_install_allow_preview=true
+az config set extension.use_dynamic_install=yes_without_prompt
 
 # git
 git config --global alias.l "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
