@@ -91,6 +91,9 @@ foreach ($extension in $vscodeExtensions) {
  	Q:\Programs\VisualStudioCode\bin\code.cmd --install-extension $extension
 }
 
+# Overwrite pwsh profile
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dianshu/config/refs/heads/master/Windows/pwsh_profile.ps1" | Select-Object -ExpandProperty Content | Set-Content -Path $PROFILE -Force
+
 wsl --update
 wsl --install --no-launch Ubuntu-24.04
 Write-Output 'Init script for Ubuntu-24.04: sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/dianshu/config/HEAD/Ubuntu/24.04/init.sh?${RANDOM})"'
