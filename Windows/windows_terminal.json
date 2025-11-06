@@ -47,7 +47,7 @@
         "list": 
         [
             {
-                "commandline": "C:\\Windows\\system32\\wsl.exe -d Ubuntu-24.04 -u fei",
+                "commandline": "C:\\Windows\\system32\\wsl.exe -d Ubuntu-24.04",
                 "guid": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
                 "hidden": false,
                 "name": "Ubuntu-24.04",
