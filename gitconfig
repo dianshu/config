@@ -1,0 +1,8 @@
+[alias]
+        l = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %Cred[%cr] %C(bold blue)<%an>%Creset' --abbrev-commit
+[log]
+        date = format-local:%Y-%m-%d %H:%M:%S
+[core]
+        editor = vim                                                                                                              
+[push]
+        autoSetupRemote = true
