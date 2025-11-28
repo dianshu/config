@@ -2,5 +2,5 @@
 
 ## Install
 ```powershell
-Invoke-Expression -Command (Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dianshu/config/refs/heads/master/Windows/devbox.ps1").Content
+Invoke-Expression -Command (Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/Windows/devbox.ps1").Content
 ```
