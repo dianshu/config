@@ -22,12 +22,8 @@ $packages = @(
 	"Microsoft.PowerShell",
 	"Tencent.WeChat",
 	"MikeFarah.yq",
-	"Docker.DockerDesktop",
 	"Microsoft.AzureCLI",
-	"Microsoft.NuGet",
-	"Ollama.Ollama",
- 	"Python.Python.3.13",
-  	"Yuanli.uTools",
+ 	"Python.Python.3.14",
    	"OpenJS.NodeJS.LTS"
 )
 $locations = @(
@@ -36,12 +32,8 @@ $locations = @(
 	"PowerShell",
 	"WeChat",
 	"Yq",
-	"DockerDesktop",
 	"AzureCLI",
-	"NuGet",
-	"Ollama",
-	"Python313",
- 	"uTools",
+	"Python314",
   	"NodeJS"
 )
 for ($i = 0; $i -lt $packages.Length; $i++) {
