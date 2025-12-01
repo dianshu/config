@@ -9,7 +9,11 @@ $needToUninstallPackages = @(
 	"GoLang.Go",
  	"Microsoft.AzureCLI",
 	"Unity.UnityHub",
- 	"Microsoft.Azure.CosmosEmulator"
+ 	"Microsoft.Azure.CosmosEmulator",
+	"Microsoft.msodbcsql.17",
+	"GitHub.cli",
+	"Microsoft.CLRTypesSQLServer.2019",
+	"Microsoft.VisualStudio.2022.Enterprise"
 )
 foreach ($package in $needToUninstallPackages) {
 	Write-Output "Going to uninstall $package..."
