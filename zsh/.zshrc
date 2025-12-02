@@ -64,7 +64,7 @@ export PATH=/snap:$PATH
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 # 启用 k8s 命令自动补全
-source <(kubectl completion zsh)
+# source <(kubectl completion zsh)
 
 # 启用 az-cli 命令自动补全
 autoload -U +X bashcompinit && bashcompinit
