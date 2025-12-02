@@ -11,7 +11,7 @@ ulimit -n 100000
 # install packages
 brew install vim azure-cli yq
 brew install jq net-tools git tree
-brew install trivy
+brew install trivy uv
 
 # azure cli
 # add ml extension
