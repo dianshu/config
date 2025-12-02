@@ -24,8 +24,4 @@ ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 # install basic packages
 apt install -y build-essential procps curl file git software-properties-common apt-transport-https wget
 
-# install docker
-/bin/bash -c "$(curl -fsSL https://get.docker.com/)"
-sudo usermod -aG docker $USER
-
 sudo -u ${UserName} /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/dianshu/config/HEAD/Ubuntu/24.04/user-specific.sh?${RANDOM})" ${GitUserName} ${GitUserEmail} ${UserName}
