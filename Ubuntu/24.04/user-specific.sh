@@ -1,6 +1,10 @@
 set -euo pipefail
 shopt -s inherit_errexit
 
+# install docker
+/bin/bash -c "$(curl -fsSL https://get.docker.com/)"
+sudo usermod -aG docker ${USER}
+
 # install homebrew
 NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" < /dev/null
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
