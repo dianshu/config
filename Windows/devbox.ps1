@@ -82,7 +82,7 @@ foreach ($extension in $vscodeExtensions) {
 }
 
 # Overwrite pwsh profile
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dianshu/config/refs/heads/master/Windows/pwsh_profile.ps1" | Select-Object -ExpandProperty Content | Set-Content -Path $PROFILE -Force
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/Windows/pwsh_profile.ps1" | Select-Object -ExpandProperty Content | Set-Content -Path $PROFILE -Force
 
 # Overwrite windows terminal settings.json
 $remoteFile = "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/Windows/windows_terminal.json"
