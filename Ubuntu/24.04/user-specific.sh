@@ -90,3 +90,6 @@ fi
 sudo apt install -y language-pack-zh-hans
 sudo sed -i 's/# zh_CN.UTF-8 UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen
 sudo locale-gen
+
+# prepare git repos
+mkdir -p ~/repos
