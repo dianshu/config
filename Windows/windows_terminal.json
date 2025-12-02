@@ -92,5 +92,6 @@
     "theme": "dark",
     "themes": [],
     "warning.confirmCloseAllTabs": false,
+    "confirmCloseAllTabs": false,
     "windowingBehavior": "useExisting"
 }
