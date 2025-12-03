@@ -29,7 +29,7 @@ $packages = @(
 	"Microsoft.AzureCLI",
  	"Python.Python.3.14",
    	"OpenJS.NodeJS.LTS",
-	"Git.Git"
+	"Microsoft.Git"
 )
 $locations = @(
 	"Sublime",
