@@ -51,26 +51,13 @@
                 "guid": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
                 "hidden": false,
                 "name": "Ubuntu-24.04",
-                "source": "Windows.Terminal.PowershellCore",
                 "startingDirectory": "~/repos"
-            },
-            {
-                "commandline": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
-                "guid": "{c993c0b6-0023-5562-a928-3ea11eb283ce}",
-                "hidden": true,
-                "name": "Windows PowerShell"
-            },
-            {
-                "commandline": "%SystemRoot%\\System32\\cmd.exe",
-                "guid": "{0c63d969-ef2e-52d4-8736-68efbb78152d}",
-                "hidden": false,
-                "name": "Command Prompt"
             },
             {
                 "commandline": "pwsh",
                 "guid": "{e72abb56-ab17-50cf-9780-9bbd9b2b850c}",
                 "hidden": false,
-                "name": "PowerShell"
+                "name": "Pwsh"
             },
             {
                 "commandline": "C:\\Windows\\system32\\wsl.exe -d Ubuntu-24.04  -- ssh -p 22 neo4j@1.1.1.1",
@@ -85,6 +72,18 @@
                 "hidden": false,
                 "icon": "ms-appx:///ProfileIcons/pwsh.png",
                 "name": "Mem0-Neo4j-WestUS3"
+            },
+            {
+                "commandline": "%SystemRoot%\\System32\\cmd.exe",
+                "guid": "{0c63d969-ef2e-52d4-8736-68efbb78152d}",
+                "hidden": false,
+                "name": "Command Prompt"
+            },
+            {
+                "commandline": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                "guid": "{c993c0b6-0023-5562-a928-3ea11eb283ce}",
+                "hidden": true,
+                "name": "Windows PowerShell"
             }
         ]
     },
