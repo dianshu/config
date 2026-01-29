@@ -38,6 +38,8 @@ abbr --quiet -S check='git status --porcelain | awk "/.py/ {print \$2}" | xargs 
 abbr --quiet -S check2='git status --porcelain | awk "/.py/ {print \$2}" | cut -c 24- | xargs -t flake8 --max-line-length=120'
 abbr --quiet -S grep='grep --color=auto'
 abbr --quiet -S k='kubectl'
+abbr --quiet -S dc='docker compose'
+abbr --quiet -S d='docker'
 
 # 启用路径自动补全
 autoload -Uz compinit
