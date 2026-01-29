@@ -6,7 +6,7 @@ $packages = @(
 	"MikeFarah.yq",
 	"Microsoft.AzureCLI",
  	"Python.Python.3.13",
-  "OpenJS.NodeJS.LTS",
+    "OpenJS.NodeJS.LTS",
 	"Microsoft.Git"
 )
 $locations = @(
@@ -17,7 +17,7 @@ $locations = @(
 	"Yq",
 	"AzureCLI",
 	"Python313",
-  "NodeJS",
+    "NodeJS",
 	"Git"
 )
 for ($i = 0; $i -lt $packages.Length; $i++) {
@@ -38,11 +38,13 @@ Write-Output "Going to install vscode extensions..."
 $vscodeExtensions = @(
 	"alefragnani.project-manager",
  	"ms-azuretools.vscode-bicep",
-  "github.copilot",
-  "github.copilot-chat",
+    "github.copilot",
+    "github.copilot-chat",
 	"ms-python.python",
 	"ms-vscode-remote.remote-wsl",
-	"panxiaoan.themes-falcon-vscode"
+	"panxiaoan.themes-falcon-vscode",
+	"codeblend.codeblend",
+	"mai-engineeringsystems.mai-ai-telemetry"
 )
 foreach ($extension in $vscodeExtensions) {
 	Write-Output "Going to install vscode extension: $extension..."
