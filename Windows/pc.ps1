@@ -29,7 +29,7 @@ for ($i = 0; $i -lt $packages.Length; $i++) {
 }
 
 Write-Output "Going to install Azure Artifacts Credential Provider..."
-iex "& { $(irm https://aka.ms/install-artifacts-credprovider.ps1) } -InstallNet8"
+iex "& { $(irm https://aka.ms/install-artifacts-credprovider.ps1) }"
 
 Write-Output "Going to create new directories..."
 New-Item -ItemType Directory -Path "C:\Repos" -Force
