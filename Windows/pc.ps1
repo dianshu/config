@@ -22,7 +22,7 @@ $locations = @(
 )
 for ($i = 0; $i -lt $packages.Length; $i++) {
     $package = $packages[$i]
-    $location = "C:\Program Files\" + $locations[$i]
+    $location = "Q:\Programs\" + $locations[$i]
     Write-Output "Going to install $package..."
     
     winget install --accept-package-agreements --accept-source-agreements -i -l $location -e $package
@@ -32,7 +32,7 @@ Write-Output "Going to install Azure Artifacts Credential Provider..."
 iex "& { $(irm https://aka.ms/install-artifacts-credprovider.ps1) }"
 
 Write-Output "Going to create new directories..."
-New-Item -ItemType Directory -Path "C:\Repos" -Force
+New-Item -ItemType Directory -Path "Q:\Repos" -Force
 
 Write-Output "Going to install vscode extensions..."
 $vscodeExtensions = @(
