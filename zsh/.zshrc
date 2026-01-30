@@ -75,6 +75,8 @@ source /home/linuxbrew/.linuxbrew/etc/bash_completion.d/az
 # enable docker buildkit
 export DOCKER_BUILDKIT=1
 
+export PATH="$HOME/.local/bin:$PATH"
+
 ####################################################################################
 #                                     Functions                                    #
 ####################################################################################
