@@ -23,6 +23,9 @@ az extension add --upgrade --yes --name ml
 az config set extension.dynamic_install_allow_preview=true
 az config set extension.use_dynamic_install=yes_without_prompt
 
+# install claude code
+curl -fsSL https://claude.ai/install.sh | bash
+
 # git
 git config --global alias.l "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
 git config --global log.date "format-local:%Y-%m-%d %H:%M:%S"
