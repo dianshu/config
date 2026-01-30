@@ -27,7 +27,7 @@ $packages = @(
 	"Tencent.WeChat",
 	"MikeFarah.yq",
 	"Microsoft.AzureCLI",
- 	"Python.Python.3.14",
+ 	"Python.Python.3.13",
    	"OpenJS.NodeJS.LTS",
 	"Microsoft.Git"
 )
@@ -38,7 +38,7 @@ $locations = @(
 	"WeChat",
 	"Yq",
 	"AzureCLI",
-	"Python314",
+	"Python313",
   	"NodeJS",
 	"Git"
 )
@@ -51,7 +51,7 @@ for ($i = 0; $i -lt $packages.Length; $i++) {
 }
 
 Write-Output "Going to install Azure Artifacts Credential Provider..."
-iex "& { $(irm https://aka.ms/install-artifacts-credprovider.ps1) } -InstallNet8"
+iex "& { $(irm https://aka.ms/install-artifacts-credprovider.ps1) }"
 
 Write-Output "Going to delete redundant directories and files..."
 $needToDeletePaths = @(
@@ -76,7 +76,9 @@ $vscodeExtensions = @(
    	"github.copilot-chat",
 	"ms-python.python",
 	"ms-vscode-remote.remote-wsl",
-	"panxiaoan.themes-falcon-vscode"
+	"panxiaoan.themes-falcon-vscode"，
+	"codeblend.codeblend",
+	"mai-engineeringsystems.mai-ai-telemetry"
 )
 foreach ($extension in $vscodeExtensions) {
 	Write-Output "Going to install vscode extension: $extension..."
