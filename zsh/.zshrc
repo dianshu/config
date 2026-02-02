@@ -40,6 +40,7 @@ abbr --quiet -S grep='grep --color=auto'
 abbr --quiet -S k='kubectl'
 abbr --quiet -S dc='docker compose'
 abbr --quiet -S d='docker'
+abbr --quite -S cc='claude'
 
 # 启用路径自动补全
 autoload -Uz compinit
