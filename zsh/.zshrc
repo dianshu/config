@@ -76,6 +76,12 @@ source /home/linuxbrew/.linuxbrew/etc/bash_completion.d/az
 export DOCKER_BUILDKIT=1
 
 export PATH="$HOME/.local/bin:$PATH"
+export BROWSER=wslview
+
+# Claude Code settings
+export ANTHROPIC_BASE_URL="http://localhost:5000"
+export ANTHROPIC_AUTH_TOKEN="your-anthropic-auth-token"
+export CLAUDE_CODE_SKIP_AUTH_LOGIN="true"
 
 ####################################################################################
 #                                     Functions                                    #
