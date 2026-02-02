@@ -33,7 +33,13 @@ git config --global core.editor vim
 git config --global --bool push.autoSetupRemote true
 git config --global --replace-all user.name $0
 git config --global --replace-all user.email $1
-git config --global credential.helper "/mnt/c/Program\ Files/Git/mingw64/bin/git-credential-manager.exe"
+
+gitCredentialManagerArmExecution="/mnt/c/Programs/Git/clangarm64/bin/git-credential-manager.exe"
+if [ -f "$gitCredentialManagerArmExecution" ]; then
+    git config --global credential.helper $gitCredentialManagerArmExecution
+else
+    git config --global credential.helper "/mnt/c/Program\ Files/Git/mingw64/bin/git-credential-manager.exe"
+fi
 git config --global credential.https://dev.azure.com.useHttpPath true
 # use git merge
 git config --global pull.rebase false
