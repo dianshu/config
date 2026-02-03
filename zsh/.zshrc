@@ -90,6 +90,29 @@ function docker_build() {
     docker build --add-host $(ifconfig eth0 | grep "inet " | awk '{print "host.docker.internal:"$2}') $@
 }
 
-function docker_run() {
-    docker run --init --rm $@                                                                                                                  
-}  
+cc_proxy() {
+  local port="${1:-29427}"
+  local settings_file="$HOME/.claude/settings.json"
+  local settings_dir="$HOME/.claude"
+
+  # Check if port is in use
+  if lsof -i :"$port" > /dev/null 2>&1; then
+    echo "Port $port is binded, need to change a port"
+    return 1
+  fi
+
+  # Create directory if it doesn't exist
+  [[ -d "$settings_dir" ]] || mkdir -p "$settings_dir"
+
+  # Update or create settings.json with the new port
+  local tmp_file=$(mktemp)
+  if [[ -f "$settings_file" ]]; then
+    jq --arg port "$port" '.env.ANTHROPIC_BASE_URL = "http://localhost:\($port)" | .env.ANTHROPIC_AUTH_TOKEN = "your-anthropic-auth-token" | .env.CLAUDE_CODE_SKIP_AUTH_LOGIN = "true"' "$settings_file" > "$tmp_file" && mv "$tmp_file" "$settings_file"
+  else
+    echo "{\"env\":{\"ANTHROPIC_BASE_URL\":\"http://localhost:$port\",\"ANTHROPIC_AUTH_TOKEN\":\"your-anthropic-auth-token\",\"CLAUDE_CODE_SKIP_AUTH_LOGIN\":\"true\"}}" | jq . > "$settings_file"
+  fi
+  echo "Updated $settings_file with port $port"
+
+  # Start the copilot API
+  npx --yes @hsupu/copilot-api@latest start -p "$port"
+}
