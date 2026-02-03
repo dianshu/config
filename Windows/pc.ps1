@@ -46,8 +46,7 @@ $vscodeExtensions = @(
 	"ms-vscode-remote.remote-wsl",
 	"panxiaoan.themes-falcon-vscode",
 	"codeblend.codeblend",
-	"mai-engineeringsystems.mai-ai-telemetry",
-	"mai-engineeringsystems.mai-papyrusproxy"
+	"mai-engineeringsystems.mai-ai-telemetry"
 )
 foreach ($extension in $vscodeExtensions) {
 	Write-Output "Going to install vscode extension: $extension..."
