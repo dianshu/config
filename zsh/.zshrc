@@ -116,3 +116,38 @@ cc_proxy() {
   # Start the copilot API
   npx --yes @hsupu/copilot-api@latest start -p "$port"
 }
+
+function scan_vulns() {
+  local dockerfile="Dockerfile"
+  local build_dir="."
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --dockerfile|-f)
+        dockerfile="$2"
+        shift 2
+        ;;
+      --dir|-d)
+        build_dir="$2"
+        shift 2
+        ;;
+      *)
+        echo "Unknown option: $1"
+        echo "Usage: scan_vulns [--dockerfile|-f <path>] [--dir|-d <directory>]"
+        return 1
+        ;;
+    esac
+  done
+
+  local timestamp=$(date +%Y%m%d%H%M%S)
+  local image="test:${timestamp}"
+
+  echo "Authenticating to ACR: aihardware..."
+  az acr login --name aihardware || { echo "ACR login failed"; return 1; }
+
+  echo "Building image: ${image}..."
+  docker build --no-cache --pull -f "$dockerfile" -t "$image" "$build_dir" || { echo "Docker build failed"; return 1; }
+
+  echo "Scanning image with Trivy..."
+  trivy image --quiet --ignore-unfixed --format json --scanners vuln "$image" | jq '.Results[].Vulnerabilities // []'
+}
