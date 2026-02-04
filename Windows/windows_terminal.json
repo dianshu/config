@@ -92,5 +92,5 @@
     "themes": [],
     "warning.confirmCloseAllTabs": false,
     "confirmCloseAllTabs": false,
-    "windowingBehavior": "useExisting"
+    "windowingBehavior": "useNew"
 }
