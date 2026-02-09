@@ -146,3 +146,38 @@ function scan_vulns() {
   echo "Scanning image with Trivy..."
   trivy image --quiet --ignore-unfixed --format json --scanners vuln "$image" | jq '.Results[].Vulnerabilities // []'
 }
+
+sb_start() {
+      local log_dir="$HOME/.sing-box"
+      local log_file="$log_dir/$(date +%Y%m%d_%H%M%S).log"
+
+      mkdir -p "$log_dir"
+
+      # Start sing-box in background
+      sing-box run -c /etc/sing-box/config.json > "$log_file" 2>&1 &
+      local pid=$!
+
+      # Wait briefly and check if still running
+      sleep 1
+      if ! kill -0 "$pid" 2>/dev/null; then
+          echo "Failed to start sing-box. Check log: $log_file"
+          cat "$log_file"
+          return 1
+      fi
+
+      # Set proxy env
+      export http_proxy="http://127.0.0.1:17890"
+      export https_proxy="http://127.0.0.1:17890"
+      export all_proxy="socks5://127.0.0.1:17890"
+      export no_proxy="localhost,127.0.0.1,::1"
+
+      echo "sing-box started (PID: $pid)"
+      echo "Log: $log_file"
+      echo "Proxy ON"
+  }
+
+  sb_stop() {
+      pkill sing-box
+      unset http_proxy https_proxy all_proxy no_proxy
+      echo "sing-box stopped, Proxy OFF"
+  }
