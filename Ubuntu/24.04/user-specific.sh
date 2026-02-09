@@ -20,7 +20,7 @@ brew install trivy uv node
 # sing-box
 brew install sing-box
 mkdir $HOME/.sing-box
-sudo wget https://raw.githubusercontent.com/dianshu/config/master/Ubuntu/24.04/sing-box.config.json -O $HOME/.sing-box/config.json
+sudo wget https://raw.githubusercontent.com/dianshu/config/master/sing-box.config.json -O $HOME/.sing-box/config.json
 
 # azure cli
 # add ml extension
