@@ -40,6 +40,7 @@ abbr --quiet -S grep='grep --color=auto'
 abbr --quiet -S k='kubectl'
 abbr --quiet -S dc='docker compose'
 abbr --quiet -S d='docker'
+abbr --quiet -S cc='claude'
 
 # 启用路径自动补全
 autoload -Uz compinit
@@ -148,13 +149,14 @@ function scan_vulns() {
 }
 
 sb_start() {
-      local log_dir="$HOME/.sing-box"
+      local base_dir="$HOME/.sing-box"
+      local log_dir="$base_dir/logs"
       local log_file="$log_dir/$(date +%Y%m%d_%H%M%S).log"
 
       mkdir -p "$log_dir"
 
       # Start sing-box in background
-      sing-box run -c /etc/sing-box/config.json > "$log_file" 2>&1 &
+      sing-box run -c "$base_dir/config.json" > "$log_file" 2>&1 &
       local pid=$!
 
       # Wait briefly and check if still running
