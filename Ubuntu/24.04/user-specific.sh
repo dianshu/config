@@ -20,7 +20,7 @@ brew install trivy uv node
 # sing-box
 brew install sing-box
 mkdir $HOME/.sing-box
-sudo wget https://raw.githubusercontent.com/dianshu/config/master/sing-box.config.json -O $HOME/.sing-box/config.json
+wget https://raw.githubusercontent.com/dianshu/config/master/sing-box.config.json -O $HOME/.sing-box/config.json
 
 # azure cli
 # add ml extension
@@ -28,8 +28,10 @@ az extension add --upgrade --yes --name ml
 az config set extension.dynamic_install_allow_preview=true
 az config set extension.use_dynamic_install=yes_without_prompt
 
-# install claude code
+# claude code
 curl -fsSL https://claude.ai/install.sh | bash
+mkdir -p $HOME/.claude
+wget https://raw.githubusercontent.com/dianshu/config/master/claude/settings.json -O $HOME/.claude/settings.json
 
 # git
 git config --global alias.l "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
