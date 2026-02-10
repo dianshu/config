@@ -1,0 +1,22 @@
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://localhost:29427",
+    "ANTHROPIC_AUTH_TOKEN": "your-anthropic-auth-token",
+    "CLAUDE_CODE_SKIP_AUTH_LOGIN": "true"
+  },
+  "permissions": {
+    "allow": [
+      "Bash",
+      "WebFetch",
+      "WebSearch",
+      "mcp__microsoft-docs",
+      "mcp__context7"
+    ],
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git reset --hard:*)"
+    ],
+    "defaultMode": "plan"
+  },
+  "model": "claude-opus-4.5"
+}
