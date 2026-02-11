@@ -173,13 +173,30 @@ sb_start() {
       export all_proxy="socks5://127.0.0.1:17890"
       export no_proxy="localhost,127.0.0.1,::1"
 
+      # Enable Docker daemon proxy
+      sudo mkdir -p /etc/systemd/system/docker.service.d
+      sudo tee /etc/systemd/system/docker.service.d/http-proxy.conf > /dev/null << 'EOF'
+[Service]
+Environment="HTTP_PROXY=http://127.0.0.1:17890"
+Environment="HTTPS_PROXY=http://127.0.0.1:17890"
+Environment="NO_PROXY=localhost,127.0.0.1,::1"
+EOF
+      sudo systemctl daemon-reload
+      sudo systemctl restart docker
+
       echo "sing-box started (PID: $pid)"
       echo "Log: $log_file"
-      echo "Proxy ON"
+      echo "Proxy ON (shell + Docker daemon)"
   }
 
   sb_stop() {
       pkill sing-box
       unset http_proxy https_proxy all_proxy no_proxy
-      echo "sing-box stopped, Proxy OFF"
+
+      # Disable Docker daemon proxy
+      sudo rm -f /etc/systemd/system/docker.service.d/http-proxy.conf
+      sudo systemctl daemon-reload
+      sudo systemctl restart docker
+
+      echo "sing-box stopped, Proxy OFF (shell + Docker daemon)"
   }
