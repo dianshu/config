@@ -18,5 +18,11 @@
     ],
     "defaultMode": "plan"
   },
-  "model": "claude-opus-4.5"
+  "model": "opus",
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline.sh",
+    "padding": 0
+  },
+  "effortLevel": "medium"
 }
