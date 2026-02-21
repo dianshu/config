@@ -37,7 +37,7 @@ mkdir -p $HOME/.claude/commands
 wget https://raw.githubusercontent.com/dianshu/config/master/claude/commands/fix-vulns.md -O $HOME/.claude/commands/fix-vulns.md
 mkdir -p $HOME/.claude/skills/find-skills
 wget https://raw.githubusercontent.com/openstatusHQ/openstatus/refs/heads/main/.agents/skills/find-skills/SKILL.md -O $HOME/.claude/skills/find-skills/SKILL.md
-
+mkdir -p ~/repos/general-chat-using-claude-code
 # git
 git config --global alias.l "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
 git config --global log.date "format-local:%Y-%m-%d %H:%M:%S"
