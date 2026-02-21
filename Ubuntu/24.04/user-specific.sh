@@ -28,8 +28,13 @@ az extension add --upgrade --yes --name ml
 az config set extension.dynamic_install_allow_preview=true
 az config set extension.use_dynamic_install=yes_without_prompt
 
-# claude code
+#################################################################################################################
+#                                                  claude code                                                  #
+#################################################################################################################
+# Install cli
 curl -fsSL https://claude.ai/install.sh | bash
+
+# Init $HOME/.claude dir
 mkdir -p $HOME/.claude
 wget https://raw.githubusercontent.com/dianshu/config/master/claude/settings.json -O $HOME/.claude/settings.json
 wget https://raw.githubusercontent.com/dianshu/config/master/claude/statusline.sh -O $HOME/.claude/statusline.sh
@@ -37,7 +42,19 @@ mkdir -p $HOME/.claude/commands
 wget https://raw.githubusercontent.com/dianshu/config/master/claude/commands/fix-vulns.md -O $HOME/.claude/commands/fix-vulns.md
 mkdir -p $HOME/.claude/skills/find-skills
 wget https://raw.githubusercontent.com/openstatusHQ/openstatus/refs/heads/main/.agents/skills/find-skills/SKILL.md -O $HOME/.claude/skills/find-skills/SKILL.md
+
+# Init general dir
 mkdir -p ~/repos/general-chat-using-claude-code
+
+# Install plugins
+claude plugin marketplace add obra/superpowers-marketplace
+claude plugin install -s user superpowers@superpowers-marketplace
+claude plugin install -s user context7@claude-plugins-official
+
+#################################################################################################################
+#                                                  claude code                                                  #
+#################################################################################################################
+
 # git
 git config --global alias.l "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
 git config --global log.date "format-local:%Y-%m-%d %H:%M:%S"
