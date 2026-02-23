@@ -17,3 +17,6 @@ Run the `scan_vulns` function to scan for vulnerabilities, fix any issues found,
 ```bash
 scan_vulns [--dockerfile|-f <path>] [--dir|-d <directory>]
 ```
+
+## Context
+1. scan_vulns is available as a shell function
