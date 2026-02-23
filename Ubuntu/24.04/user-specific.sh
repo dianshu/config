@@ -57,6 +57,9 @@ claude plugin install -s user superpowers@superpowers-marketplace
 claude plugin marketplace add microsoftdocs/mcp
 claude plugin install -s user microsoft-docs@microsoft-docs-marketplace
 
+claude plugin marketplace add anthropics/skills
+claude plugin install -s user document-skills@anthropic-agent-skills
+
 claude plugin install -s user context7@claude-plugins-official
 claude plugin install -s user code-simplifier@claude-plugins-official
 
