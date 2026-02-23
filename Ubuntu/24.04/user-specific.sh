@@ -38,8 +38,12 @@ curl -fsSL https://claude.ai/install.sh | bash
 mkdir -p $HOME/.claude
 wget https://raw.githubusercontent.com/dianshu/config/master/claude/settings.json -O $HOME/.claude/settings.json
 wget https://raw.githubusercontent.com/dianshu/config/master/claude/statusline.sh -O $HOME/.claude/statusline.sh
+
+# Init commands
 mkdir -p $HOME/.claude/commands
 wget https://raw.githubusercontent.com/dianshu/config/master/claude/commands/fix-vulns.md -O $HOME/.claude/commands/fix-vulns.md
+
+# Init skills
 mkdir -p $HOME/.claude/skills/find-skills
 wget https://raw.githubusercontent.com/openstatusHQ/openstatus/refs/heads/main/.agents/skills/find-skills/SKILL.md -O $HOME/.claude/skills/find-skills/SKILL.md
 
