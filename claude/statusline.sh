@@ -12,7 +12,10 @@ model=$(echo "$input" | jq -r '
 
 # 2. Context % (from context_window in stdin JSON)
 ctx_pct=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
-ctx_usage=$(echo "$input" | jq -r '.context_window.total_input_tokens // empty')
+ctx_usage=$(echo "$input" | jq -r '
+  if .context_window.used_percentage and .context_window.context_window_size then
+    (.context_window.used_percentage * .context_window.context_window_size / 100 | floor)
+  else empty end')
 ctx_total=$(echo "$input" | jq -r '.context_window.context_window_size // empty')
 ctx_detail=""
 if [ -n "$ctx_pct" ] && [ -n "$ctx_usage" ] && [ -n "$ctx_total" ]; then
