@@ -44,8 +44,9 @@ mkdir -p $HOME/.claude/commands
 wget https://raw.githubusercontent.com/dianshu/config/master/claude/commands/fix-vulns.md -O $HOME/.claude/commands/fix-vulns.md
 
 # Init skills
-mkdir -p $HOME/.claude/skills/find-skills
-wget https://raw.githubusercontent.com/openstatusHQ/openstatus/refs/heads/main/.agents/skills/find-skills/SKILL.md -O $HOME/.claude/skills/find-skills/SKILL.md
+mkdir -p $HOME/.claude/skills
+npx skills add vercel-labs/skills@find-skills -g -y
+npx skills add anthropics/skills@skill-creator -g -y
 
 # Init general dir
 mkdir -p ~/repos/general-chat-using-claude-code
