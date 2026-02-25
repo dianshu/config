@@ -187,16 +187,128 @@ EOF
       echo "sing-box started (PID: $pid)"
       echo "Log: $log_file"
       echo "Proxy ON (shell + Docker daemon)"
+}
+
+sb_stop() {
+  pkill sing-box
+  unset http_proxy https_proxy all_proxy no_proxy
+
+  # Disable Docker daemon proxy
+  sudo rm -f /etc/systemd/system/docker.service.d/http-proxy.conf
+  sudo systemctl daemon-reload
+  sudo systemctl restart docker
+
+  echo "sing-box stopped, Proxy OFF (shell + Docker daemon)"
+}
+
+init_claude() {
+  # Helper: download file with timestamped backup of existing
+  _dl_with_backup() {
+    local url="$1" dest="$2"
+    local dest_dir
+    dest_dir="$(dirname "$dest")"
+    [[ -d "$dest_dir" ]] || mkdir -p "$dest_dir"
+    if [[ -f "$dest" ]]; then
+      mv "$dest" "${dest}.$(date +%Y%m%d%H%M%S)"
+      echo "  Backed up: ${dest/$HOME/~}"
+    fi
+    if wget -qO "$dest" "$url"; then
+      echo "  Downloaded: ${dest/$HOME/~}"
+    else
+      echo "  FAILED: ${dest/$HOME/~}"
+      return 1
+    fi
   }
 
-  sb_stop() {
-      pkill sing-box
-      unset http_proxy https_proxy all_proxy no_proxy
+  # 1. Install or update Claude CLI
+  echo "=== Claude CLI ==="
+  if command -v claude &>/dev/null; then
+    echo "  Found, updating..."
+    claude update
+  else
+    echo "  Not found, installing..."
+    curl -fsSL https://cli.claude.ai/install.sh | bash
+  fi
 
-      # Disable Docker daemon proxy
-      sudo rm -f /etc/systemd/system/docker.service.d/http-proxy.conf
-      sudo systemctl daemon-reload
-      sudo systemctl restart docker
+  # 2. Config files (always backup + re-download)
+  echo "\n=== Config Files ==="
+  _dl_with_backup \
+    "https://raw.githubusercontent.com/dianshu/config/master/claude/settings.json" \
+    "$HOME/.claude/settings.json"
+  _dl_with_backup \
+    "https://raw.githubusercontent.com/dianshu/config/master/claude/statusline.sh" \
+    "$HOME/.claude/statusline.sh"
+  _dl_with_backup \
+    "https://raw.githubusercontent.com/dianshu/config/master/claude/commands/fix-vulns.md" \
+    "$HOME/.claude/commands/fix-vulns.md"
+  _dl_with_backup \
+    "https://raw.githubusercontent.com/dianshu/config/master/claude/skills/create-pr/SKILL.md" \
+    "$HOME/.claude/skills/create-pr/SKILL.md"
+  chmod +x "$HOME/.claude/statusline.sh"
 
-      echo "sing-box stopped, Proxy OFF (shell + Docker daemon)"
-  }
+  # 3. Skills (find-skills, skill-creator)
+  echo "\n=== Skills ==="
+  local installed_skills
+  installed_skills="$(npx skills list -g 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g')"
+  typeset -A skill_sources=(
+    [find-skills]="vercel-labs/skills@find-skills"
+    [skill-creator]="anthropics/skills@skill-creator"
+  )
+  for skill source in "${(@kv)skill_sources}"; do
+    if echo "$installed_skills" | grep -qw "$skill"; then
+      echo "  Skill '$skill' already installed"
+    else
+      echo "  Installing skill '$skill'..."
+      npx skills add "$source" -g -y
+    fi
+  done
+  echo "  Updating all skills..."
+  npx skills update
+
+  # 4. Workspace directory
+  echo "\n=== Workspace ==="
+  mkdir -p "$HOME/repos/general-chat-using-claude-code"
+  echo "  Ensured: ~/repos/general-chat-using-claude-code"
+
+  # 5. Marketplaces (add if missing, then update all)
+  echo "\n=== Marketplaces ==="
+  local mp_json="$HOME/.claude/plugins/known_marketplaces.json"
+  typeset -A marketplaces=(
+    [superpowers-marketplace]="obra/superpowers-marketplace"
+    [microsoft-docs-marketplace]="microsoftdocs/mcp"
+    [anthropic-agent-skills]="anthropics/skills"
+  )
+  for mp_key mp_repo in "${(@kv)marketplaces}"; do
+    if [[ -f "$mp_json" ]] && jq -e --arg k "$mp_key" 'has($k)' "$mp_json" &>/dev/null; then
+      echo "  Marketplace '$mp_key' already registered"
+    else
+      echo "  Adding marketplace '$mp_key' ($mp_repo)..."
+      claude plugin marketplace add "$mp_repo"
+    fi
+  done
+  echo "  Updating all marketplaces..."
+  claude plugin marketplace update
+
+  # 6. Plugins (install if missing, update if exists)
+  echo "\n=== Plugins ==="
+  local plugins_json="$HOME/.claude/plugins/installed_plugins.json"
+  local -a plugins=(
+    "superpowers@superpowers-marketplace"
+    "microsoft-docs@microsoft-docs-marketplace"
+    "document-skills@anthropic-agent-skills"
+    "context7@claude-plugins-official"
+    "code-simplifier@claude-plugins-official"
+  )
+  for plugin in "${plugins[@]}"; do
+    if [[ -f "$plugins_json" ]] && jq -e --arg p "$plugin" '.plugins | has($p)' "$plugins_json" &>/dev/null; then
+      echo "  Plugin '$plugin' exists, updating..."
+      claude plugin update "$plugin" -s user
+    else
+      echo "  Installing plugin '$plugin'..."
+      claude plugin install "$plugin" -s user
+    fi
+  done
+
+  unfunction _dl_with_backup 2>/dev/null
+  echo "\n=== init_claude complete ==="
+}
