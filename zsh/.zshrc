@@ -308,6 +308,9 @@ init_claude() {
             echo "  Installing plugin '$plugin'..."
             claude plugin install "$plugin" -s user
         fi
+
+        # Ensure plugin is enabled (install doesn't auto-enable)                                                                                                               │
+        claude plugin enable "$plugin" -s user 2>/dev/null
     done
 
     # 7. Clean up old backup files (>24h)
