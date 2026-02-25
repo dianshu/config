@@ -309,6 +309,12 @@ init_claude() {
         fi
     done
 
+    # 7. Clean up old backup files (>24h)
+    echo "\n=== Cleanup ==="
+    local count
+    count=$(find "$HOME/.claude" -maxdepth 3 -name '*.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]' -mtime +0 -type f -print -delete | wc -l)
+    echo "  Deleted $count old backup file(s)"
+
     unfunction _dl_with_backup 2>/dev/null
     echo "\n=== init_claude complete ==="
 }
