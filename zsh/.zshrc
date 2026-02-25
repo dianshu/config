@@ -209,7 +209,8 @@ init_claude() {
         dest_dir="$(dirname "$dest")"
         [[ -d "$dest_dir" ]] || mkdir -p "$dest_dir"
         if [[ -f "$dest" ]]; then
-            mv "$dest" "${dest}.$(date +%Y%m%d%H%M%S)"
+            local backup="${dest}.$(date +%Y%m%d%H%M%S)"
+            mv "$dest" "$backup"
             echo "  Backed up: ${dest/$HOME/~}"
         fi
         if wget -qO "$dest" "$url"; then
