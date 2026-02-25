@@ -28,15 +28,7 @@ Read the full staged diff (`git diff --cached`) and determine:
 - **PR description**: 1-3 bullet points explaining what and why. Do NOT include "Generated with Claude Code" or similar.
 - **Commit strategy**: decide whether to make one commit or split into logical groups
 
-### 3. Pull latest main
-
-```bash
-git pull --rebase origin main
-```
-
-If there are conflicts, tell the user and stop. Do not attempt to resolve automatically.
-
-### 4. Create branch (if on main)
+### 3. Create branch (if on main)
 
 Only if currently on `main`:
 
@@ -46,7 +38,7 @@ git checkout -b feiyue/<slug>
 
 The slug must be a valid git ref name using only `[a-z0-9-]`.
 
-### 5. Commit staged changes
+### 4. Commit staged changes
 
 **This is the most error-prone step. Follow these rules exactly:**
 
@@ -55,13 +47,13 @@ The slug must be a valid git ref name using only `[a-z0-9-]`.
 - Use short, imperative commit messages (e.g., "Add UTC timestamp migration").
 - If a single commit is appropriate, just run `git commit -m "..."`.
 
-### 6. Push branch
+### 5. Push branch
 
 ```bash
 git push -u origin HEAD
 ```
 
-### 7. Create PR
+### 6. Create PR
 
 ```bash
 az repos pr create --detect --draft --title "<title>" --description "<description>" --output json
@@ -73,7 +65,7 @@ Parse the JSON output to construct the PR web URL:
 - Extract `repository.webUrl` and `pullRequestId`
 - URL format: `{webUrl}/pullrequest/{pullRequestId}`
 
-### 8. Open in browser
+### 7. Open in browser
 
 ```bash
 sensible-browser "<url>" 2>/dev/null || true
@@ -89,4 +81,3 @@ Always print the PR URL to the user regardless of whether the browser opens.
 | Hardcoding org/project in `az` command | Always use `--detect` to auto-detect from remote |
 | Forgetting `--output json` | Required to parse PR URL dynamically |
 | Not checking for staged changes first | Always run `git diff --cached --stat` before anything else |
-| Resolving rebase conflicts automatically | Stop and ask the user — conflicts need human judgment |
