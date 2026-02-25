@@ -3,7 +3,7 @@
     "ANTHROPIC_BASE_URL": "http://localhost:29427",
     "ANTHROPIC_AUTH_TOKEN": "your-anthropic-auth-token",
     "CLAUDE_CODE_SKIP_AUTH_LOGIN": "true",
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS" = "1"
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
   "permissions": {
     "allow": [
