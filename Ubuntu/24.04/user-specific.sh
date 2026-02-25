@@ -45,6 +45,8 @@ wget https://raw.githubusercontent.com/dianshu/config/master/claude/commands/fix
 
 # Init skills
 mkdir -p $HOME/.claude/skills
+mkdir -p $HOME/.claude/skills/create-pr
+wget https://raw.githubusercontent.com/dianshu/config/master/claude/skills/create-pr/SKILL.md -O $HOME/.claude/skills/create-pr/SKILL.md
 npx skills add vercel-labs/skills@find-skills -g -y
 npx skills add anthropics/skills@skill-creator -g -y
 
