@@ -201,6 +201,14 @@ sb_stop() {
     echo "sing-box stopped, Proxy OFF (shell + Docker daemon)"
 }
 
+clean_claude() {
+    rm -rf ~/.claude ~/.claude.json ~/.local/share/claude/
+    for dir in ~/repos/*/; do
+        rm -rf "$dir/.claude" "$dir/.mcp.json"
+    done
+    echo "All Claude Code data cleaned. Run 'claude' to re-authenticate."
+}
+
 init_claude() {
     # Helper: download file with timestamped backup of existing
     _dl_with_backup() {
