@@ -17,7 +17,12 @@
       "Bash(git push --force:*)",
       "Bash(git reset --hard:*)"
     ],
-    "defaultMode": "plan"
+    "defaultMode": "plan",
+    "additionalDirectories": [
+      "~/repos/",
+      "~/.claude/",
+      "~/.agents/"
+    ]
   },
   "model": "opus[1m]",
   "statusLine": {
