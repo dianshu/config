@@ -258,7 +258,7 @@ init_claude() {
     # 3. Skills (find-skills, skill-creator)
     echo "\n=== Skills ==="
     local installed_skills
-    installed_skills="$(npx skills list -g 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g')"
+    installed_skills="$(npx -y skills list -g 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g')"
     typeset -A skill_sources=(
         [find-skills]="vercel-labs/skills@find-skills"
         [skill-creator]="anthropics/skills@skill-creator"
@@ -272,7 +272,7 @@ init_claude() {
         fi
     done
     echo "  Updating all skills..."
-    npx skills update
+    npx -y skills update
 
     # 4. Workspace directory
     echo "\n=== Workspace ==="
