@@ -16,6 +16,7 @@ ulimit -n 100000
 brew install azure-cli yq
 brew install jq net-tools git tree
 brew install trivy uv node
+brew install gh
 
 # sing-box
 brew install sing-box
