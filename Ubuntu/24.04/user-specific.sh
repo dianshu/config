@@ -28,48 +28,6 @@ az extension add --upgrade --yes --name ml
 az config set extension.dynamic_install_allow_preview=true
 az config set extension.use_dynamic_install=yes_without_prompt
 
-#################################################################################################################
-#                                                  claude code                                                  #
-#################################################################################################################
-# Install cli
-curl -fsSL https://claude.ai/install.sh | bash
-
-# Init $HOME/.claude dir
-mkdir -p $HOME/.claude
-wget https://raw.githubusercontent.com/dianshu/config/master/claude/settings.json -O $HOME/.claude/settings.json
-wget https://raw.githubusercontent.com/dianshu/config/master/claude/statusline.sh -O $HOME/.claude/statusline.sh
-
-# Init commands
-mkdir -p $HOME/.claude/commands
-wget https://raw.githubusercontent.com/dianshu/config/master/claude/commands/fix-vulns.md -O $HOME/.claude/commands/fix-vulns.md
-
-# Init skills
-mkdir -p $HOME/.claude/skills
-mkdir -p $HOME/.claude/skills/create-pr
-wget https://raw.githubusercontent.com/dianshu/config/master/claude/skills/create-pr/SKILL.md -O $HOME/.claude/skills/create-pr/SKILL.md
-npx skills add vercel-labs/skills@find-skills -g -y
-npx skills add anthropics/skills@skill-creator -g -y
-
-# Init general dir
-mkdir -p ~/repos/general-chat-using-claude-code
-
-# Install plugins
-claude plugin marketplace add obra/superpowers-marketplace
-claude plugin install -s user superpowers@superpowers-marketplace
-
-claude plugin marketplace add microsoftdocs/mcp
-claude plugin install -s user microsoft-docs@microsoft-docs-marketplace
-
-claude plugin marketplace add anthropics/skills
-claude plugin install -s user document-skills@anthropic-agent-skills
-
-claude plugin install -s user context7@claude-plugins-official
-claude plugin install -s user code-simplifier@claude-plugins-official
-
-#################################################################################################################
-#                                                  claude code                                                  #
-#################################################################################################################
-
 # git
 git config --global alias.l "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
 git config --global log.date "format-local:%Y-%m-%d %H:%M:%S"
