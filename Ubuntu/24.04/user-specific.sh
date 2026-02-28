@@ -97,6 +97,7 @@ EOF
 if uname -a | grep -qi "WSL"; then
     # add wsl.conf
     sudo wget https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/24.04/wsl.conf -O /etc/wsl.conf
+    sudo wget https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/24.04/resolv.conf -O /etc/resolv.conf
 
     # use browser in windows
     sudo apt install -y wslu
