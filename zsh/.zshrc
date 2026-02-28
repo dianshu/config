@@ -242,7 +242,7 @@ init_claude() {
         claude update
     else
         echo "  Not found, installing..."
-        curl -fsSL https://cli.claude.ai/install.sh | bash
+        curl -fsSL https://claude.ai/install.sh | bash
     fi
 
     # 2. Config files (always backup + re-download)
