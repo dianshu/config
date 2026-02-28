@@ -19,9 +19,7 @@
     ],
     "defaultMode": "plan",
     "additionalDirectories": [
-      "~/repos/",
-      "~/.claude/",
-      "~/.agents/",
+      "~/",
       "/tmp/"
     ]
   },
