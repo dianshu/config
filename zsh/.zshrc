@@ -320,7 +320,6 @@ init_claude() {
         "superpowers@superpowers-marketplace"
         "microsoft-docs@microsoft-docs-marketplace"
         "document-skills@anthropic-agent-skills"
-        "context7@claude-plugins-official"
         "code-simplifier@claude-plugins-official"
     )
     for plugin in "${plugins[@]}"; do
@@ -335,6 +334,15 @@ init_claude() {
         # Ensure plugin is enabled (install doesn't auto-enable)
         claude plugin enable "$plugin" -s user 2>/dev/null
     done
+
+    # 6b. MCP Servers (direct registration for servers not installable as plugins)
+    echo "\n=== MCP Servers ==="
+    if claude mcp get context7 &>/dev/null; then
+        echo "  MCP server 'context7' already configured"
+    else
+        echo "  Adding MCP server 'context7'..."
+        claude mcp add -s user context7 -- npx -y @upstash/context7-mcp
+    fi
 
     # 7. Clean up old backup files (>24h)
     echo "\n=== Cleanup ==="
