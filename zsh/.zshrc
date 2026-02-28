@@ -255,6 +255,15 @@ init_claude() {
         "$HOME/.claude/skills/create-pr/SKILL.md"
     chmod +x "$HOME/.claude/statusline.sh"
 
+    # 2b. Rules (global rules loaded into every session)
+    echo "\n=== Rules ==="
+    _dl_with_backup \
+        "https://raw.githubusercontent.com/dianshu/config/master/claude/rules/context7.md" \
+        "$HOME/.claude/rules/context7.md"
+    _dl_with_backup \
+        "https://raw.githubusercontent.com/dianshu/config/master/claude/rules/superpowers.md" \
+        "$HOME/.claude/rules/superpowers.md"
+
     # 3. Skills (find-skills, skill-creator)
     echo "\n=== Skills ==="
     local installed_skills
