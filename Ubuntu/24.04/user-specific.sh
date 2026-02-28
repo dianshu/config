@@ -22,7 +22,7 @@ curl -fsSL https://bun.sh/install | bash
 # sing-box
 brew install sing-box
 mkdir $HOME/.sing-box
-wget https://raw.githubusercontent.com/dianshu/config/master/sing-box.config.json -O $HOME/.sing-box/config.json
+wget https://raw.githubusercontent.com/dianshu/config/main/sing-box.config.json -O $HOME/.sing-box/config.json
 
 # azure cli
 # add ml extension
@@ -96,7 +96,7 @@ EOF
 
 if uname -a | grep -qi "WSL"; then
     # add wsl.conf
-    sudo wget https://raw.githubusercontent.com/dianshu/config/master/Ubuntu/24.04/wsl.conf -O /etc/wsl.conf
+    sudo wget https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/24.04/wsl.conf -O /etc/wsl.conf
 
     # use browser in windows
     sudo apt install -y wslu

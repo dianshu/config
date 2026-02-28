@@ -33,7 +33,7 @@ abbr --quiet -S gp='git push'
 abbr --quiet -S gb='git branch'
 abbr --quiet -S gs='git status'
 abbr --quiet -S gco='git checkout'
-abbr --quiet -S gbd='git branch --merged | grep --color=auto -v "master" | xargs -L 1 -p git branch -d'
+abbr --quiet -S gbd='git branch --merged | grep --color=auto -v "main" | xargs -L 1 -p git branch -d'
 abbr --quiet -S check='git status --porcelain | awk "/.py/ {print \$2}" | xargs -t flake8 --max-line-length=120'
 abbr --quiet -S check2='git status --porcelain | awk "/.py/ {print \$2}" | cut -c 24- | xargs -t flake8 --max-line-length=120'
 abbr --quiet -S grep='grep --color=auto'
@@ -248,26 +248,26 @@ init_claude() {
     # 2. Config files (always backup + re-download)
     echo "\n=== Config Files ==="
     dl_with_backup \
-        "https://raw.githubusercontent.com/dianshu/config/master/claude/settings.json" \
+        "https://raw.githubusercontent.com/dianshu/config/main/claude/settings.json" \
         "$HOME/.claude/settings.json"
     dl_with_backup \
-        "https://raw.githubusercontent.com/dianshu/config/master/claude/statusline.sh" \
+        "https://raw.githubusercontent.com/dianshu/config/main/claude/statusline.sh" \
         "$HOME/.claude/statusline.sh"
     dl_with_backup \
-        "https://raw.githubusercontent.com/dianshu/config/master/claude/commands/fix-vulns.md" \
+        "https://raw.githubusercontent.com/dianshu/config/main/claude/commands/fix-vulns.md" \
         "$HOME/.claude/commands/fix-vulns.md"
     dl_with_backup \
-        "https://raw.githubusercontent.com/dianshu/config/master/claude/skills/create-pr/SKILL.md" \
+        "https://raw.githubusercontent.com/dianshu/config/main/claude/skills/create-pr/SKILL.md" \
         "$HOME/.claude/skills/create-pr/SKILL.md"
     chmod +x "$HOME/.claude/statusline.sh"
 
     # 2b. Rules (global rules loaded into every session)
     echo "\n=== Rules ==="
     dl_with_backup \
-        "https://raw.githubusercontent.com/dianshu/config/master/claude/rules/context7.md" \
+        "https://raw.githubusercontent.com/dianshu/config/main/claude/rules/context7.md" \
         "$HOME/.claude/rules/context7.md"
     dl_with_backup \
-        "https://raw.githubusercontent.com/dianshu/config/master/claude/rules/superpowers.md" \
+        "https://raw.githubusercontent.com/dianshu/config/main/claude/rules/superpowers.md" \
         "$HOME/.claude/rules/superpowers.md"
 
     # 3. Skills (find-skills, skill-creator)
