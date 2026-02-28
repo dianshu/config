@@ -79,6 +79,9 @@ export DOCKER_BUILDKIT=1
 export PATH="$HOME/.local/bin:$PATH"
 export BROWSER=wslview
 
+# bun completions
+[ -s "/home/fei/.bun/_bun" ] && source "/home/fei/.bun/_bun"
+
 # bun
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
@@ -213,26 +216,25 @@ clean_claude() {
     echo "All Claude Code data cleaned. Run 'claude' to re-authenticate."
 }
 
-init_claude() {
-    # Helper: download file with timestamped backup of existing
-    _dl_with_backup() {
-        local url="$1" dest="$2"
-        local dest_dir
-        dest_dir="$(dirname "$dest")"
-        [[ -d "$dest_dir" ]] || mkdir -p "$dest_dir"
-        if [[ -f "$dest" ]]; then
-            local backup="${dest}.$(date +%Y%m%d%H%M%S)"
-            mv "$dest" "$backup"
-            echo "  Backed up: ${dest/$HOME/~}"
-        fi
-        if wget -qO "$dest" "$url"; then
-            echo "  Downloaded: ${dest/$HOME/~}"
-        else
-            echo "  FAILED: ${dest/$HOME/~}"
-            return 1
-        fi
-    }
+dl_with_backup() {
+    local url="$1" dest="$2"
+    local dest_dir
+    dest_dir="$(dirname "$dest")"
+    [[ -d "$dest_dir" ]] || mkdir -p "$dest_dir"
+    if [[ -f "$dest" ]]; then
+        local backup="${dest}.$(date +%Y%m%d%H%M%S)"
+        mv "$dest" "$backup"
+        echo "  Backed up: ${dest/$HOME/~}"
+    fi
+    if wget -qO "$dest" "$url"; then
+        echo "  Downloaded: ${dest/$HOME/~}"
+    else
+        echo "  FAILED: ${dest/$HOME/~}"
+        return 1
+    fi
+}
 
+init_claude() {
     # 1. Install or update Claude CLI
     echo "=== Claude CLI ==="
     if command -v claude &>/dev/null; then
@@ -245,26 +247,26 @@ init_claude() {
 
     # 2. Config files (always backup + re-download)
     echo "\n=== Config Files ==="
-    _dl_with_backup \
+    dl_with_backup \
         "https://raw.githubusercontent.com/dianshu/config/master/claude/settings.json" \
         "$HOME/.claude/settings.json"
-    _dl_with_backup \
+    dl_with_backup \
         "https://raw.githubusercontent.com/dianshu/config/master/claude/statusline.sh" \
         "$HOME/.claude/statusline.sh"
-    _dl_with_backup \
+    dl_with_backup \
         "https://raw.githubusercontent.com/dianshu/config/master/claude/commands/fix-vulns.md" \
         "$HOME/.claude/commands/fix-vulns.md"
-    _dl_with_backup \
+    dl_with_backup \
         "https://raw.githubusercontent.com/dianshu/config/master/claude/skills/create-pr/SKILL.md" \
         "$HOME/.claude/skills/create-pr/SKILL.md"
     chmod +x "$HOME/.claude/statusline.sh"
 
     # 2b. Rules (global rules loaded into every session)
     echo "\n=== Rules ==="
-    _dl_with_backup \
+    dl_with_backup \
         "https://raw.githubusercontent.com/dianshu/config/master/claude/rules/context7.md" \
         "$HOME/.claude/rules/context7.md"
-    _dl_with_backup \
+    dl_with_backup \
         "https://raw.githubusercontent.com/dianshu/config/master/claude/rules/superpowers.md" \
         "$HOME/.claude/rules/superpowers.md"
 
@@ -281,7 +283,7 @@ init_claude() {
             echo "  Skill '$skill' already installed"
         else
             echo "  Installing skill '$skill'..."
-            npx skills add "$source" -g -y
+            npx -y skills add "$source" -g -y
         fi
     done
     echo "  Updating all skills..."
@@ -340,6 +342,14 @@ init_claude() {
     count=$(find "$HOME/.claude" -maxdepth 3 -name '*.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]' -mtime +0 -type f -print -delete | wc -l)
     echo "  Deleted $count old backup file(s)"
 
-    unfunction _dl_with_backup 2>/dev/null
     echo "\n=== init_claude complete ==="
+}
+
+update_zshrc() {
+    echo "=== Updating .zshrc ==="
+    dl_with_backup \
+        "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/zsh/.zshrc" \
+        "$HOME/.zshrc"
+    echo "\n=== update_zshrc complete ==="
+    echo "Run 'source ~/.zshrc' to reload."
 }
