@@ -21,7 +21,8 @@
     "additionalDirectories": [
       "~/repos/",
       "~/.claude/",
-      "~/.agents/"
+      "~/.agents/",
+      "/tmp/"
     ]
   },
   "model": "opus[1m]",
