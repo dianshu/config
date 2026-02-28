@@ -79,6 +79,10 @@ export DOCKER_BUILDKIT=1
 export PATH="$HOME/.local/bin:$PATH"
 export BROWSER=wslview
 
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
 ####################################################################################
 #                                     Functions                                    #
 ####################################################################################
