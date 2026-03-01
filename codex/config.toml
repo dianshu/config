@@ -1,0 +1,10 @@
+# Codex CLI configuration
+
+model = "gpt-5.3-codex"
+model_provider = "local-proxy"
+
+[model_providers.local-proxy]
+name = "Local Proxy"
+base_url = "http://localhost:29427/v1"
+wire_api = "responses"
+env_key = "HOME"

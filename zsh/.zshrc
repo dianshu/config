@@ -116,6 +116,27 @@ cc_proxy() {
     fi
     echo "Updated $settings_file with port $port"
 
+    # Update Codex config.toml with the new port
+    local codex_config="$HOME/.codex/config.toml"
+    if [[ -f "$codex_config" ]]; then
+        sed -i "s|base_url = \"http://localhost:[0-9]*/v1\"|base_url = \"http://localhost:$port/v1\"|" "$codex_config"
+    else
+        mkdir -p "$(dirname "$codex_config")"
+        cat > "$codex_config" <<EOF
+# Codex CLI configuration
+
+model = "gpt-5.3-codex"
+model_provider = "local-proxy"
+
+[model_providers.local-proxy]
+name = "Local Proxy"
+base_url = "http://localhost:$port/v1"
+wire_api = "responses"
+env_key = "HOME"
+EOF
+    fi
+    echo "Updated $codex_config with port $port"
+
     # Start the copilot API
     npx --yes @dianshuv/copilot-api@latest start -p "$port" -a "enterprise"
 }
