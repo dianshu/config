@@ -117,7 +117,7 @@ cc_proxy() {
     echo "Updated $settings_file with port $port"
 
     # Start the copilot API
-    npx --yes @hsupu/copilot-api@latest start -p "$port" -a "enterprise"
+    npx --yes @dianshuv/copilot-api@latest start -p "$port" -a "enterprise"
 }
 
 function scan_vulns() {
