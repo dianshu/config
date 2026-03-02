@@ -281,6 +281,19 @@ init_claude() {
         "https://raw.githubusercontent.com/dianshu/config/main/claude/skills/create-pr/SKILL.md" \
         "$HOME/.claude/skills/create-pr/SKILL.md"
     chmod +x "$HOME/.claude/statusline.sh"
+    dl_with_backup \
+        "https://raw.githubusercontent.com/dianshu/config/main/claude/hooks/notify.sh" \
+        "$HOME/.claude/hooks/notify.sh"
+    chmod +x "$HOME/.claude/hooks/notify.sh"
+    # Install BurntToast PowerShell module for Windows toast notifications
+    if command -v /mnt/q/Programs/PowerShell/7/pwsh.exe &>/dev/null; then
+        /mnt/q/Programs/PowerShell/7/pwsh.exe -NoProfile -Command "
+            if (-not (Get-Module -ListAvailable -Name BurntToast)) {
+                Install-Module -Name BurntToast -Force -Scope CurrentUser
+            }
+        " 2>/dev/null
+        echo "  BurntToast module ensured"
+    fi
 
     # 2b. Rules (global rules loaded into every session)
     echo "\n=== Rules ==="
