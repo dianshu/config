@@ -29,5 +29,24 @@
     "command": "bash ~/.claude/statusline.sh",
     "padding": 0
   },
-  "effortLevel": "high"
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": true,
+    "microsoft-docs@microsoft-docs-marketplace": true,
+    "document-skills@anthropic-agent-skills": true,
+    "code-simplifier@claude-plugins-official": true
+  },
+  "effortLevel": "high",
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/notify.sh"
+          }
+        ]
+      }
+    ]
+  }
 }
