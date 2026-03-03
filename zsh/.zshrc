@@ -391,6 +391,10 @@ update_zshrc() {
     dl_with_backup \
         "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/zsh/.zshrc" \
         "$HOME/.zshrc"
+    # Clean up old .zshrc backup files (>24h)
+    local count
+    count=$(find "$HOME" -maxdepth 1 -name '.zshrc.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]' -mtime +0 -type f -print -delete | wc -l)
+    echo "  Deleted $count old .zshrc backup(s)"
     echo "\n=== update_zshrc complete ==="
     echo "Run 'source ~/.zshrc' to reload."
 }
