@@ -41,6 +41,7 @@ abbr --quiet -S k='kubectl'
 abbr --quiet -S dc='docker compose'
 abbr --quiet -S d='docker'
 abbr --quiet -S cc='claude'
+abbr --quiet -S cc_remote='npx @twsxtd/hapi hub --relay'
 
 # 启用路径自动补全
 autoload -Uz compinit
