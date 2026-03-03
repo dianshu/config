@@ -245,7 +245,7 @@ dl_with_backup() {
     if [[ -f "$dest" ]]; then
         local backup="${dest}.$(date +%Y%m%d%H%M%S)"
         mv "$dest" "$backup"
-        echo "  Backed up: ${dest/$HOME/~}"
+        echo "  Backed up: ${dest/$HOME/~} -> ${backup/$HOME/~}"
     fi
     if wget -qO "$dest" "$url"; then
         echo "  Downloaded: ${dest/$HOME/~}"
