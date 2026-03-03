@@ -25,17 +25,10 @@ If both are empty, tell the user there are no changes to review and stop.
 Run the following command. Do NOT modify any files. This is a read-only review.
 
 ```bash
-codex exec review --uncommitted --ephemeral "Review these changes with focus on:
-1. SECURITY: Identify vulnerabilities (injection, XSS, credential exposure, unsafe patterns)
-2. CORRECTNESS: Find bugs, logic errors, edge cases, off-by-one errors, race conditions
-3. STYLE: Check naming conventions, readability, consistency with surrounding code
-4. PERFORMANCE: Flag unnecessary complexity, N+1 patterns, memory leaks, inefficient algorithms
-
-Format findings as:
-- [SEVERITY] Category: Description (file:line if applicable)
-Severity levels: CRITICAL, WARNING, INFO
-End with a summary verdict: APPROVE, REQUEST CHANGES, or NEEDS DISCUSSION."
+codex exec review --uncommitted --ephemeral
 ```
+
+**Important:** The `--uncommitted` flag and `[PROMPT]` argument are mutually exclusive in codex-cli. Do NOT pass a custom prompt string when using `--uncommitted` — it will fail with `error: the argument '--uncommitted' cannot be used with '[PROMPT]'`. The built-in review behavior already covers security, correctness, style, and performance.
 
 ### 3. Present findings
 
@@ -53,3 +46,4 @@ If Codex CLI fails (not installed, no API key, network error), show the error me
 | Modifying files based on review | This is read-only. Never edit files. |
 | Running without checking for changes | Always check git diff first |
 | Summarizing Codex output | Show it verbatim — the user wants Codex's actual review |
+| Passing a custom prompt with `--uncommitted` | These are mutually exclusive in codex-cli. Use `--uncommitted` alone. |
