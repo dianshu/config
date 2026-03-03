@@ -255,7 +255,7 @@ dl_with_backup() {
     fi
 }
 
-init_claude() {
+cc_sync() {
     # 1. Install or update Claude CLI
     echo "=== Claude CLI ==="
     if command -v claude &>/dev/null; then
@@ -266,25 +266,32 @@ init_claude() {
         curl -fsSL https://claude.ai/install.sh | bash
     fi
 
-    # 2. Config files (always backup + re-download)
+    # 2. Config files (dynamically discover + download all files from claude/ in repo)
     echo "\n=== Config Files ==="
-    dl_with_backup \
-        "https://raw.githubusercontent.com/dianshu/config/main/claude/settings.json" \
-        "$HOME/.claude/settings.json"
-    dl_with_backup \
-        "https://raw.githubusercontent.com/dianshu/config/main/claude/statusline.sh" \
-        "$HOME/.claude/statusline.sh"
-    dl_with_backup \
-        "https://raw.githubusercontent.com/dianshu/config/main/claude/commands/fix-vulns.md" \
-        "$HOME/.claude/commands/fix-vulns.md"
-    dl_with_backup \
-        "https://raw.githubusercontent.com/dianshu/config/main/claude/skills/create-pr/SKILL.md" \
-        "$HOME/.claude/skills/create-pr/SKILL.md"
-    chmod +x "$HOME/.claude/statusline.sh"
-    dl_with_backup \
-        "https://raw.githubusercontent.com/dianshu/config/main/claude/hooks/notify.sh" \
-        "$HOME/.claude/hooks/notify.sh"
-    chmod +x "$HOME/.claude/hooks/notify.sh"
+    local raw_base="https://raw.githubusercontent.com/dianshu/config/main"
+    local tree_json
+    tree_json="$(wget -qO- "https://api.github.com/repos/dianshu/config/git/trees/main?recursive=1")"
+    if [[ -z "$tree_json" ]]; then
+        echo "  ERROR: Failed to fetch repo tree from GitHub API"
+        return 1
+    fi
+
+    local files
+    files="$(echo "$tree_json" | jq -r '.tree[] | select(.path | startswith("claude/") and .type == "blob") | .path')"
+    if [[ -z "$files" ]]; then
+        echo "  ERROR: No files found under claude/ in repo tree"
+        return 1
+    fi
+
+    local rel_path
+    while IFS= read -r file_path; do
+        rel_path="${file_path#claude/}"
+        dl_with_backup "$raw_base/$file_path" "$HOME/.claude/$rel_path"
+        if [[ "$rel_path" == *.sh ]]; then
+            chmod +x "$HOME/.claude/$rel_path"
+        fi
+    done <<< "$files"
+
     # Install BurntToast PowerShell module for Windows toast notifications
     if command -v /mnt/q/Programs/PowerShell/7/pwsh.exe &>/dev/null; then
         /mnt/q/Programs/PowerShell/7/pwsh.exe -NoProfile -Command "
@@ -294,15 +301,6 @@ init_claude() {
         " 2>/dev/null
         echo "  BurntToast module ensured"
     fi
-
-    # 2b. Rules (global rules loaded into every session)
-    echo "\n=== Rules ==="
-    dl_with_backup \
-        "https://raw.githubusercontent.com/dianshu/config/main/claude/rules/context7.md" \
-        "$HOME/.claude/rules/context7.md"
-    dl_with_backup \
-        "https://raw.githubusercontent.com/dianshu/config/main/claude/rules/superpowers.md" \
-        "$HOME/.claude/rules/superpowers.md"
 
     # 3. Skills (find-skills, skill-creator)
     echo "\n=== Skills ==="
@@ -384,7 +382,7 @@ init_claude() {
     count=$(find "$HOME/.claude" -maxdepth 3 -name '*.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]' -mtime +0 -type f -print -delete | wc -l)
     echo "  Deleted $count old backup file(s)"
 
-    echo "\n=== init_claude complete ==="
+    echo "\n=== cc_sync complete ==="
 }
 
 update_zshrc() {
