@@ -277,7 +277,7 @@ cc_sync() {
     fi
 
     local files
-    files="$(echo "$tree_json" | jq -r '.tree[] | select(.path | startswith("claude/") and .type == "blob") | .path')"
+    files="$(echo "$tree_json" | jq -r '.tree[] | select((.path | startswith("claude/")) and .type == "blob") | .path')"
     if [[ -z "$files" ]]; then
         echo "  ERROR: No files found under claude/ in repo tree"
         return 1
