@@ -4,4 +4,5 @@ Follow this workflow when writing code, implementing features, or fixing bugs:
 2. **After implementation**, loop until clean:
    a. Use the /simplify skill (via the Skill tool, not the code-simplifier agent) to review changed code for reuse, quality, and efficiency.
    b. Use the /codex-review skill for an independent AI review of the changes.
-   c. If either found issues, fix them and repeat from (a). Stop when both find no issues.
+   c. Use the /verification-before-completion skill. Run verification commands and confirm output before asserting work is done.
+   d. If any step found issues, fix them and repeat from (a). Stop when all three find no issues.
