@@ -299,6 +299,15 @@ cc_sync() {
         curl -fsSL https://claude.ai/install.sh | bash
     fi
 
+    # 1b. Install or update Codex CLI
+    echo "\n=== Codex CLI ==="
+    if command -v codex &>/dev/null; then
+        echo "  Found, updating..."
+    else
+        echo "  Not found, installing..."
+    fi
+    npm i -y -g @openai/codex@latest
+
     # 2. Config files (dynamically discover + download all files from claude/ in repo)
     echo "\n=== Config Files ==="
     local raw_base="https://raw.githubusercontent.com/dianshu/config/main"
