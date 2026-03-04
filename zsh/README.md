@@ -16,3 +16,9 @@ git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting ~/.zsh/
 git clone --depth 1 https://github.com/zsh-users/zsh-history-substring-search ~/.zsh/plugins/zsh-history-substring-search
 ```
 3. 替换 ~/.zshrc
+4. 设置 Claude Code 环境变量
+```
+mkdir -p ~/.config/claude
+cp zsh/cc.env.template ~/.config/claude/env
+# 编辑 ~/.config/claude/env，填入实际的 API key
+```

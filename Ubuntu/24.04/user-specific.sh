@@ -70,6 +70,10 @@ find ~/.zsh/plugins/ -type f -name "*.zsh" -exec sed -i 's|^#!/usr/bin/env zsh|#
 command -v zsh | sudo tee -a /etc/shells
 sudo chsh -s `command -v zsh` ${USER}
 
+# Claude Code 环境变量
+mkdir -p ~/.config/claude
+wget https://raw.githubusercontent.com/dianshu/config/main/zsh/cc.env.template -O ~/.config/claude/env
+
 # vim related work
 cat > ~/.vimrc << EOF
 " Doc: https://linuxhint.com/vimrc_tutorial/

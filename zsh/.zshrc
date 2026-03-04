@@ -86,6 +86,9 @@ export BROWSER=wslview
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
+# 引入 Claude Code 环境变量
+[[ -f ~/.config/claude/env ]] && source ~/.config/claude/env
+
 ####################################################################################
 #                                     Functions                                    #
 ####################################################################################
