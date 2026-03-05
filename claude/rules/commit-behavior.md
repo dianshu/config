@@ -1,1 +1,1 @@
-When suggesting or performing a commit, never mention "claude code" or "hapi" in the commit message. Always push after committing.
+Commit message reminder: prefer not to include "claude code" or "hapi" in commit messages. After committing, consider pushing to remote.
