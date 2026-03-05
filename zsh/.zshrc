@@ -363,12 +363,7 @@ cc_sync() {
     echo "  Updating all skills..."
     npx -y skills update
 
-    # 4. Workspace directory
-    echo "\n=== Workspace ==="
-    mkdir -p "$HOME/repos/general-chat-using-claude-code"
-    echo "  Ensured: ~/repos/general-chat-using-claude-code"
-
-    # 5. Marketplaces (add if missing, then update all)
+    # 4. Marketplaces (add if missing, then update all)
     echo "\n=== Marketplaces ==="
     local mp_json="$HOME/.claude/plugins/known_marketplaces.json"
     typeset -A marketplaces=(
@@ -387,7 +382,7 @@ cc_sync() {
     echo "  Updating all marketplaces..."
     claude plugin marketplace update
 
-    # 6. Plugins (install if missing, update if exists)
+    # 5. Plugins (install if missing, update if exists)
     echo "\n=== Plugins ==="
     local plugins_json="$HOME/.claude/plugins/installed_plugins.json"
     local -a plugins=(
@@ -409,7 +404,7 @@ cc_sync() {
         claude plugin enable "$plugin" -s user 2>/dev/null
     done
 
-    # 6b. MCP Servers (direct registration for servers not installable as plugins)
+    # 5b. MCP Servers (direct registration for servers not installable as plugins)
     echo "\n=== MCP Servers ==="
     if claude mcp get context7 &>/dev/null; then
         echo "  MCP server 'context7' already configured"
@@ -418,7 +413,7 @@ cc_sync() {
         claude mcp add -s user context7 -- npx -y @upstash/context7-mcp
     fi
 
-    # 7. Clean up old backup files (>24h)
+    # 6. Clean up old backup files (>24h)
     echo "\n=== Cleanup ==="
     local count
     count=$(find "$HOME/.claude" -maxdepth 3 -name '*.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]' -mtime +0 -type f -print -delete | wc -l)
