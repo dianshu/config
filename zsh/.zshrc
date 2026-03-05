@@ -41,6 +41,7 @@ abbr --quiet -S k='kubectl'
 abbr --quiet -S dc='docker compose'
 abbr --quiet -S d='docker'
 abbr --quiet -S cc='claude'
+abbr --quiet -S cc_remote='npx -y @twsxtd/hapi hub --relay'
 
 # 启用路径自动补全
 autoload -Uz compinit
@@ -230,36 +231,6 @@ sb_stop() {
     sudo systemctl restart docker
 
     echo "sing-box stopped, Proxy OFF (shell + Docker daemon)"
-}
-
-cc_remote() {
-    # Named pipe to capture hub output while keeping it visible in terminal
-    local fifo=$(mktemp -u)
-    mkfifo "$fifo"
-    local monitor_pid=""
-
-    # Cleanup on exit/interrupt
-    trap 'rm -f "$fifo"; [[ -n "$monitor_pid" ]] && kill "$monitor_pid" 2>/dev/null; trap - EXIT INT TERM' EXIT INT TERM
-
-    export CLI_API_TOKEN=$(openssl rand -base64 32)
-
-    # Background monitor: read fifo, wait for trigger string, then launch client
-    {
-        while IFS= read -r line; do
-            if [[ "$line" == *"or scan the QR code to open"* ]]; then
-                setsid npx @twsxtd/hapi &
-                local client_pid=$!
-                sleep 5
-                kill -TERM -"$client_pid" 2>/dev/null
-                wait "$client_pid" 2>/dev/null
-                break
-            fi
-        done < "$fifo"
-    } &
-    monitor_pid=$!
-
-    # Run hub in foreground, tee output to fifo for monitor process
-    npx @twsxtd/hapi hub --relay 2>&1 | tee "$fifo"
 }
 
 cc_clean() {
