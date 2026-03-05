@@ -97,54 +97,6 @@ function docker_build() {
     docker build --add-host $(ifconfig eth0 | grep "inet " | awk '{print "host.docker.internal:"$2}') $@
 }
 
-cc_proxy() {
-    local port="${1:-29427}"
-    local settings_file="$HOME/.claude/settings.json"
-    local settings_dir="$HOME/.claude"
-
-    # Check if port is in use
-    if lsof -i :"$port" > /dev/null 2>&1; then
-        echo "Port $port is binded, need to change a port"
-        return 1
-    fi
-
-    # Create directory if it doesn't exist
-    [[ -d "$settings_dir" ]] || mkdir -p "$settings_dir"
-
-    # Update or create settings.json with the new port
-    local tmp_file=$(mktemp)
-    if [[ -f "$settings_file" ]]; then
-        jq --arg port "$port" '.env.ANTHROPIC_BASE_URL = "http://localhost:\($port)" | .env.ANTHROPIC_AUTH_TOKEN = "your-anthropic-auth-token" | .env.CLAUDE_CODE_SKIP_AUTH_LOGIN = "true" | .env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1"' "$settings_file" > "$tmp_file" && mv "$tmp_file" "$settings_file"
-    else
-        echo "{\"env\":{\"ANTHROPIC_BASE_URL\":\"http://localhost:$port\",\"ANTHROPIC_AUTH_TOKEN\":\"your-anthropic-auth-token\",\"CLAUDE_CODE_SKIP_AUTH_LOGIN\":\"true\",\"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\":\"1\"}}" | jq . > "$settings_file"
-    fi
-    echo "Updated $settings_file with port $port"
-
-    # Update Codex config.toml with the new port
-    local codex_config="$HOME/.codex/config.toml"
-    if [[ -f "$codex_config" ]]; then
-        sed -i "s|base_url = \"http://localhost:[0-9]*/v1\"|base_url = \"http://localhost:$port/v1\"|" "$codex_config"
-    else
-        mkdir -p "$(dirname "$codex_config")"
-        cat > "$codex_config" <<EOF
-# Codex CLI configuration
-
-model = "gpt-5.3-codex"
-model_provider = "local-proxy"
-
-[model_providers.local-proxy]
-name = "Local Proxy"
-base_url = "http://localhost:$port/v1"
-wire_api = "responses"
-env_key = "HOME"
-EOF
-    fi
-    echo "Updated $codex_config with port $port"
-
-    # Start the copilot API
-    npx --yes @dianshuv/copilot-api@latest start -p "$port" -a "enterprise"
-}
-
 function scan_vulns() {
     local dockerfile="Dockerfile"
     local build_dir="."
@@ -231,6 +183,54 @@ sb_stop() {
     sudo systemctl restart docker
 
     echo "sing-box stopped, Proxy OFF (shell + Docker daemon)"
+}
+
+cc_proxy() {
+    local port="${1:-29427}"
+    local settings_file="$HOME/.claude/settings.json"
+    local settings_dir="$HOME/.claude"
+
+    # Check if port is in use
+    if lsof -i :"$port" > /dev/null 2>&1; then
+        echo "Port $port is binded, need to change a port"
+        return 1
+    fi
+
+    # Create directory if it doesn't exist
+    [[ -d "$settings_dir" ]] || mkdir -p "$settings_dir"
+
+    # Update or create settings.json with the new port
+    local tmp_file=$(mktemp)
+    if [[ -f "$settings_file" ]]; then
+        jq --arg port "$port" '.env.ANTHROPIC_BASE_URL = "http://localhost:\($port)" | .env.ANTHROPIC_AUTH_TOKEN = "your-anthropic-auth-token" | .env.CLAUDE_CODE_SKIP_AUTH_LOGIN = "true" | .env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1"' "$settings_file" > "$tmp_file" && mv "$tmp_file" "$settings_file"
+    else
+        echo "{\"env\":{\"ANTHROPIC_BASE_URL\":\"http://localhost:$port\",\"ANTHROPIC_AUTH_TOKEN\":\"your-anthropic-auth-token\",\"CLAUDE_CODE_SKIP_AUTH_LOGIN\":\"true\",\"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\":\"1\"}}" | jq . > "$settings_file"
+    fi
+    echo "Updated $settings_file with port $port"
+
+    # Update Codex config.toml with the new port
+    local codex_config="$HOME/.codex/config.toml"
+    if [[ -f "$codex_config" ]]; then
+        sed -i "s|base_url = \"http://localhost:[0-9]*/v1\"|base_url = \"http://localhost:$port/v1\"|" "$codex_config"
+    else
+        mkdir -p "$(dirname "$codex_config")"
+        cat > "$codex_config" <<EOF
+# Codex CLI configuration
+
+model = "gpt-5.3-codex"
+model_provider = "local-proxy"
+
+[model_providers.local-proxy]
+name = "Local Proxy"
+base_url = "http://localhost:$port/v1"
+wire_api = "responses"
+env_key = "HOME"
+EOF
+    fi
+    echo "Updated $codex_config with port $port"
+
+    # Start the copilot API
+    npx --yes @dianshuv/copilot-api@latest start -p "$port" -a "enterprise"
 }
 
 cc_clean() {
