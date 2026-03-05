@@ -21,4 +21,5 @@ git clone --depth 1 https://github.com/zsh-users/zsh-history-substring-search ~/
 mkdir -p ~/.config/claude
 cp zsh/cc.env.template ~/.config/claude/env
 # 编辑 ~/.config/claude/env，填入实际的 API key
+# 文件会校验 required_envs 里的变量：未设置或等于 PLACEHOLDER_VALUE 时仅输出告警
 ```
