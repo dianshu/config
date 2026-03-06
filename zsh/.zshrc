@@ -405,10 +405,10 @@ cc_sync() {
     # 5b. MCP Servers (direct registration for servers not installable as plugins)
     echo "\n=== MCP Servers ==="
     claude mcp remove context7 -s user 2>/dev/null
-    claude mcp add -s user context7 -- npx -y @upstash/context7-mcp
+    claude mcp add context7 -s user -- npx -y @upstash/context7-mcp
     echo "  MCP server 'context7' configured"
     claude mcp remove searxng -s user 2>/dev/null
-    claude mcp add -s user -e SEARXNG_URL=http://localhost:30963 searxng -- npx -y mcp-searxng
+    claude mcp add searxng -s user -e SEARXNG_URL="http://localhost:30963" -- npx -y mcp-searxng
     echo "  MCP server 'searxng' configured"
 
     # 6. Clean up old backup files (>24h)
