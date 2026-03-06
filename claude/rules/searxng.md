@@ -1,0 +1,1 @@
+Always use the SearXNG MCP web search tool (`mcp__searxng__searxng_web_search`) instead of the built-in WebSearch tool for all web searches. Use `mcp__searxng__web_url_read` to read URL content when needed.
