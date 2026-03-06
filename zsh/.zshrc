@@ -231,8 +231,18 @@ EOF
 
     # Start SearXNG container for web search
     local searxng_port=30963
+    local searxng_config="$HOME/.config/searxng"
+
+    # Download SearXNG config from repo (reclaim ownership from container UID 977)
     docker rm -f searxng > /dev/null 2>&1
-    if ! docker run -d --pull always -p ${searxng_port}:8080 --restart unless-stopped --name searxng searxng/searxng; then
+    [[ -d "$searxng_config" ]] && sudo chown -R "$(id -u):$(id -g)" "$searxng_config"
+    dl_with_backup \
+        "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/zsh/searxng-settings.yml" \
+        "$searxng_config/settings.yml"
+
+    if ! docker run -d --pull always -p ${searxng_port}:8080 \
+        -v "$searxng_config:/etc/searxng" \
+        --restart unless-stopped --name searxng searxng/searxng; then
         echo "Failed to start SearXNG container"
     else
         echo "Waiting for SearXNG to start..."
