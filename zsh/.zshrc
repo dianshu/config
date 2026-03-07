@@ -442,6 +442,7 @@ cc_remote() {
     local work_dir="${1:-$(pwd)}"
     local session_name="claude remote"
     local ttyd_port=16235
+    local caddy_port=16236
 
     # Resolve to absolute path
     work_dir="$(cd "$work_dir" 2>/dev/null && pwd)" || {
@@ -458,27 +459,36 @@ cc_remote() {
     pkill -f "ttyd.*$ttyd_port" 2>/dev/null
     sleep 0.5
 
-    local password="$(head -c 32 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 32)"
-    ttyd -p "$ttyd_port" -c "user:$password" tmux attach -t "$session_name" > /dev/null 2>&1 &
-    echo "ttyd started on port $ttyd_port (user:$password)"
+    local token="$(head -c 32 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 32)"
+    ttyd -p "$ttyd_port" tmux attach -t "$session_name" > /dev/null 2>&1 &
+    echo "ttyd started on port $ttyd_port"
 
-    # 3. cloudflared: kill existing, then start fresh
+    # 3. caddy: reverse proxy with path-based token auth
+    pkill -f "caddy.*:$caddy_port" 2>/dev/null
+    sleep 0.3
+
+    caddy run --config <(printf ":%s {\n\thandle_path /%s/* {\n\t\treverse_proxy localhost:%s\n\t}\n\trespond 403\n}\n" \
+        "$caddy_port" "$token" "$ttyd_port") --adapter caddyfile > /dev/null 2>&1 &
+    echo "caddy proxy started on port $caddy_port"
+
+    # 4. cloudflared: kill existing, then start fresh
     pkill -f "cloudflared.*tunnel" 2>/dev/null
     sleep 0.5
 
     local log_file="/tmp/cloudflared-cc-remote.log"
-    cloudflared tunnel --url "http://localhost:$ttyd_port" > "$log_file" 2>&1 &
+    > "$log_file"
+    cloudflared tunnel --url "http://localhost:$caddy_port" > "$log_file" 2>&1 &
 
     # Wait for tunnel URL
     echo "Waiting for Cloudflare tunnel..."
     local waited=0
     while [[ $waited -lt 15 ]]; do
         local url
-        url=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' "$log_file" 2>/dev/null | head -1)
+        url=$(grep -oPm1 'https://[a-z0-9-]+\.trycloudflare\.com' "$log_file" 2>/dev/null)
         if [[ -n "$url" ]]; then
+            url="${url}/${token}/"
             echo "\n=== cc_remote ready ==="
             echo "URL: $url"
-            echo "Auth: user / $password"
             echo "Working dir: $work_dir"
             qrencode -t ANSIUTF8 "$url" 2>/dev/null
             return 0
