@@ -456,7 +456,7 @@ cc_remote() {
     echo "tmux session '$session_name' started in $work_dir"
 
     # 2. ttyd: kill existing, then start fresh
-    pkill -f "ttyd.*$ttyd_port" 2>/dev/null
+    fuser -k "$ttyd_port"/tcp 2>/dev/null
     sleep 0.5
 
     local token="$(head -c 32 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 32)"
@@ -464,7 +464,7 @@ cc_remote() {
     echo "ttyd started on port $ttyd_port"
 
     # 3. caddy: reverse proxy with path-based token auth
-    pkill -f "caddy.*:$caddy_port" 2>/dev/null
+    fuser -k "$caddy_port"/tcp 2>/dev/null
     sleep 0.3
 
     caddy run --config <(printf ":%s {\n\thandle /%s* {\n\t\treverse_proxy localhost:%s\n\t}\n\trespond 403\n}\n" \
