@@ -450,31 +450,24 @@ cc_remote() {
         return 1
     }
 
-    # 1. tmux: kill existing session, then create fresh
-    tmux kill-session -t "$session_name" 2>/dev/null
+    # Stop any existing cc_remote processes
+    cc_remote_stop
+
+    # 1. tmux
     tmux new -d -s "$session_name" "cd '$work_dir' && claude"
     echo "tmux session '$session_name' started in $work_dir"
 
-    # 2. ttyd: kill existing, then start fresh
-    fuser -k "$ttyd_port"/tcp 2>/dev/null
-    sleep 0.5
-
+    # 2. ttyd
     local token="$(head -c 32 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 32)"
     ttyd -W -p "$ttyd_port" -b "/$token" tmux attach -t "$session_name" > /dev/null 2>&1 &
     echo "ttyd started on port $ttyd_port"
 
     # 3. caddy: reverse proxy with path-based token auth
-    fuser -k "$caddy_port"/tcp 2>/dev/null
-    sleep 0.3
-
     caddy run --config <(printf ":%s {\n\thandle /%s* {\n\t\treverse_proxy localhost:%s\n\t}\n\trespond 403\n}\n" \
         "$caddy_port" "$token" "$ttyd_port") --adapter caddyfile > /dev/null 2>&1 &
     echo "caddy proxy started on port $caddy_port"
 
-    # 4. cloudflared: kill existing, then start fresh
-    pkill -f "cloudflared.*tunnel" 2>/dev/null
-    sleep 0.5
-
+    # 4. cloudflared
     local log_file="/tmp/cloudflared-cc-remote.log"
     cloudflared tunnel --url "http://localhost:$caddy_port" > "$log_file" 2>&1 &
 
