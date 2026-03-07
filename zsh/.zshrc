@@ -452,6 +452,7 @@ cc_remote() {
 
     # Stop any existing cc_remote processes
     cc_remote_stop
+    sleep 2
 
     # 1. tmux
     tmux new -d -s "$session_name" "cd '$work_dir' && claude"
