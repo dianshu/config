@@ -41,7 +41,6 @@ abbr --quiet -S k='kubectl'
 abbr --quiet -S dc='docker compose'
 abbr --quiet -S d='docker'
 abbr --quiet -S cc='claude'
-abbr --quiet -S cc_remote='npx -y @twsxtd/hapi hub --relay'
 
 # 启用路径自动补全
 autoload -Uz compinit
@@ -437,4 +436,56 @@ update_zshrc() {
     echo "  Deleted $count old .zshrc backup(s)"
     echo "\n=== update_zshrc complete ==="
     echo "Run 'source ~/.zshrc' to reload."
+}
+
+cc_remote() {
+    local work_dir="${1:-$(pwd)}"
+    local session_name="claude remote"
+    local ttyd_port=16235
+
+    # Resolve to absolute path
+    work_dir="$(cd "$work_dir" 2>/dev/null && pwd)" || {
+        echo "Directory not found: $1"
+        return 1
+    }
+
+    # 1. tmux: kill existing session, then create fresh
+    tmux kill-session -t "$session_name" 2>/dev/null
+    tmux new -d -s "$session_name" "cd '$work_dir' && claude"
+    echo "tmux session '$session_name' started in $work_dir"
+
+    # 2. ttyd: kill existing, then start fresh
+    pkill -f "ttyd.*$ttyd_port" 2>/dev/null
+    sleep 0.5
+
+    local password="$(head -c 32 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 32)"
+    ttyd -p "$ttyd_port" -c "user:$password" tmux attach -t "$session_name" > /dev/null 2>&1 &
+    echo "ttyd started on port $ttyd_port (user:$password)"
+
+    # 3. cloudflared: kill existing, then start fresh
+    pkill -f "cloudflared.*tunnel" 2>/dev/null
+    sleep 0.5
+
+    local log_file="/tmp/cloudflared-cc-remote.log"
+    cloudflared tunnel --url "http://localhost:$ttyd_port" > "$log_file" 2>&1 &
+
+    # Wait for tunnel URL
+    echo "Waiting for Cloudflare tunnel..."
+    local waited=0
+    while [[ $waited -lt 15 ]]; do
+        local url
+        url=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' "$log_file" 2>/dev/null | head -1)
+        if [[ -n "$url" ]]; then
+            echo "\n=== cc_remote ready ==="
+            echo "URL: $url"
+            echo "Auth: user / $password"
+            echo "Working dir: $work_dir"
+            qrencode -t ANSIUTF8 "$url" 2>/dev/null
+            return 0
+        fi
+        sleep 1
+        waited=$((waited + 1))
+    done
+
+    echo "Tunnel started but URL not yet available. Check: cat $log_file"
 }
