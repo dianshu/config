@@ -476,7 +476,6 @@ cc_remote() {
     sleep 0.5
 
     local log_file="/tmp/cloudflared-cc-remote.log"
-    > "$log_file"
     cloudflared tunnel --url "http://localhost:$caddy_port" > "$log_file" 2>&1 &
 
     # Wait for tunnel URL
