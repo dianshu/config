@@ -467,7 +467,7 @@ cc_remote() {
     pkill -f "caddy.*:$caddy_port" 2>/dev/null
     sleep 0.3
 
-    caddy run --config <(printf ":%s {\n\thandle /%s/* {\n\t\treverse_proxy localhost:%s\n\t}\n\trespond 403\n}\n" \
+    caddy run --config <(printf ":%s {\n\thandle /%s* {\n\t\treverse_proxy localhost:%s\n\t}\n\trespond 403\n}\n" \
         "$caddy_port" "$token" "$ttyd_port") --adapter caddyfile > /dev/null 2>&1 &
     echo "caddy proxy started on port $caddy_port"
 
