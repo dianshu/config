@@ -17,6 +17,7 @@ brew install azure-cli yq
 brew install jq net-tools git tree
 brew install trivy uv node
 brew install gh
+brew install tmux ttyd cloudflared
 curl -fsSL https://bun.sh/install | bash
 
 # sing-box
