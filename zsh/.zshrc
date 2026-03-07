@@ -460,7 +460,7 @@ cc_remote() {
     sleep 0.5
 
     local token="$(head -c 32 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 32)"
-    ttyd -p "$ttyd_port" -b "/$token" tmux attach -t "$session_name" > /dev/null 2>&1 &
+    ttyd -W -p "$ttyd_port" -b "/$token" tmux attach -t "$session_name" > /dev/null 2>&1 &
     echo "ttyd started on port $ttyd_port"
 
     # 3. caddy: reverse proxy with path-based token auth
