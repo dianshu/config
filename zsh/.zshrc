@@ -456,11 +456,12 @@ cc_remote() {
 
     # 1. tmux
     tmux new -d -s "$session_name" "cd '$work_dir' && claude"
+    tmux set-option -t "$session_name" history-limit 50000
     echo "tmux session '$session_name' started in $work_dir"
 
     # 2. ttyd
     local token="$(head -c 32 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 32)"
-    ttyd -W -p "$ttyd_port" -b "/$token" tmux attach -t "$session_name" > /dev/null 2>&1 &
+    ttyd -W -p "$ttyd_port" -b "/$token" -t scrollback=50000 tmux attach -t "$session_name" > /dev/null 2>&1 &
     echo "ttyd started on port $ttyd_port"
 
     # 3. caddy: reverse proxy with path-based token auth
