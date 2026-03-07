@@ -498,3 +498,11 @@ cc_remote() {
 
     echo "Tunnel started but URL not yet available. Check: cat $log_file"
 }
+
+cc_remote_stop() {
+    fuser -k 16235/tcp 2>/dev/null
+    fuser -k 16236/tcp 2>/dev/null
+    pkill -f "cloudflared.*tunnel" 2>/dev/null
+    tmux kill-session -t "claude remote" 2>/dev/null
+    echo "cc_remote stopped"
+}
