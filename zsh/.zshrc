@@ -439,51 +439,45 @@ update_zshrc() {
 }
 
 cc_remote() {
-    local work_dir="${1:-$(pwd)}"
-    local session_name="claude remote"
-    local ttyd_port=16235
-    local caddy_port=16236
-
-    # Resolve to absolute path
-    work_dir="$(cd "$work_dir" 2>/dev/null && pwd)" || {
-        echo "Directory not found: $1"
-        return 1
-    }
+    local myrlin_port=40932
+    local password="$(head -c 32 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 16)"
 
     # Stop any existing cc_remote processes
     cc_remote_stop
     sleep 2
 
-    # 1. tmux
-    tmux new -d -s "$session_name" "cd '$work_dir' && claude"
-    tmux set-option -t "$session_name" history-limit 50000
-    echo "tmux session '$session_name' started in $work_dir"
+    # 1. Start myrlin-workbook in background (no browser auto-open, random password)
+    CWM_NO_OPEN=1 CWM_PASSWORD="$password" PORT="$myrlin_port" npx -y myrlin-workbook > /dev/null 2>&1 &
+    local myrlin_pid=$!
+    echo "myrlin-workbook starting on port $myrlin_port..."
 
-    # 2. ttyd
-    local token="$(head -c 32 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 32)"
-    ttyd -W -p "$ttyd_port" -b "/$token" -t scrollback=50000 tmux attach -t "$session_name" > /dev/null 2>&1 &
-    echo "ttyd started on port $ttyd_port"
+    # Wait for myrlin-workbook to be ready
+    local waited=0
+    while ! curl -sf "http://localhost:$myrlin_port" > /dev/null 2>&1; do
+        sleep 1
+        waited=$((waited + 1))
+        if [[ $waited -ge 30 ]]; then
+            echo "myrlin-workbook failed to start within 30s"
+            kill "$myrlin_pid" 2>/dev/null
+            return 1
+        fi
+    done
+    echo "myrlin-workbook ready"
 
-    # 3. caddy: reverse proxy with path-based token auth
-    caddy run --config <(printf ":%s {\n\thandle /%s* {\n\t\treverse_proxy localhost:%s\n\t}\n\trespond 403\n}\n" \
-        "$caddy_port" "$token" "$ttyd_port") --adapter caddyfile > /dev/null 2>&1 &
-    echo "caddy proxy started on port $caddy_port"
-
-    # 4. cloudflared
+    # 2. Start cloudflared tunnel
     local log_file="/tmp/cloudflared-cc-remote.log"
-    cloudflared tunnel --url "http://localhost:$caddy_port" > "$log_file" 2>&1 &
+    cloudflared tunnel --url "http://localhost:$myrlin_port" > "$log_file" 2>&1 &
 
     # Wait for tunnel URL
     echo "Waiting for Cloudflare tunnel..."
-    local waited=0
+    waited=0
     while [[ $waited -lt 15 ]]; do
         local url
         url=$(grep -oPm1 'https://[a-z0-9-]+\.trycloudflare\.com' "$log_file" 2>/dev/null)
         if [[ -n "$url" ]]; then
-            url="${url}/${token}/"
             echo "\n=== cc_remote ready ==="
             echo "URL: $url"
-            echo "Working dir: $work_dir"
+            echo "Password: $password"
             qrencode -t ANSIUTF8 "$url" 2>/dev/null
             return 0
         fi
@@ -495,9 +489,7 @@ cc_remote() {
 }
 
 cc_remote_stop() {
-    fuser -k 16235/tcp 2>/dev/null
-    fuser -k 16236/tcp 2>/dev/null
+    fuser -k 40932/tcp 2>/dev/null
     pkill -f "cloudflared.*tunnel" 2>/dev/null
-    tmux kill-session -t "claude remote" 2>/dev/null
     echo "cc_remote stopped"
 }
