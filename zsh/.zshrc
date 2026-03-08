@@ -475,10 +475,11 @@ cc_remote() {
         local url
         url=$(grep -oPm1 'https://[a-z0-9-]+\.trycloudflare\.com' "$log_file" 2>/dev/null)
         if [[ -n "$url" ]]; then
+            local full_url="${url}?password=${password}"
             echo "\n=== cc_remote ready ==="
-            echo "URL: $url"
+            echo "URL: $full_url"
             echo "Password: $password"
-            qrencode -t ANSIUTF8 "$url" 2>/dev/null
+            qrencode -t ANSIUTF8 "$full_url" 2>/dev/null
             return 0
         fi
         sleep 1
