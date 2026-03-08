@@ -216,8 +216,9 @@ cc_proxy() {
         cat > "$codex_config" <<EOF
 # Codex CLI configuration
 
-model = "gpt-5.3-codex"
+model = "gpt-5.4"
 model_provider = "local-proxy"
+model_reasoning_effort = "high"
 
 [model_providers.local-proxy]
 name = "Local Proxy"
