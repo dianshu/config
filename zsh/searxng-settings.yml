@@ -9,7 +9,260 @@ search:
     - json
 
 engines:
+  # --- manually enabled (default off) ---
   - name: bing
     disabled: false
   - name: reddit
     disabled: false
+
+  # --- disable redundant web engines ---
+  - name: yahoo
+    disabled: true
+  - name: yahoo news
+    disabled: true
+  - name: ask
+    disabled: true
+  - name: mojeek
+    disabled: true
+  - name: mojeek images
+    disabled: true
+  - name: mojeek news
+    disabled: true
+  - name: presearch
+    disabled: true
+  - name: presearch images
+    disabled: true
+  - name: presearch news
+    disabled: true
+  - name: presearch videos
+    disabled: true
+  - name: wiby
+    disabled: true
+  - name: yandex
+    disabled: true
+  - name: startpage
+    disabled: true
+  - name: startpage news
+    disabled: true
+  - name: startpage images
+    disabled: true
+  - name: qwant
+    disabled: true
+  - name: qwant news
+    disabled: true
+  - name: qwant images
+    disabled: true
+  - name: qwant videos
+    disabled: true
+  - name: yep
+    disabled: true
+  - name: yep news
+    disabled: true
+  - name: yep images
+    disabled: true
+  - name: right dao
+    disabled: true
+  - name: searchmysite
+    disabled: true
+  - name: crowdview
+    disabled: true
+  - name: mwmbl
+    disabled: true
+  - name: fynd
+    disabled: true
+  - name: encyclosearch
+    disabled: true
+
+  # --- disable regional/locale-specific engines ---
+  - name: baidu
+    disabled: true
+  - name: baidu images
+    disabled: true
+  - name: sogou
+    disabled: true
+  - name: sogou images
+    disabled: true
+  - name: sogou videos
+    disabled: true
+  - name: sogou wechat
+    disabled: true
+  - name: 360search
+    disabled: true
+  - name: 360search videos
+    disabled: true
+  - name: quark
+    disabled: true
+  - name: quark images
+    disabled: true
+  - name: seznam
+    disabled: true
+  - name: naver
+    disabled: true
+  - name: naver images
+    disabled: true
+  - name: naver videos
+    disabled: true
+  - name: naver news
+    disabled: true
+  - name: chefkoch
+    disabled: true
+  - name: bpb
+    disabled: true
+  - name: tagesschau
+    disabled: true
+  - name: wikimini
+    disabled: true
+  - name: ina
+    disabled: true
+  - name: niconico
+    disabled: true
+  - name: acfun
+    disabled: true
+  - name: iqiyi
+    disabled: true
+  - name: ansa
+    disabled: true
+  - name: il post
+    disabled: true
+
+  # --- disable media/art/entertainment ---
+  - name: artic
+    disabled: true
+  - name: deviantart
+    disabled: true
+  - name: pinterest
+    disabled: true
+  - name: wallhaven
+    disabled: true
+  - name: flickr
+    disabled: true
+  - name: pexels
+    disabled: true
+  - name: unsplash
+    disabled: true
+  - name: openverse
+    disabled: true
+  - name: 1x
+    disabled: true
+  - name: imgur
+    disabled: true
+  - name: ipernity
+    disabled: true
+  - name: findthatmeme
+    disabled: true
+  - name: ebay
+    disabled: true
+  - name: piratebay
+    disabled: true
+  - name: kickass
+    disabled: true
+  - name: solidtorrents
+    disabled: true
+  - name: bt4g
+    disabled: true
+  - name: ahmia
+    disabled: true
+  - name: torch
+    disabled: true
+  - name: mixcloud
+    disabled: true
+  - name: bandcamp
+    disabled: true
+  - name: soundcloud
+    disabled: true
+  - name: piped.music
+    disabled: true
+  - name: radio browser
+    disabled: true
+  - name: freesound
+    disabled: true
+  - name: dailymotion
+    disabled: true
+  - name: vimeo
+    disabled: true
+  - name: podcastindex
+    disabled: true
+  - name: cloudflareai
+    disabled: true
+  - name: etymonline
+    disabled: true
+  - name: wordnik
+    disabled: true
+  - name: wikicommons.audio
+    disabled: true
+  - name: wikicommons.files
+    disabled: true
+  - name: wikicommons.videos
+    disabled: true
+  - name: sepiasearch
+    disabled: true
+  - name: bitchute
+    disabled: true
+  - name: rumble
+    disabled: true
+  - name: odysee
+    disabled: true
+  - name: peertube
+    disabled: true
+  - name: genius
+    disabled: true
+
+  # --- disable niche academic engines ---
+  - name: astrophysics data system
+    disabled: true
+  - name: pubmed
+    disabled: true
+  - name: springer nature
+    disabled: true
+  - name: core.ac.uk
+    disabled: true
+  - name: pdbe
+    disabled: true
+  - name: openairedatasets
+    disabled: true
+  - name: openairepublications
+    disabled: true
+
+  # --- disable misc ---
+  - name: ddg definitions
+    disabled: true
+  - name: tootfinder
+    disabled: true
+  - name: mastodon users
+    disabled: true
+  - name: mastodon hashtags
+    disabled: true
+  - name: wikicommons.images
+    disabled: true
+  - name: wikinews
+    disabled: true
+  - name: wikibooks
+    disabled: true
+  - name: wikiquote
+    disabled: true
+  - name: wikisource
+    disabled: true
+  - name: wikispecies
+    disabled: true
+  - name: wikiversity
+    disabled: true
+  - name: wikivoyage
+    disabled: true
+  - name: wiktionary
+    disabled: true
+  - name: dictzone
+    disabled: true
+  - name: mymemory translated
+    disabled: true
+  - name: libretranslate
+    disabled: true
+  - name: photon
+    disabled: true
+  - name: hoogle
+    disabled: true
+  - name: gentoo
+    disabled: true
+  - name: devicons
+    disabled: true
+  - name: lucide
+    disabled: true
