@@ -11,3 +11,5 @@ search:
 engines:
   - name: bing
     disabled: false
+  - name: reddit
+    disabled: false
