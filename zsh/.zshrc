@@ -409,7 +409,6 @@ cc_sync() {
 
     # 5b. MCP Servers (direct registration for servers not installable as plugins)
     echo "\n=== MCP Servers ==="
-    claude plugin uninstall "playwright@claude-plugins-official" -s user 2>/dev/null
     claude mcp remove playwright -s user 2>/dev/null
     claude mcp add playwright -s user -- npx -y @playwright/mcp@latest --browser msedge
     echo "  MCP server 'playwright' configured (Edge)"
