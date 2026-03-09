@@ -233,13 +233,7 @@ EOF
     local searxng_port=30963
     local searxng_config="$HOME/.config/searxng"
 
-    # Download SearXNG config from repo (reclaim ownership from container UID 977)
     docker rm -f searxng > /dev/null 2>&1
-    [[ -d "$searxng_config" ]] && sudo chown -R "$(id -u):$(id -g)" "$searxng_config"
-    dl_with_backup \
-        "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/zsh/searxng-settings.yml" \
-        "$searxng_config/settings.yml"
-
     if ! docker run -d --pull always -p ${searxng_port}:8080 \
         -v "$searxng_config:/etc/searxng" \
         --restart unless-stopped --name searxng searxng/searxng; then
@@ -281,6 +275,7 @@ dl_with_backup() {
     if [[ -f "$dest" ]]; then
         local backup="${dest}.$(date +%Y%m%d%H%M%S)"
         mv "$dest" "$backup"
+        touch "$backup"
         echo "  Backed up: ${dest/$HOME/~} -> ${backup/$HOME/~}"
     fi
     if wget -qO "$dest" "$url"; then
@@ -289,6 +284,10 @@ dl_with_backup() {
         echo "  FAILED: ${dest/$HOME/~}"
         return 1
     fi
+    # Delete old backups (>24h) of this file
+    local base_name
+    base_name="$(basename "$dest")"
+    find "$dest_dir" -maxdepth 1 -name "${base_name}.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]" -mtime +0 -type f -delete
 }
 
 cc_sync() {
@@ -407,7 +406,15 @@ cc_sync() {
         claude plugin enable "$plugin" -s user 2>/dev/null
     done
 
-    # 5b. MCP Servers (direct registration for servers not installable as plugins)
+    # 5b. SearXNG config
+    echo "\n=== SearXNG Config ==="
+    local searxng_config="$HOME/.config/searxng"
+    [[ -d "$searxng_config" ]] && sudo chown -R "$(id -u):$(id -g)" "$searxng_config"
+    dl_with_backup \
+        "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/zsh/searxng-settings.yml" \
+        "$searxng_config/settings.yml"
+
+    # 5c. MCP Servers (direct registration for servers not installable as plugins)
     echo "\n=== MCP Servers ==="
     claude mcp remove playwright -s user 2>/dev/null
     claude mcp add playwright -s user -- npx -y @playwright/mcp@latest --browser msedge
@@ -419,12 +426,6 @@ cc_sync() {
     claude mcp add searxng -s user -e SEARXNG_URL="http://localhost:30963" -- npx -y mcp-searxng
     echo "  MCP server 'searxng' configured"
 
-    # 6. Clean up old backup files (>24h)
-    echo "\n=== Cleanup ==="
-    local count
-    count=$(find "$HOME/.claude" -maxdepth 3 -name '*.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]' -mtime +0 -type f -print -delete | wc -l)
-    echo "  Deleted $count old backup file(s)"
-
     echo "\n=== cc_sync complete ==="
 }
 
@@ -433,10 +434,6 @@ update_zshrc() {
     dl_with_backup \
         "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/zsh/.zshrc" \
         "$HOME/.zshrc"
-    # Clean up old .zshrc backup files (>24h)
-    local count
-    count=$(find "$HOME" -maxdepth 1 -name '.zshrc.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]' -mtime +0 -type f -print -delete | wc -l)
-    echo "  Deleted $count old .zshrc backup(s)"
     echo "\n=== update_zshrc complete ==="
     echo "Run 'source ~/.zshrc' to reload."
 }
