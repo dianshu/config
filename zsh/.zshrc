@@ -393,7 +393,6 @@ cc_sync() {
         "microsoft-docs@microsoft-docs-marketplace"
         "document-skills@anthropic-agent-skills"
         "code-simplifier@claude-plugins-official"
-        "playwright@claude-plugins-official"
     )
     for plugin in "${plugins[@]}"; do
         if [[ -f "$plugins_json" ]] && jq -e --arg p "$plugin" '.plugins | has($p)' "$plugins_json" &>/dev/null; then
@@ -410,6 +409,10 @@ cc_sync() {
 
     # 5b. MCP Servers (direct registration for servers not installable as plugins)
     echo "\n=== MCP Servers ==="
+    claude plugin uninstall "playwright@claude-plugins-official" -s user 2>/dev/null
+    claude mcp remove playwright -s user 2>/dev/null
+    claude mcp add playwright -s user -- npx -y @playwright/mcp@latest --browser msedge
+    echo "  MCP server 'playwright' configured (Edge)"
     claude mcp remove context7 -s user 2>/dev/null
     claude mcp add context7 -s user -- npx -y @upstash/context7-mcp
     echo "  MCP server 'context7' configured"
