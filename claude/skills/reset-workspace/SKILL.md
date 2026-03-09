@@ -41,7 +41,7 @@ Replace `<default-branch>` with the branch name detected in step 2.
 
 ### 4. Clear session
 
-Run the `/clear` command to reset the current Claude session context so the user starts fresh.
+Tell the user to run `/clear` themselves to reset the session context. `/clear` is a built-in CLI command that only the user can invoke — the agent cannot run it programmatically.
 
 ---
 
@@ -52,4 +52,4 @@ Run the `/clear` command to reset the current Claude session context so the user
 | Proceeding with uncommitted changes | Always check `git status --porcelain` first and stop if non-empty |
 | Hardcoding `main` as the default branch | Always detect via `git remote show origin` — repos may use `master`, `develop`, etc. |
 | Forgetting to pull after checkout | Always pull to ensure local branch is up to date with remote |
-| Skipping session clear | Always run `/clear` so the user starts with a clean context |
+| Skipping session clear | Always remind the user to run `/clear` — the agent cannot invoke it |
