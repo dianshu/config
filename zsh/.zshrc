@@ -263,9 +263,14 @@ EOF
 }
 
 cc_clean() {
-    rm -rf ~/.claude ~/.claude.json ~/.local/share/claude/
+    local targets=(~/.claude ~/.local/share/claude ~/.claude.json)
+    for t in "${targets[@]}"; do
+        [[ -e "$t" || -L "$t" ]] && echo "Removing $t" && rm -rf "$t"
+    done
     for dir in ~/repos/*/; do
-        rm -rf "$dir/.claude" "$dir/.mcp.json"
+        for target in "$dir/.claude" "$dir/.mcp.json"; do
+            [[ -e "$target" || -L "$target" ]] && echo "Removing $target" && rm -rf "$target"
+        done
     done
     echo "All Claude Code data cleaned. Run 'claude' to re-authenticate."
 }
