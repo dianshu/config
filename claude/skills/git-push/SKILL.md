@@ -98,7 +98,7 @@ git push -u origin HEAD
 #### B4. Create PR
 
 ```bash
-az repos pr create --detect --draft --title "<title>" --description "<description>" --output json
+az repos pr create --detect --draft --auto-complete false --title "<title>" --description "<description>" --output json
 ```
 
 The `--detect` flag auto-detects org/project/repo from the git remote.
@@ -126,3 +126,4 @@ Always print the PR URL to the user regardless of whether the browser opens.
 | Forgetting `--output json` | Required to parse PR URL dynamically |
 | Not checking for staged changes first | Always run `git diff --cached --stat` before anything else |
 | Skipping dry-run push check | Always test permissions before deciding the push path |
+| Setting auto-complete on PR | Always pass `--auto-complete false` to prevent PRs from auto-completing |
