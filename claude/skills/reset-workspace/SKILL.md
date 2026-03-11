@@ -34,12 +34,21 @@ git checkout <default-branch>
 ```
 
 ```bash
-git pull origin <default-branch>
+git pull --ff-only
 ```
 
-Replace `<default-branch>` with the branch name detected in step 2.
+Replace `<default-branch>` with the branch name detected in step 2. The `--ff-only` flag overrides the user's global `pull.ff` setting and refuses to create merge commits. If fast-forward isn't possible, it fails — which is correct for a reset-workspace scenario since it indicates unexpected local divergence.
 
-### 4. Clear session
+### 4. Clean up stale branches
+
+```bash
+git remote prune origin
+git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -r git branch -D
+```
+
+This prunes remote-tracking refs for branches deleted on the remote, then deletes any local branches whose upstream is gone.
+
+### 5. Clear session
 
 Tell the user to run `/clear` themselves to reset the session context. `/clear` is a built-in CLI command that only the user can invoke — the agent cannot run it programmatically.
 
@@ -52,4 +61,5 @@ Tell the user to run `/clear` themselves to reset the session context. `/clear` 
 | Proceeding with uncommitted changes | Always check `git status --porcelain` first and stop if non-empty |
 | Hardcoding `main` as the default branch | Always detect via `git remote show origin` — repos may use `master`, `develop`, etc. |
 | Forgetting to pull after checkout | Always pull to ensure local branch is up to date with remote |
+| Creating merge commits from `git pull` | Always use `git pull --ff-only` to override `pull.ff=false` and prevent spurious merge commits |
 | Skipping session clear | Always remind the user to run `/clear` — the agent cannot invoke it |
