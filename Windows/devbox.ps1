@@ -50,6 +50,16 @@ for ($i = 0; $i -lt $packages.Length; $i++) {
     winget install --accept-package-agreements --accept-source-agreements -i -l $location -e $package
 }
 
+Write-Output "Going to uninstall old Az PowerShell module..."
+Get-ChildItem "C:\Program Files\WindowsPowerShell\Modules\Az*" -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+	Write-Output "Removing $($_.FullName)..."
+	Remove-Item -Path $_.FullName -Recurse -Force
+}
+Remove-Item "$env:LOCALAPPDATA\Microsoft\Windows\PowerShell\ModuleAnalysisCache" -Force -ErrorAction SilentlyContinue
+
+Write-Output "Going to install latest Az PowerShell module..."
+Install-Module -Name Az -Repository PSGallery -Scope AllUsers -Force -Verbose
+
 Write-Output "Going to install Azure Artifacts Credential Provider..."
 iex "& { $(irm https://aka.ms/install-artifacts-credprovider.ps1) }"
 
