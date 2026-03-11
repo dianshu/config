@@ -79,11 +79,23 @@ def is_readonly_tool(tool_name):
     return False
 
 
+def _strip_string_literals(command):
+    """Remove quoted strings and heredoc content so deny patterns only match actual commands."""
+    # Remove heredoc blocks: <<'EOF' ... EOF or <<EOF ... EOF
+    result = re.sub(r"<<-?\s*'?(\w+)'?\s*\n.*?\n\1", "", command, flags=re.DOTALL)
+    # Remove double-quoted strings (non-greedy, handles escaped quotes)
+    result = re.sub(r'"(?:[^"\\]|\\.)*"', '""', result)
+    # Remove single-quoted strings (no escaping in single quotes)
+    result = re.sub(r"'[^']*'", "''", result)
+    return result
+
+
 def check_bash_deny(command, config):
     """Check command against deny patterns. Returns (denied, reason)."""
+    stripped = _strip_string_literals(command)
     for pattern in config.get("bash_deny_patterns", []):
         try:
-            if re.search(pattern, command):
+            if re.search(pattern, stripped):
                 return True, f"Command matches deny pattern: {pattern}"
         except re.error:
             continue

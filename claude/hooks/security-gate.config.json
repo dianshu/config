@@ -41,7 +41,7 @@
     "git\\s+push\\s+--force",
     "git\\s+reset\\s+--hard",
     "git\\s+clean\\s+-[^\\s]*f",
-    "\\beval\\s+\"?\\$\\(",
+    "\\beval\\b",
     ">/dev/null\\s*2>&1\\s*&\\s*disown",
     "nohup\\s+.*&"
   ],
