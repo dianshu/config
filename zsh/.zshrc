@@ -490,6 +490,12 @@ cc_remote() {
             echo "URL: $full_url"
             echo "Token: $token"
             qrencode -t ANSIUTF8 "$full_url" 2>/dev/null
+            echo "QR code will clear in 20 seconds..."
+            sleep 10
+            echo "QR code will clear in 10 seconds..."
+            sleep 10
+            clear
+            echo "=== cc_remote ready ==="
             return 0
         fi
         sleep 1
