@@ -448,20 +448,22 @@ update_zshrc() {
 
 cc_remote() {
     local myrlin_port=40932
-    local password="$(head -c 32 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 16)"
+    local myrlin_log="/tmp/myrlin-workbook.log"
 
     # Stop any existing cc_remote processes
     cc_remote_stop
     sleep 2
 
-    # 1. Start myrlin-workbook in background (no browser auto-open, random password)
-    CWM_NO_OPEN=1 CWM_PASSWORD="$password" PORT="$myrlin_port" npx -y myrlin-workbook > /dev/null 2>&1 &
+    # 1. Start myrlin-workbook in background (captures stdout for token extraction)
+    CWM_NO_OPEN=1 PORT="$myrlin_port" npx -y myrlin-workbook > "$myrlin_log" 2>&1 &
     local myrlin_pid=$!
     echo "myrlin-workbook starting on port $myrlin_port..."
 
-    # Wait for myrlin-workbook to be ready
+    # Wait for myrlin-workbook to be ready and extract token from log
     local waited=0
-    while ! curl -sf "http://localhost:$myrlin_port" > /dev/null 2>&1; do
+    local token=""
+    while [[ -z "$token" ]]; do
+        token=$(grep -oP '(?<=\?token=)[a-f0-9]+' "$myrlin_log" 2>/dev/null)
         sleep 1
         waited=$((waited + 1))
         if [[ $waited -ge 30 ]]; then
@@ -470,7 +472,7 @@ cc_remote() {
             return 1
         fi
     done
-    echo "myrlin-workbook ready"
+    echo "myrlin-workbook ready (token captured)"
 
     # 2. Start cloudflared tunnel
     local log_file="/tmp/cloudflared-cc-remote.log"
@@ -483,10 +485,10 @@ cc_remote() {
         local url
         url=$(grep -oPm1 'https://[a-z0-9-]+\.trycloudflare\.com' "$log_file" 2>/dev/null)
         if [[ -n "$url" ]]; then
-            local full_url="${url}?password=${password}"
+            local full_url="${url}?token=${token}"
             echo "\n=== cc_remote ready ==="
             echo "URL: $full_url"
-            echo "Password: $password"
+            echo "Token: $token"
             qrencode -t ANSIUTF8 "$full_url" 2>/dev/null
             return 0
         fi
