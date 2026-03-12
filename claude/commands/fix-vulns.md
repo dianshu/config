@@ -44,25 +44,14 @@ docker build --no-cache --pull -t vuln-scan-$(basename $(dirname $DOCKERFILE)):l
 ```
 If the build fails, log the error and skip this Dockerfile.
 
-#### Step 2: Dual-Scanner Scan
-Run **both** scanners and capture JSON output:
-
-**Trivy:**
+#### Step 2: Scan
 ```bash
 trivy image --ignore-unfixed --format json --output trivy-results.json vuln-scan-IMAGE:latest
 ```
 
-**Grype:**
-```bash
-grype vuln-scan-IMAGE:latest --only-fixed --output json > grype-results.json
-```
-
-If either scanner is not installed, install it or fall back to the available one. Both scanners are preferred for cross-validation.
-
-#### Step 3: Merge & Deduplicate
-- Parse both JSON outputs
-- Deduplicate CVEs by **CVE ID** — union of findings from both scanners
-- For each CVE, record: CVE ID, package name, installed version, fixed version, severity, scanner source
+#### Step 3: Parse Results
+- Parse the Trivy JSON output
+- For each CVE, record: CVE ID, package name, installed version, fixed version, severity
 
 #### Step 4: Triage Each CVE
 Classify every CVE as **fixable** or **unfixable**:
@@ -142,7 +131,7 @@ Do **not** create a `VULNERABILITY_REPORT.md` file. Instead, print a summary to 
 
 ```
 === Vulnerability Scan Summary (YYYY-MM-DD) ===
-Scanners: Trivy X.X.X, Grype X.X.X
+Scanner: Trivy X.X.X
 Dockerfiles scanned: N
 
 Fixed CVEs:
@@ -173,8 +162,7 @@ Only create a PR if Dockerfile changes were made (fixes applied).
 - **Only stop** if a fix breaks a build **and** the revert also fails
 - Do **not** stop for unfixable CVEs — document them and continue
 - Do **not** prompt the user mid-pipeline — complete the full cycle, then present results
-- If both scanners fail to install, fall back to whichever one is available
-- If neither scanner is available, stop and inform the user
+- If Trivy is not installed, stop and inform the user
 
 ## Usage
 

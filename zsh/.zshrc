@@ -138,9 +138,6 @@ function scan_vulns() {
 
     echo "Scanning image with Trivy..."
     trivy image --quiet --ignore-unfixed --format json --scanners vuln "$image" | jq '.Results[].Vulnerabilities // []'
-
-    echo "Scanning image with Grype..."
-    grype "$image" --only-fixed -o json | jq '.matches // []'
 }
 
 sb_start() {

@@ -15,7 +15,7 @@ ulimit -n 100000
 # install packages
 brew install azure-cli yq
 brew install jq net-tools git tree
-brew install trivy grype uv node
+brew install trivy uv node
 brew install gh
 brew install tmux ttyd cloudflared qrencode caddy
 curl -fsSL https://bun.sh/install | bash
