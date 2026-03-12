@@ -105,6 +105,11 @@ if uname -a | grep -qi "WSL"; then
     echo "export BROWSER=wslview" >> ~/.zshrc
 fi
 
+# sublime merge (git diff viewer)
+wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/sublimehq-archive.gpg > /dev/null
+echo "deb https://download.sublimetext.com/ apt/stable/" | sudo tee /etc/apt/sources.list.d/sublime-text.list
+sudo apt update && sudo apt install -y sublime-merge
+
 # locale related work
 sudo apt install -y language-pack-zh-hans
 sudo sed -i 's/# zh_CN.UTF-8 UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen
