@@ -6,7 +6,7 @@ description: Scan and Fix Vulnerabilities
 
 > Discover, scan, triage, fix, and report CVEs across all Dockerfiles in a repo. Runs autonomously with parallel agents.
 
-## Phase 1 — Discovery & Setup
+## Phase 1 — Discovery & Initial Scan
 
 1. **Find all Dockerfiles** in the repo:
    ```bash
@@ -18,7 +18,9 @@ description: Scan and Fix Vulnerabilities
    ```bash
    az acr login --name aihardware
    ```
-5. **Create a branch** in each affected repo:
+5. **Build and scan all images** (see Phase 2 steps 1–4).
+6. **If no fixable CVEs found across all images**: print the console summary (Phase 3) and **stop** — do not create a branch or PR.
+7. **If fixable CVEs exist**, create a branch and proceed to apply fixes:
    ```bash
    git checkout -b fix/vulns-$(date +%Y%m%d)
    ```
@@ -134,49 +136,34 @@ If the rebuild fails after a fix:
 
 ## Phase 3 — Reporting
 
-Generate `VULNERABILITY_REPORT.md` in each repo root with:
+Do **not** create a `VULNERABILITY_REPORT.md` file. Instead, print a summary to the console covering **only fixable CVEs** — those that were actually fixed or that could be fixed but broke the build.
 
-### Report Template
+### Console Report Format
 
-```markdown
-# Vulnerability Report — YYYY-MM-DD
+```
+=== Vulnerability Scan Summary (YYYY-MM-DD) ===
+Scanners: Trivy X.X.X, Grype X.X.X
+Dockerfiles scanned: N
 
-## Summary
+Fixed CVEs:
+  CVE-XXXX-XXXXX  package-name  1.0.0 → 1.0.1  HIGH  (version bump in requirements.txt)
 
-| Metric | Count |
-|--------|-------|
-| Dockerfiles scanned | N |
-| Total unique CVEs found | N |
-| Fixed | N |
-| Unfixable (upstream/no-fix) | N |
+Unfixed (fix broke build):
+  CVE-XXXX-XXXXX  package-name  1.0.0 → 1.0.1  HIGH  (revert: build failure)
 
-## Fixed Vulnerabilities
-
-| CVE ID | Package | Old Version | New Version | Severity | Fix Description |
-|--------|---------|-------------|-------------|----------|-----------------|
-| CVE-XXXX-XXXXX | package-name | 1.0.0 | 1.0.1 | HIGH | Version bump in requirements.txt |
-
-## Unfixable Vulnerabilities
-
-| CVE ID | Package | Severity | Reason | Upstream Link |
-|--------|---------|----------|--------|---------------|
-| CVE-XXXX-XXXXX | package-name | MEDIUM | Inherited from base image python:3.11-slim | https://github.com/... |
-
-## Scanner Details
-
-- **Trivy version**: X.X.X
-- **Grype version**: X.X.X
-- **Scan date**: YYYY-MM-DD
+No fixable CVEs found.  ← (if none)
 ```
 
 ---
 
 ## Phase 4 — PR Creation
 
-1. Stage all changes including `VULNERABILITY_REPORT.md`
+Only create a PR if Dockerfile changes were made (fixes applied).
+
+1. Stage only modified Dockerfiles and dependency files — no report files
 2. Use the `/git-push` skill to commit, push, and create a PR per repo
 3. PR title: `fix: remediate container vulnerabilities (YYYY-MM-DD)`
-4. PR body should include the Summary table from the vulnerability report
+4. PR body should include the list of fixed CVEs
 5. Print a final summary of all PRs created
 
 ---
