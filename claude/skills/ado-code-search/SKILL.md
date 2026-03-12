@@ -1,6 +1,6 @@
 ---
 name: ado-code-search
-description: Use when the user wants to search for text or code across Azure DevOps repositories, says "search ADO", "find in repo", "grep remote repo", or needs to locate files containing specific strings in ADO repos
+description: Use when the user wants to search for text or code across Azure DevOps repositories, says "search ADO", "search across repos", "find where X is used", "code search", "find in repo", "grep remote repo", or needs to locate files containing specific strings in ADO repos. Not for local git grep — this searches the ADO server-side index.
 ---
 
 # ADO Code Search
@@ -148,5 +148,4 @@ Filters can go in the `filters` object or inline in `searchText` (e.g., `"azure-
 |---------|-----------|
 | Using `az rest` for Code Search API | `az rest` cannot auto-derive token for `almsearch.dev.azure.com`. Use `curl` with explicit Bearer token. |
 | Assuming API returns line numbers | API only returns `charOffset` and `length`. Fetch file content and calculate line/column manually. |
-| Searching only within a project when text may be elsewhere | Omit project from URL to search org-wide. |
 | Trusting `matches[].line` field | The `line` field in API response is always 0. Ignore it; calculate from `charOffset`. |

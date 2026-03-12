@@ -1,6 +1,6 @@
 ---
 name: ado-scrum-update
-description: Use when the user wants a scrum update, standup summary, or progress report from Azure DevOps commits, says "scrum update", "what did I do", "standup", or needs a summary of recent work across ADO repos
+description: Use when the user wants a scrum update, standup summary, daily update, or progress report from Azure DevOps commits, says "scrum update", "what did I do", "what have I been working on", "standup", "show my recent work", "progress report", or needs a summary of recent work across ADO repos
 ---
 
 # ADO Scrum Update
@@ -121,7 +121,4 @@ After collecting commits, summarize into this format. Write **concise descriptio
 |---------|-----------|
 | Using `az rest` without `--resource` flag | Always pass `--resource 499b84ac-1321-427f-aa17-267ca6975798` |
 | Passing `refs/heads/main` as branch in query param | Strip `refs/heads/` prefix — use just `main` |
-| Copying raw commit messages into the report | Summarize and group related commits into concise descriptions |
-| Forgetting `searchCriteria.$top` | Without it, API may return limited results; set to 50+ |
-| Hardcoding author email | Auto-detect via `az account show` so skill works for any user |
 | Using `ADO_ORG` instead of `CC_ADO_ORG` | Both ADO skills use `CC_ADO_ORG` and `CC_ADO_PROJECT` — do not use the unprefixed variants |

@@ -1,6 +1,6 @@
 ---
 name: codex-review
-description: Use when the user wants to review code changes or implementation plans with Codex CLI, says "codex review", "/codex-review", "review with codex", "review this plan", "codex review plan", or wants an independent AI review of their changes or plans
+description: Use when the user wants a second opinion on code changes or implementation plans, says "codex review", "review with codex", "get a second opinion", "independent review", "review this plan", "codex review plan", or wants an AI review of uncommitted changes or a plan document. Not for reviewing already-committed code — this reviews working-tree diffs or plan files.
 ---
 
 # Codex Review
@@ -8,8 +8,6 @@ description: Use when the user wants to review code changes or implementation pl
 Reviews uncommitted git changes or implementation plans using OpenAI's Codex CLI for an independent second opinion.
 
 ## Workflow
-
-Follow these steps strictly and sequentially. Do not skip or reorder.
 
 ### 1. Determine review mode
 
@@ -32,7 +30,7 @@ If both are empty, tell the user there are no changes to review and stop.
 
 ### A2. Run Codex review
 
-Run the following command. Do NOT modify any files. This is a read-only review.
+This is a read-only review — do not edit any files based on the output.
 
 ```bash
 codex exec review --uncommitted --ephemeral
@@ -65,7 +63,7 @@ If Codex CLI fails (not installed, no API key, network error), show the error me
 
 ### B2. Run Codex plan review
 
-Run the following command, replacing `<plan_file_path>` with the actual path. Do NOT modify any files. This is a read-only review.
+Run the following command, replacing `<plan_file_path>` with the actual path. This is a read-only review — do not edit any files based on the output.
 
 ```bash
 cat "<plan_file_path>" | codex exec - --skip-git-repo-check --ephemeral <<'PROMPT'
@@ -124,11 +122,6 @@ If Codex CLI fails (not installed, no API key, network error), show the error me
 
 | Mistake | Prevention |
 |---------|-----------|
-| Modifying files based on review | This is read-only. Never edit files. |
-| Running without checking for changes (code mode) | Always check git diff first |
-| Summarizing Codex output | Show it verbatim — the user wants Codex's actual review |
-| Passing a custom prompt with `--uncommitted` | These are mutually exclusive in codex-cli. Use `--uncommitted` alone. |
+| Passing a custom prompt with `--uncommitted` | These are mutually exclusive in codex-cli. Use `--uncommitted` alone for code review. |
 | Using `--uncommitted` for plan review | Plan review uses a prompt argument, not `--uncommitted` |
-| Forgetting `--skip-git-repo-check` for plan review | Plan files may not be in a git repo |
 | Embedding large plans with `$()` | Prefer piping via `cat` to avoid shell argument length limits |
-| Reviewing a nonexistent plan file | Always verify the file exists first |

@@ -1,6 +1,6 @@
 ---
 name: git-push
-description: Use when the user wants to push staged git changes, says "push", "/git-push", "push my changes", "create PR", "submit PR", or wants to commit and push work. Tries to push directly; falls back to creating a PR if the push fails.
+description: Use when the user wants to push staged git changes, says "push", "send this up", "ship it", "/git-push", "push my changes", "create PR", "submit PR", or after completing implementation when it's time to commit and push. Not for unstaged or unrelated changes — only pushes what's already staged. Tries to push directly; falls back to creating a PR if the push fails.
 ---
 
 # Git Push
@@ -8,8 +8,6 @@ description: Use when the user wants to push staged git changes, says "push", "/
 Automates pushing staged git changes. Tries to push directly. If the push fails (permission denied, branch policy, etc.), reverts the local commit and falls back to creating an Azure DevOps PR.
 
 ## Workflow
-
-Follow these steps strictly and sequentially. Do not skip or reorder.
 
 ### 1. Verify staged changes
 
@@ -28,9 +26,7 @@ Read the full staged diff (`git diff --cached`) and determine:
 
 ### 3. Commit staged changes
 
-**Follow these rules exactly:**
-
-- **NEVER unstage or reset.** Do not run `git reset`, `git restore --staged`, or `git checkout --` on any file.
+- **Do not unstage or reset files** (`git reset`, `git restore --staged`, `git checkout --`). Unstaging breaks the rollback path — if the push fails in step 4, `git reset --soft HEAD~N` cleanly returns everything to staged. If you've already unstaged files, you can't roll back to a known-good state.
 - To split into multiple commits, use `git commit <path1> <path2> ...` to commit specific file subsets from the staged area. This commits only those paths without disturbing the rest of the staging area.
 - Use short, imperative commit messages (e.g., "Add UTC timestamp migration").
 - If a single commit is appropriate, just run `git commit -m "..."`.
@@ -109,9 +105,5 @@ Always print the PR URL to the user regardless of whether the browser opens.
 
 | Mistake | Prevention |
 |---------|-----------|
-| Unstaging files to split commits | Use `git commit <paths>` instead — never `git reset` or `git restore --staged` |
-| Hardcoding org/project in `az` command | Always use `--detect` to auto-detect from remote |
-| Forgetting `--output json` | Required to parse PR URL dynamically |
-| Not checking for staged changes first | Always run `git diff --cached --stat` before committing |
-| Not reverting commits on push failure | Always `git reset --soft HEAD~N` before creating a branch and PR |
+| Unstaging files to split commits | Use `git commit <paths>` instead — unstaging breaks the rollback path (see step 3) |
 | Setting auto-complete on PR | Always pass `--auto-complete false` to prevent PRs from auto-completing |
