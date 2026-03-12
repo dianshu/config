@@ -92,7 +92,11 @@ export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
 # 引入 Claude Code 环境变量
-[[ -f ~/.config/claude/env ]] && source ~/.config/claude/env
+if [[ -f ~/.claude/user.env ]]; then
+    source ~/.claude/user.env
+else
+    echo "[warn] ~/.claude/user.env not found" >&2
+fi
 
 ####################################################################################
 #                                     Functions                                    #
