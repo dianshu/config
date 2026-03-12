@@ -30,18 +30,6 @@
   },
   "model": "opus[1m]",
   "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 ~/.claude/hooks/security-gate.py",
-            "timeout": 15000
-          }
-        ]
-      }
-    ],
     "Notification": [
       {
         "matcher": "",
