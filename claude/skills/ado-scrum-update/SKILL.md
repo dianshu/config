@@ -11,7 +11,7 @@ Generate a scrum-ready progress report by querying recent commits across all rep
 
 - `az login` completed
 - `jq` available
-- Env vars: `ADO_ORG` (organization name), `ADO_PROJECT` (project name)
+- Env vars: `CC_ADO_ORG` (organization name), `CC_ADO_PROJECT` (project name)
 
 ## Workflow
 
@@ -26,7 +26,7 @@ digraph scrum_update {
 ```
 
 1. **Detect author email** via `az account show --query user.name -o tsv`
-2. **Read org/project** from `$ADO_ORG` and `$ADO_PROJECT`
+2. **Read org/project** from `$CC_ADO_ORG` and `$CC_ADO_PROJECT`
 3. **List all repos** via Repos API
 4. **For each repo**, query commits on its default branch filtered by author and time range
 5. **Skip repos** with zero commits
@@ -61,8 +61,8 @@ Each repo's `defaultBranch` field returns `refs/heads/main` format. Strip the `r
 ```bash
 # 1. Detect author
 AUTHOR=$(az account show --query user.name -o tsv)
-ORG="${ADO_ORG:?Set ADO_ORG env var}"
-PROJECT="${ADO_PROJECT:?Set ADO_PROJECT env var}"
+ORG="${CC_ADO_ORG:?Set CC_ADO_ORG env var}"
+PROJECT="${CC_ADO_PROJECT:?Set CC_ADO_PROJECT env var}"
 DAYS_BACK="${1:-3}"
 FROM_DATE=$(date -u -d "${DAYS_BACK} days ago" +%Y-%m-%dT00:00:00Z 2>/dev/null || date -u -v-${DAYS_BACK}d +%Y-%m-%dT00:00:00Z)
 
@@ -124,4 +124,4 @@ After collecting commits, summarize into this format. Write **concise descriptio
 | Copying raw commit messages into the report | Summarize and group related commits into concise descriptions |
 | Forgetting `searchCriteria.$top` | Without it, API may return limited results; set to 50+ |
 | Hardcoding author email | Auto-detect via `az account show` so skill works for any user |
-| Using `CC_ADO_ORG` instead of `ADO_ORG` | This skill uses `ADO_ORG` and `ADO_PROJECT` (the code search skill uses `CC_ADO_ORG`/`CC_ADO_PROJECT`) |
+| Using `ADO_ORG` instead of `CC_ADO_ORG` | Both ADO skills use `CC_ADO_ORG` and `CC_ADO_PROJECT` — do not use the unprefixed variants |
