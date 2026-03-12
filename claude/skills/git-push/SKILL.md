@@ -11,7 +11,20 @@ Automates pushing staged git changes. Checks push permissions to decide whether 
 
 Follow these steps strictly and sequentially. Do not skip or reorder.
 
-### 1. Verify staged changes
+### 1. Check push permissions
+
+Test whether the current branch can be pushed to directly:
+
+```bash
+git push --dry-run origin $(git branch --show-current) 2>&1
+```
+
+- If the dry-run **succeeds** (exit code 0): the user has direct push access → follow **Path A** (direct push)
+- If the dry-run **fails** (permission denied, branch policy requires PR, etc.): follow **Path B** (create PR)
+
+This check works even with nothing staged since it tests branch permissions, not content. Running it first ensures we know the path before committing to the wrong branch.
+
+### 2. Verify staged changes
 
 ```bash
 git diff --cached --stat
@@ -19,29 +32,18 @@ git diff --cached --stat
 
 If nothing is staged, tell the user and stop. Do not proceed.
 
-### 2. Analyze staged diff
+### 3. Analyze staged diff
 
 Read the full staged diff (`git diff --cached`) and determine:
 
 - **Commit strategy**: decide whether to make one commit or split into logical groups
 - **Commit message(s)**: short, imperative (e.g., "Add UTC timestamp migration")
 
-Also prepare in case the PR path is needed:
+For **Path B** (create PR), also prepare:
 
 - **Branch slug**: short, descriptive, `[a-z0-9-]` only (e.g., `fix-timestamp-utc`)
 - **PR title**: concise summary of the change
 - **PR description**: 1-3 bullet points explaining what and why. Do NOT include "Generated with Claude Code" or similar.
-
-### 3. Check push permissions
-
-Test whether the current branch can be pushed to directly:
-
-```bash
-git push --dry-run origin HEAD 2>&1
-```
-
-- If the dry-run **succeeds** (exit code 0): the user has direct push access → follow **Path A** (direct push)
-- If the dry-run **fails** (permission denied, branch policy requires PR, etc.): follow **Path B** (create PR)
 
 ---
 
@@ -124,6 +126,7 @@ Always print the PR URL to the user regardless of whether the browser opens.
 | Unstaging files to split commits | Use `git commit <paths>` instead — never `git reset` or `git restore --staged` |
 | Hardcoding org/project in `az` command | Always use `--detect` to auto-detect from remote |
 | Forgetting `--output json` | Required to parse PR URL dynamically |
-| Not checking for staged changes first | Always run `git diff --cached --stat` before anything else |
+| Not checking for staged changes first | Always run `git diff --cached --stat` before committing |
 | Skipping dry-run push check | Always test permissions before deciding the push path |
+| Using `HEAD` in dry-run push check | Use `git push --dry-run origin $(git branch --show-current)` to check the actual branch name |
 | Setting auto-complete on PR | Always pass `--auto-complete false` to prevent PRs from auto-completing |
