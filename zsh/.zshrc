@@ -41,6 +41,11 @@ abbr --quiet -S k='kubectl'
 abbr --quiet -S dc='docker compose'
 abbr --quiet -S d='docker'
 abbr --quiet -S cc='claude'
+abbr --quiet -S ccp='cc_proxy'
+abbr --quiet -S ccc='cc_clean'
+abbr --quiet -S ccs='cc_sync'
+abbr --quiet -S ccr='cc_remote'
+abbr --quiet -S ccrs='cc_remote_stop'
 
 # 启用路径自动补全
 autoload -Uz compinit
