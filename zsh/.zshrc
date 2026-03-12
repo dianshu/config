@@ -46,6 +46,7 @@ abbr --quiet -S ccc='cc_clean'
 abbr --quiet -S ccs='cc_sync'
 abbr --quiet -S ccr='cc_remote'
 abbr --quiet -S ccrs='cc_remote_stop'
+abbr --quiet -S gdiff='GDK_SCALE=2 GDK_DPI_SCALE=1.5 smerge --new-window .' 
 
 # 启用路径自动补全
 autoload -Uz compinit
