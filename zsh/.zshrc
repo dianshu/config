@@ -108,6 +108,7 @@ function docker_build() {
 function scan_vulns() {
     local dockerfile="Dockerfile"
     local build_dir="."
+    local image=""
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -119,22 +120,29 @@ function scan_vulns() {
                 build_dir="$2"
                 shift 2
                 ;;
+            --image|-i)
+                image="$2"
+                shift 2
+                ;;
             *)
                 echo "Unknown option: $1"
-                echo "Usage: scan_vulns [--dockerfile|-f <path>] [--dir|-d <directory>]"
+                echo "Usage: scan_vulns [--dockerfile|-f <path>] [--dir|-d <directory>] [--image|-i <image>]"
                 return 1
                 ;;
         esac
     done
 
-    local timestamp=$(date +%Y%m%d%H%M%S)
-    local image="test:${timestamp}"
-
     echo "Authenticating to ACR: aihardware..."
     az acr login --name aihardware || { echo "ACR login failed"; return 1; }
 
-    echo "Building image: ${image}..."
-    docker build --no-cache --pull -f "$dockerfile" -t "$image" "$build_dir" || { echo "Docker build failed"; return 1; }
+    if [[ -z "$image" ]]; then
+        local timestamp=$(date +%Y%m%d%H%M%S)
+        image="test:${timestamp}"
+        echo "Building image: ${image}..."
+        docker build --no-cache --pull -f "$dockerfile" -t "$image" "$build_dir" || { echo "Docker build failed"; return 1; }
+    else
+        echo "Using existing image: ${image}"
+    fi
 
     echo "Scanning image with Trivy..."
     trivy image --quiet --ignore-unfixed --format json --scanners vuln "$image" | jq '.Results[].Vulnerabilities // []'
