@@ -4,6 +4,7 @@ $packages = @(
 	"Microsoft.PowerShell",
 	"Tencent.WeChat",
 	"MikeFarah.yq",
+	"jqlang.jq",
 	"Microsoft.AzureCLI",
  	"Python.Python.3.13",
     "OpenJS.NodeJS.LTS",
@@ -14,6 +15,7 @@ $locations = @(
 	"VisualStudioCode",
 	"PowerShell",
 	"WeChat",
+	"Jq",
 	"Yq",
 	"AzureCLI",
 	"Python313",
@@ -29,6 +31,23 @@ for ($i = 0; $i -lt $packages.Length; $i++) {
 }
 
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+Write-Output "Going to uninstall old Az PowerShell module..."
+Get-ChildItem "C:\Program Files\WindowsPowerShell\Modules\Az*" -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+	Write-Output "Removing $($_.FullName)..."
+	Remove-Item -Path $_.FullName -Recurse -Force
+}
+Remove-Item "$env:LOCALAPPDATA\Microsoft\Windows\PowerShell\ModuleAnalysisCache" -Force -ErrorAction SilentlyContinue
+
+Write-Output "Going to install latest Az PowerShell module..."
+Install-Module -Name Az -Repository PSGallery -Scope AllUsers -Force -Verbose
+
+Write-Output "Going to install playwright cli..."
+npm install -g @playwright/cli@latest
+playwright-cli install --skills
+
+Write-Output "Going to install workpilot..."
+irm https://aka.ms/workpilot/install.ps1 | iex
 
 Write-Output "Going to install Azure Artifacts Credential Provider..."
 iex "& { $(irm https://aka.ms/install-artifacts-credprovider.ps1) }"
