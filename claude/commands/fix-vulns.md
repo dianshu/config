@@ -4,23 +4,22 @@ description: Scan and Fix Vulnerabilities
 
 # Multi-Dockerfile Vulnerability Pipeline
 
-> Discover, scan, triage, fix, and report CVEs across all Dockerfiles in a repo. Runs autonomously with parallel agents.
+> Discover, scan, triage, fix, and report CVEs across all Dockerfiles in the current directory. Runs autonomously with parallel agents.
 
 ## Phase 1 — Discovery & Initial Scan
 
-1. **Find all Dockerfiles** in the repo:
+1. **Find all Dockerfiles** in the current working directory:
    ```bash
    find . -name 'Dockerfile*' -not -path '*/.git/*' -not -path '*/node_modules/*' -not -path '*/vendor/*'
    ```
 2. **Check exclusions** — skip known build-only or test Dockerfiles (configurable list below).
-3. **Group by parent git repository** if working across a monorepo or multi-repo structure.
-4. **Auth to ACR** (one-time):
+3. **Auth to ACR** (one-time):
    ```bash
    az acr login --name aihardware
    ```
-5. **Build and scan all images** (see Phase 2 steps 1–4).
-6. **If no fixable CVEs found across all images**: print the console summary (Phase 3) and **stop** — do not create a branch or PR.
-7. **If fixable CVEs exist**, create a branch and proceed to apply fixes:
+4. **Build and scan all images** (see Phase 2 steps 1–4).
+5. **If no fixable CVEs found across all images**: print the console summary (Phase 3) and **stop** — do not create a branch or PR.
+6. **If fixable CVEs exist**, create a branch and proceed to apply fixes:
    ```bash
    git checkout -b fix/vulns-$(date +%Y%m%d)
    ```
@@ -170,4 +169,4 @@ Only create a PR if Dockerfile changes were made (fixes applied).
 /fix-vulns
 ```
 
-No arguments required — the skill discovers Dockerfiles automatically. To scan a specific Dockerfile only, tell the agent which one to target before invoking.
+No arguments required — the skill discovers Dockerfiles in the current working directory and its subdirectories automatically. To scan a specific Dockerfile only, tell the agent which one to target before invoking.
