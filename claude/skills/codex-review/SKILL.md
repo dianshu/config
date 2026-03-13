@@ -1,15 +1,28 @@
 ---
 name: codex-review
 description: Use when the user wants a second opinion on code changes or implementation plans, says "codex review", "review with codex", "get a second opinion", "independent review", "review this plan", "codex review plan", or wants an AI review of uncommitted changes or a plan document. Not for reviewing already-committed code — this reviews working-tree diffs or plan files.
+allowed-tools: Bash, Read, Grep, Glob, Agent
 ---
 
-# Codex Review
+# Codex Review — Multi-Lens Adversarial Review
 
-Reviews uncommitted git changes or implementation plans using OpenAI's Codex CLI for an independent second opinion.
+Reviews uncommitted git changes or implementation plans using multi-lens adversarial review. Uses OpenAI's Codex CLI for cross-model independence when available, falls back to Claude sub-agents for single-model-multi-lens review.
 
 ## Workflow
 
-### 1. Determine review mode
+### 1. Preflight — Check Codex Availability
+
+```bash
+codex --version 2>/dev/null
+```
+
+- **Available** → Adversarial mode (Codex dispatches reviewers)
+- **Unavailable** → Single-model-multi-lens fallback (Agent tool dispatches reviewers)
+- **Both fail** → BLOCKED — tell user to install Codex or check environment
+
+Record the mode for the verdict report header.
+
+### 2. Determine Review Mode
 
 - If the user provided a plan file path or said "review plan" → **Plan Review Mode** (go to Section B)
 - If the user said "review changes" or no plan file was specified → **Code Review Mode** (go to Section A)
@@ -21,31 +34,322 @@ Reviews uncommitted git changes or implementation plans using OpenAI's Codex CLI
 
 ### A1. Verify there are changes to review
 
-Run:
 ```bash
 git diff --stat && git diff --cached --stat
 ```
 
 If both are empty, tell the user there are no changes to review and stop.
 
-### A2. Run Codex review
+### A1.5. Define Exclusion Patterns
+
+Define `EXCLUDE_PATHS` to filter noise files (lock files, minified code, generated output, vendor directories) from all diff commands:
+
+```bash
+EXCLUDE_PATHS=':(exclude)**/package-lock.json :(exclude)**/yarn.lock :(exclude)**/pnpm-lock.yaml :(exclude)**/Cargo.lock :(exclude)**/go.sum :(exclude)**/composer.lock :(exclude)**/Gemfile.lock :(exclude)**/poetry.lock :(exclude)**/Pipfile.lock :(exclude)**/*.min.js :(exclude)**/*.min.css :(exclude)**/*.bundle.js :(exclude)**/*.map :(exclude)**/dist/** :(exclude)**/vendor/** :(exclude)**/node_modules/** :(exclude)**/__pycache__/**'
+```
+
+Compute the excluded file count for the verdict report:
+
+```bash
+TOTAL_FILES=$( (git diff --name-only && git diff --cached --name-only) | sort -u | wc -l)
+FILTERED_FILES=$( (git diff --name-only -- . $EXCLUDE_PATHS && git diff --cached --name-only -- . $EXCLUDE_PATHS) | sort -u | wc -l)
+EXCLUDED_COUNT=$(( TOTAL_FILES - FILTERED_FILES ))
+```
+
+### A2. Scale Detection
+
+```bash
+LINES=$(( $(git diff --stat -- . $EXCLUDE_PATHS | tail -1 | grep -oP '\d+ insertion' | grep -oP '\d+' || echo 0) + $(git diff --stat -- . $EXCLUDE_PATHS | tail -1 | grep -oP '\d+ deletion' | grep -oP '\d+' || echo 0) + $(git diff --cached --stat -- . $EXCLUDE_PATHS | tail -1 | grep -oP '\d+ insertion' | grep -oP '\d+' || echo 0) + $(git diff --cached --stat -- . $EXCLUDE_PATHS | tail -1 | grep -oP '\d+ deletion' | grep -oP '\d+' || echo 0) ))
+DIRS=$( (git diff --name-only -- . $EXCLUDE_PATHS; git diff --cached --name-only -- . $EXCLUDE_PATHS) | xargs -I{} dirname {} | sort -u | wc -l)
+
+if [ "$LINES" -ge 200 ] || [ "$DIRS" -ge 3 ]; then
+  SCALE="Heavy"
+elif [ "$LINES" -ge 50 ]; then
+  SCALE="Medium"
+else
+  SCALE="Light"
+fi
+```
+
+| Scale | Condition | Reviewers |
+|-------|-----------|-----------|
+| Light | < 50 lines | Challenger only |
+| Medium | 50–200 lines | Challenger + Architect |
+| Heavy | 200+ lines OR 3+ dirs | Challenger + Architect + Subtractor |
+
+### A2.5. Prepare Diff Content
+
+Prepare filtered, compressed, and budgeted diffs for reviewers. Write results to temp files.
+
+**a) Context line reduction by scale:**
+
+| Scale | Flag | Rationale |
+|-------|------|-----------|
+| Light | `-U3` | Default context |
+| Medium | `-U2` | Moderate compression |
+| Heavy | `-U1` | Minimal context |
+
+**b) Per-file size cap (300 lines):**
+
+For each file in the filtered diff, if the file's diff exceeds 300 lines, replace it with a `git diff --stat` summary and a truncation note. Track these files for the verdict report.
+
+**c) Overall budget (2000 lines per reviewer):**
+
+After per-file processing, if the total diff exceeds 2000 lines, truncate at the budget and append a notice.
+
+```bash
+TMPDIR=$(mktemp -d /tmp/codex-review-XXXXXX)
+
+CONTEXT_FLAG="-U3"
+if [ "$SCALE" = "Medium" ]; then CONTEXT_FLAG="-U2"; fi
+if [ "$SCALE" = "Heavy" ]; then CONTEXT_FLAG="-U1"; fi
+
+MAX_FILE_LINES=300
+BUDGET=2000
+LARGE_FILES=""
+BUDGET_TRUNCATED=0
+
+# Generate per-file diffs with filtering and caps
+PREPARED=""
+for FILE in $( (git diff --name-only $CONTEXT_FLAG -- . $EXCLUDE_PATHS; git diff --cached --name-only $CONTEXT_FLAG -- . $EXCLUDE_PATHS) | sort -u); do
+  FILE_DIFF=$( (git diff $CONTEXT_FLAG -- "$FILE" && git diff --cached $CONTEXT_FLAG -- "$FILE") )
+  FILE_LINES=$(echo "$FILE_DIFF" | wc -l)
+  if [ "$FILE_LINES" -gt "$MAX_FILE_LINES" ]; then
+    LARGE_FILES="$LARGE_FILES $FILE"
+    STAT=$( (git diff --stat -- "$FILE" && git diff --cached --stat -- "$FILE") )
+    FILE_DIFF="--- $FILE [TRUNCATED: $FILE_LINES lines, showing stat only] ---
+$STAT
+--- End truncated file ---"
+  fi
+  PREPARED="$PREPARED
+$FILE_DIFF"
+done
+
+# Apply overall budget
+TOTAL_LINES=$(echo "$PREPARED" | wc -l)
+if [ "$TOTAL_LINES" -gt "$BUDGET" ]; then
+  BUDGET_TRUNCATED=$(( TOTAL_LINES - BUDGET ))
+  PREPARED=$(echo "$PREPARED" | head -n "$BUDGET")
+  PREPARED="$PREPARED
+--- BUDGET TRUNCATED: $BUDGET_TRUNCATED additional lines omitted (2000 line budget) ---"
+fi
+
+LARGE_FILE_COUNT=$(echo "$LARGE_FILES" | wc -w)
+
+# Write prepared diff for Challenger
+echo "$PREPARED" > "$TMPDIR/challenger_diff.txt"
+```
+
+For the **Subtractor lens**, use `--diff-filter=AM` to include only added/modified files (skip deletions — Subtractor looks for unnecessary code, not removed code):
+
+```bash
+# Subtractor: only added/modified files
+SUBTRACTOR_PREPARED=""
+for FILE in $( (git diff --name-only --diff-filter=AM $CONTEXT_FLAG -- . $EXCLUDE_PATHS; git diff --cached --name-only --diff-filter=AM $CONTEXT_FLAG -- . $EXCLUDE_PATHS) | sort -u); do
+  FILE_DIFF=$( (git diff $CONTEXT_FLAG -- "$FILE" && git diff --cached $CONTEXT_FLAG -- "$FILE") )
+  FILE_LINES=$(echo "$FILE_DIFF" | wc -l)
+  if [ "$FILE_LINES" -gt "$MAX_FILE_LINES" ]; then
+    STAT=$( (git diff --stat -- "$FILE" && git diff --cached --stat -- "$FILE") )
+    FILE_DIFF="--- $FILE [TRUNCATED: $FILE_LINES lines, showing stat only] ---
+$STAT
+--- End truncated file ---"
+  fi
+  SUBTRACTOR_PREPARED="$SUBTRACTOR_PREPARED
+$FILE_DIFF"
+done
+
+TOTAL_LINES=$(echo "$SUBTRACTOR_PREPARED" | wc -l)
+if [ "$TOTAL_LINES" -gt "$BUDGET" ]; then
+  SUBTRACTOR_PREPARED=$(echo "$SUBTRACTOR_PREPARED" | head -n "$BUDGET")
+  SUBTRACTOR_PREPARED="$SUBTRACTOR_PREPARED
+--- BUDGET TRUNCATED: additional lines omitted (2000 line budget) ---"
+fi
+
+echo "$SUBTRACTOR_PREPARED" > "$TMPDIR/subtractor_diff.txt"
+```
+
+### A3. Extract Intent
+
+Read the diff output and formulate a 1–2 sentence intent statement describing what the changes are trying to accomplish. This intent is included in each reviewer's prompt to provide context.
+
+### A4. Dispatch Lens-Specific Reviews
 
 This is a read-only review — do not edit any files based on the output.
 
-```bash
-codex exec review --uncommitted --ephemeral
+Each reviewer gets:
+- The intent statement (1–2 sentences)
+- Their lens-specific checklist and output format
+- The appropriate diff slice
+- Constraint: ≤10 findings, ≤3 lines each, "LGTM" if nothing found
+
+**Reviewers must NOT see each other's output.** Run them independently.
+
+#### Challenger Lens
+
+Input: prepared diff (`$TMPDIR/challenger_diff.txt`)
+
+Prompt:
+```
+You are the CHALLENGER reviewer. Assume this code has bugs — your job is to prove it.
+
+Intent: {intent}
+
+Checklist:
+- Crash-inducing inputs or states
+- Swallowed errors or silent failures
+- Race conditions or concurrency issues
+- Boundary values and off-by-one errors
+- Off-happy-path behavior
+- Resource leaks (file handles, connections, listeners)
+
+Output format (one per finding, max 10):
+[!]/[~]/[.] `file:line` trigger → impact → fix
+
+If nothing found, output: LGTM
 ```
 
-**Important:** The `--uncommitted` flag and `[PROMPT]` argument are mutually exclusive in codex-cli. Do NOT pass a custom prompt string when using `--uncommitted` — it will fail with `error: the argument '--uncommitted' cannot be used with '[PROMPT]'`. The built-in review behavior already covers security, correctness, style, and performance.
+#### Architect Lens
 
-### A3. Present findings
+Input: file list + function/class signatures (`git diff --name-only`, plus reading key changed files for signatures)
 
-Display the Codex review output to the user exactly as received. Do not modify, summarize, or editorialize the findings.
+Prompt:
+```
+You are the ARCHITECT reviewer. Examine design decisions, not bugs.
 
-If Codex CLI fails (not installed, no API key, network error), show the error message and suggest:
-- Check `codex --version` to verify installation
-- Check that CODEX_API_KEY is set or `codex login` has been run
-- Check network connectivity
+Intent: {intent}
+
+Checklist:
+- Coupling points between modules
+- Responsibility boundary violations
+- Scale assumptions that may not hold
+- Data flow traceability gaps
+- API surface bloat or inconsistency
+
+Output format (one per finding, max 10):
+[!]/[~]/[.] `file:line` current design → risk → alternative
+
+If nothing found, output: LGTM
+```
+
+#### Subtractor Lens
+
+Input: prepared diff of added/modified files only (`$TMPDIR/subtractor_diff.txt`) + list of new files (`git diff --name-only --diff-filter=A`)
+
+Prompt:
+```
+You are the SUBTRACTOR reviewer. Question every line's necessity.
+
+Intent: {intent}
+
+Checklist:
+- Code that could be deleted without behavior change
+- Premature abstractions (used only once)
+- "Just in case" code with no current caller
+- Over-configuration (env vars, flags) for single-use values
+- Dead code or unreachable branches
+
+Output format (one per finding, max 10):
+[!]/[~]/[.] `file:line` deletable → impact if removed → simplification
+
+If nothing found, output: LGTM
+```
+
+#### Dispatch via Codex (adversarial mode)
+
+Run reviewers in parallel. For each lens, run as a background Bash process writing to a temp file:
+
+```bash
+# Challenger (always runs)
+{ cat "$TMPDIR/challenger_diff.txt"; cat <<'PROMPT'
+
+---
+{challenger prompt with intent filled in}
+PROMPT
+} | codex exec - --cd "$(pwd)" --ephemeral --full-auto > "$TMPDIR/challenger.txt" 2>&1 &
+
+# Architect (Medium/Heavy only)
+{ git diff --name-only -- . $EXCLUDE_PATHS; git diff --cached --name-only -- . $EXCLUDE_PATHS; cat <<'PROMPT'
+
+---
+{architect prompt with intent filled in}
+PROMPT
+} | codex exec - --cd "$(pwd)" --ephemeral --full-auto > "$TMPDIR/architect.txt" 2>&1 &
+
+# Subtractor (Heavy only)
+{ cat "$TMPDIR/subtractor_diff.txt"; cat <<'PROMPT'
+
+---
+{subtractor prompt with intent filled in}
+PROMPT
+} | codex exec - --cd "$(pwd)" --ephemeral --full-auto > "$TMPDIR/subtractor.txt" 2>&1 &
+
+wait
+```
+
+#### Dispatch via Agent Tool (single-model-multi-lens fallback)
+
+When Codex is unavailable, spawn independent Claude Agent sub-agents per lens using the Agent tool. Each agent:
+- Gets its lens-specific prompt
+- Gets the prepared diff content (from `$TMPDIR/challenger_diff.txt` or `$TMPDIR/subtractor_diff.txt`) directly in the prompt
+- Cannot see other agents' output (isolation is automatic with separate Agent calls)
+
+Run agents in parallel by making multiple Agent tool calls in a single message. Use `subagent_type: "general-purpose"` for each.
+
+### A5. Red-Line Scan
+
+After collecting reviewer findings, scan the filtered diff (from `$TMPDIR/challenger_diff.txt`) for constraint violations:
+
+1. **Project constraints** — read `CLAUDE.md`, `AGENTS.md`, `.ai/constraints.json` (if they exist) and check the diff against any rules they define
+2. **Universal red-lines** — scan the diff for:
+   - `eval()` or `innerHTML` with user-controlled input
+   - Hardcoded secrets (API keys, passwords, tokens in string literals)
+   - Unvalidated `process.env` used in security-sensitive contexts
+   - `dangerouslySetInnerHTML` with unsanitized content
+
+Violations become additional `[!]` High severity findings prefixed with `[Red-Line]`.
+
+### A6. Aggregate Findings + Produce Verdict Report
+
+Collect all findings from all lenses and the red-line scan. Produce a structured report:
+
+```markdown
+## Code Review — {short description of changes}
+
+**Scale**: Light / Medium / Heavy
+**Mode**: adversarial / single-model-multi-lens
+**Reviewers**: Challenger [+ Architect] [+ Subtractor]
+**Filtered**: {EXCLUDED_COUNT} noise files excluded, {LARGE_FILE_COUNT} large files summarized, {BUDGET_TRUNCATED} lines budget-truncated
+
+### Verdict: PASS / CONTESTED / REJECT
+
+| # | Sev | Lens | Issue | Decision |
+|---|-----|------|-------|----------|
+| 1 | [!] | Ch | `file:line` description | Accept — rationale |
+| 2 | [~] | Ar | `file:line` description | Dismiss — rationale |
+
+### Summary
+{One paragraph: review conclusion and recommended next steps}
+```
+
+**Severity levels:**
+- `[!]` High — likely bug, security issue, or constraint violation
+- `[~]` Medium — design concern or code smell
+- `[.]` Low — style, naming, minor improvement
+
+**Verdict rules:**
+- **PASS** — no `[!]` findings
+- **CONTESTED** — `[!]` findings exist but reviewers disagree (one lens flags it, another doesn't)
+- **REJECT** — multiple lenses agree on `[!]` findings, or red-line violations exist
+
+**Decision column:**
+- For each finding, Claude evaluates and marks `Accept` (finding is valid, should be addressed) or `Dismiss` (false positive or acceptable trade-off), with a brief rationale
+- Wide mode (≤5 findings): rationale inline in the Decision column
+- Narrow mode (6+ findings): Decision column shows just `Accept`/`Dismiss`, rationale in a separate **Rationale** section below the table
+
+After the verdict report is complete, clean up temp files:
+```bash
+rm -rf "$TMPDIR"
+```
 
 ---
 
@@ -61,12 +365,14 @@ If Codex CLI fails (not installed, no API key, network error), show the error me
   Write the plan content to this temp file. Remember to delete it after the review (step B3).
 - If no file path and no plan content is available, ask the user
 
-### B2. Run Codex plan review
+### B2. Run Plan Review
 
-Run the following command, replacing `<plan_file_path>` with the actual path. This is a read-only review — do not edit any files based on the output.
+**Via Codex (if available):**
 
 ```bash
-cat "<plan_file_path>" | codex exec - --skip-git-repo-check --ephemeral <<'PROMPT'
+{ cat "<plan_file_path>"; cat <<'PROMPT'
+
+---
 You are reviewing an implementation plan document.
 
 Review for these categories:
@@ -84,12 +390,10 @@ Also check for:
 - Incomplete code snippets ("add X here" instead of actual code)
 - Missing commit steps between logical units
 
-Output:
-## Plan Review
-**Status:** Approved | Issues Found
-**Issues:** - [Task/Section]: [issue] - [why it matters]
-**Recommendations:** - [advisory suggestions]
+Output each finding as:
+[!]/[~]/[.] [Category] description
 PROMPT
+} | codex exec - --skip-git-repo-check --ephemeral
 ```
 
 Key flags:
@@ -97,24 +401,33 @@ Key flags:
 - `--ephemeral` — no persistent state needed
 - No `--uncommitted` — that flag is for code diffs only
 
-**Fallback:** If piping via `cat | codex exec -` fails, try embedding the content directly:
-```bash
-codex exec "$(cat '<plan_file_path>') --- Review this implementation plan for completeness, task decomposition, missing verification steps, and missing TDD steps. Output a structured review with Status, Issues, and Recommendations." --skip-git-repo-check --ephemeral
+**Fallback (Agent tool):** If Codex unavailable, spawn a single Agent sub-agent with the plan content and the same review prompt.
+
+### B3. Present findings as structured verdict
+
+Format the plan review output into the verdict table:
+
+```markdown
+## Plan Review — {plan title or filename}
+
+**Mode**: adversarial / single-model-multi-lens
+
+### Verdict: PASS / CONTESTED / REJECT
+
+| # | Sev | Category | Issue | Decision |
+|---|-----|----------|-------|----------|
+| 1 | [~] | Completeness | Missing verification step after DB migration | Accept |
+
+### Summary
+{One paragraph with review conclusion and next steps}
 ```
 
-### B3. Present findings and clean up
+### B4. Clean up
 
-Display the Codex review output to the user exactly as received. Do not modify, summarize, or editorialize the findings.
-
-If a temp file was created in B1, delete it now:
+If a temp file was created in B1, delete it:
 ```bash
 rm "<temp_file_path>"
 ```
-
-If Codex CLI fails (not installed, no API key, network error), show the error message and suggest:
-- Check `codex --version` to verify installation
-- Check that CODEX_API_KEY is set or `codex login` has been run
-- Check network connectivity
 
 ---
 
@@ -122,6 +435,15 @@ If Codex CLI fails (not installed, no API key, network error), show the error me
 
 | Mistake | Prevention |
 |---------|-----------|
-| Passing a custom prompt with `--uncommitted` | These are mutually exclusive in codex-cli. Use `--uncommitted` alone for code review. |
-| Using `--uncommitted` for plan review | Plan review uses a prompt argument, not `--uncommitted` |
-| Embedding large plans with `$()` | Prefer piping via `cat` to avoid shell argument length limits |
+| Passing a custom prompt with `--uncommitted` | These are mutually exclusive in codex-cli. Use `--uncommitted` alone or use piped input with a prompt. |
+| Using `--uncommitted` for plan review | Plan review uses piped input with a prompt, not `--uncommitted` |
+| Embedding large plans/diffs with `$()` | Prefer piping via `cat` or heredoc to avoid shell argument length limits |
+| Sending project constraints to individual reviewers | Constraints go to the red-line scan (A5), not to lens prompts |
+| Letting reviewers see each other's output | Each reviewer must run independently — no shared context |
+| Skipping scale detection | Always run A2 before dispatching — it determines which lenses to use |
+| Using `--model` flag with codex | Respect the user's `config.toml` model setting — never override it |
+| Using `claude -p` from Claude Code | Use the Agent tool for fallback sub-agents, not the `claude` CLI |
+| Editing files based on review output | This is a read-only review — present findings only |
+| Using raw `git diff` without `$EXCLUDE_PATHS` | Always append `-- . $EXCLUDE_PATHS` to filter noise files from diffs |
+| Sending full diff for files over 300 lines | Replace with `git diff --stat` summary + truncation note |
+| Exceeding 2000-line budget per reviewer | Apply tail truncation with appended notice after per-file capping |
