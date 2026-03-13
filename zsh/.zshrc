@@ -437,11 +437,13 @@ cc_sync() {
         "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/zsh/searxng-settings.yml" \
         "$searxng_config/settings.yml"
 
-    # 5c. MCP Servers (direct registration for servers not installable as plugins)
+    # 5c. Playwright cli
+    echo "\n=== Playwright CLI ==="
+    npm i -y -g @playwright/cli@latest
+    playwright-cli install --skills
+
+    # 5d. MCP Servers (direct registration for servers not installable as plugins)
     echo "\n=== MCP Servers ==="
-    claude mcp remove playwright -s user 2>/dev/null
-    claude mcp add playwright -s user -- npx -y @playwright/mcp@latest --browser msedge
-    echo "  MCP server 'playwright' configured (Edge)"
     claude mcp remove context7 -s user 2>/dev/null
     claude mcp add context7 -s user -- npx -y @upstash/context7-mcp
     echo "  MCP server 'context7' configured"
