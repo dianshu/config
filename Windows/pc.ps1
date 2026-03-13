@@ -51,6 +51,7 @@ iex "& { $(irm https://aka.ms/InstallTool.ps1)} agency"
 
 Write-Output "Going to install workpilot..."
 irm https://aka.ms/workpilot/install.ps1 | iex
+Write-Output "Run 'workpilot mcp add-agency' to add agency to workpilot"
 
 Write-Output "Going to install Azure Artifacts Credential Provider..."
 iex "& { $(irm https://aka.ms/install-artifacts-credprovider.ps1) }"
