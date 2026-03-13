@@ -46,6 +46,9 @@ Write-Output "Going to install playwright cli..."
 npm install -g @playwright/cli@latest
 playwright-cli install --skills
 
+Write-Output "Going to install agency for workpilot..."
+iex "& { $(irm https://aka.ms/InstallTool.ps1)} agency"
+
 Write-Output "Going to install workpilot..."
 irm https://aka.ms/workpilot/install.ps1 | iex
 
