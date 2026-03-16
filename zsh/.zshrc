@@ -449,6 +449,7 @@ cc_sync() {
     echo "\n=== Playwright CLI ==="
     npm i -y -g @playwright/cli@latest
     playwright-cli install --skills
+    mv .claude/skills/playwright-cli ~/.claude/skills
 
     # 5e. MCP Servers (direct registration for servers not installable as plugins)
     echo "\n=== MCP Servers ==="
