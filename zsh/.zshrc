@@ -252,7 +252,7 @@ EOF
     local searxng_config="$HOME/.config/searxng"
 
     docker rm -f searxng > /dev/null 2>&1
-    if ! docker run -d --pull always -p ${searxng_port}:8080 \
+    if ! docker run -d -p ${searxng_port}:8080 \
         -v "$searxng_config:/etc/searxng" \
         --restart unless-stopped --name searxng searxng/searxng; then
         echo "Failed to start SearXNG container"
@@ -273,8 +273,12 @@ EOF
         fi
     fi
 
-    # Start the copilot API
-    npx --yes @dianshuv/copilot-api@latest start -p "$port" -a "enterprise"
+    # Start the copilot API in a tmux session
+    tmux kill-session -t cc_proxy 2>/dev/null
+    tmux new-session -d -s cc_proxy "npx --yes @dianshuv/copilot-api@latest start -p $port -a enterprise"
+    echo "copilot-api started in tmux session 'cc_proxy'"
+    echo "  Attach: tmux attach -t cc_proxy"
+    echo "  Stop:   tmux kill-session -t cc_proxy"
 }
 
 cc_clean() {
@@ -437,12 +441,16 @@ cc_sync() {
         "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/zsh/searxng-settings.yml" \
         "$searxng_config/settings.yml"
 
-    # 5c. Playwright cli
+    # 5c. SearXNG Docker image
+    echo "\n=== SearXNG Docker Image ==="
+    docker pull searxng/searxng
+
+    # 5d. Playwright cli
     echo "\n=== Playwright CLI ==="
     npm i -y -g @playwright/cli@latest
     playwright-cli install --skills
 
-    # 5d. MCP Servers (direct registration for servers not installable as plugins)
+    # 5e. MCP Servers (direct registration for servers not installable as plugins)
     echo "\n=== MCP Servers ==="
     claude mcp remove context7 -s user 2>/dev/null
     claude mcp add context7 -s user -- npx -y @upstash/context7-mcp
