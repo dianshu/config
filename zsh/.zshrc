@@ -472,36 +472,36 @@ update_zshrc() {
 }
 
 cc_remote() {
-    local myrlin_port=40932
-    local myrlin_log="/tmp/myrlin-workbook.log"
+    local port=40932
+    local cc_log="/tmp/cc-remote.log"
 
     # Stop any existing cc_remote processes
     cc_remote_stop
     sleep 2
 
-    # 1. Start myrlin-workbook in background (captures stdout for token extraction)
-    CWM_NO_OPEN=1 PORT="$myrlin_port" npx -y myrlin-workbook > "$myrlin_log" 2>&1 &
-    local myrlin_pid=$!
-    echo "myrlin-workbook starting on port $myrlin_port..."
+    # 1. Start cc-remote in background (captures stdout for token extraction)
+    npx -y @dianshuv/cc-remote@latest --port "$port" > "$cc_log" 2>&1 &
+    local cc_pid=$!
+    echo "cc-remote starting on port $port..."
 
-    # Wait for myrlin-workbook to be ready and extract token from log
+    # Wait for cc-remote to be ready and extract token from log
     local waited=0
     local token=""
     while [[ -z "$token" ]]; do
-        token=$(grep -oP '(?<=\?token=)[a-f0-9]+' "$myrlin_log" 2>/dev/null)
+        token=$(grep -oP '(?<=\?token=)[a-f0-9]+' "$cc_log" 2>/dev/null)
         sleep 1
         waited=$((waited + 1))
         if [[ $waited -ge 30 ]]; then
-            echo "myrlin-workbook failed to start within 30s"
-            kill "$myrlin_pid" 2>/dev/null
+            echo "cc-remote failed to start within 30s"
+            kill "$cc_pid" 2>/dev/null
             return 1
         fi
     done
-    echo "myrlin-workbook ready (token captured)"
+    echo "cc-remote ready (token captured)"
 
     # 2. Start cloudflared tunnel
     local log_file="/tmp/cloudflared-cc-remote.log"
-    cloudflared tunnel --url "http://localhost:$myrlin_port" > "$log_file" 2>&1 &
+    cloudflared tunnel --url "http://localhost:$port" > "$log_file" 2>&1 &
 
     # Wait for tunnel URL
     echo "Waiting for Cloudflare tunnel..."
