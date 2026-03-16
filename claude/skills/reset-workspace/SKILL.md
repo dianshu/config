@@ -50,7 +50,7 @@ This prunes remote-tracking refs for branches deleted on the remote, then delete
 
 ### 5. Clear session
 
-Tell the user to run `/clear` themselves to reset the session context. `/clear` is a built-in CLI command that only the user can invoke — the agent cannot run it programmatically.
+Tell the user to run `/clear` to reset the session context, then `/plan` to enter plan mode for their next task. Both are built-in CLI commands that only the user can invoke — the agent cannot run them programmatically.
 
 ---
 
@@ -62,4 +62,4 @@ Tell the user to run `/clear` themselves to reset the session context. `/clear` 
 | Hardcoding `main` as the default branch | Always detect via `git remote show origin` — repos may use `master`, `develop`, etc. |
 | Forgetting to pull after checkout | Always pull to ensure local branch is up to date with remote |
 | Creating merge commits from `git pull` | Always use `git pull --ff-only` to override `pull.ff=false` and prevent spurious merge commits |
-| Skipping session clear | Always remind the user to run `/clear` — the agent cannot invoke it |
+| Skipping session clear | Always remind the user to run `/clear` then `/plan` — the agent cannot invoke them |
