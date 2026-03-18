@@ -48,9 +48,11 @@ git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -r git branch -D
 
 This prunes remote-tracking refs for branches deleted on the remote, then deletes any local branches whose upstream is gone.
 
-### 5. Clear session
+### 5. Enter plan mode
 
-Tell the user to run `/plan` to enter plan mode for their next task, then `/clear` to reset the session context. Both are built-in CLI commands that only the user can invoke — the agent cannot run them programmatically.
+Call the `EnterPlanMode` tool to enter plan mode for the user's next task. This replaces telling the user to manually run `/plan`.
+
+Then tell the user to run `/clear` to reset the session context when they're ready. `/clear` is a built-in CLI command that only the user can invoke — the agent cannot run it programmatically.
 
 ---
 
@@ -62,4 +64,4 @@ Tell the user to run `/plan` to enter plan mode for their next task, then `/clea
 | Hardcoding `main` as the default branch | Always detect via `git remote show origin` — repos may use `master`, `develop`, etc. |
 | Forgetting to pull after checkout | Always pull to ensure local branch is up to date with remote |
 | Creating merge commits from `git pull` | Always use `git pull --ff-only` to override `pull.ff=false` and prevent spurious merge commits |
-| Skipping session clear | Always remind the user to run `/plan` then `/clear` — the agent cannot invoke them |
+| Skipping plan mode | Always call `EnterPlanMode` after cleanup; remind the user to `/clear` |
