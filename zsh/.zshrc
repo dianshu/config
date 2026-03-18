@@ -207,10 +207,11 @@ cc_proxy() {
     local settings_file="$HOME/.claude/settings.json"
     local settings_dir="$HOME/.claude"
 
-    # Check if port is in use
+    # Kill any process occupying the port (idempotent)
     if lsof -i :"$port" > /dev/null 2>&1; then
-        echo "Port $port is binded, need to change a port"
-        return 1
+        echo "Port $port is in use, killing occupying process..."
+        lsof -ti :"$port" | xargs kill -9 2>/dev/null
+        sleep 2
     fi
 
     # Create directory if it doesn't exist
@@ -451,7 +452,30 @@ cc_sync() {
     playwright-cli install --skills
     mv .claude/skills/playwright-cli ~/.claude/skills
 
-    # 5e. MCP Servers (direct registration for servers not installable as plugins)
+    # 5e. gstack (browse + qa + setup-browser-cookies skills)
+    echo "\n=== gstack ==="
+    local gstack_dir="$HOME/.claude/skills/gstack"
+    rm -rf "$gstack_dir" "$HOME/.gstack"
+    git clone https://github.com/garrytan/gstack.git "$gstack_dir"
+    (cd "$gstack_dir" && ./setup)
+    # Remove unwanted skill symlinks (keep browse, qa, setup-browser-cookies)
+    local skill
+    for skill in design-consultation document-release gstack-upgrade plan-ceo-review \
+                 plan-design-review plan-eng-review qa-design-review qa-only retro \
+                 review ship; do
+        rm -f "$HOME/.claude/skills/$skill"
+    done
+    # Remove unwanted skill dirs and extra files from gstack
+    (cd "$gstack_dir" && rm -rf design-consultation document-release gstack-upgrade \
+        plan-ceo-review plan-design-review plan-eng-review qa-design-review qa-only \
+        retro review ship \
+        test/ docs/ scripts/ .github/ ARCHITECTURE.md BROWSER.md CHANGELOG.md \
+        CONTRIBUTING.md TODOS.md SKILL.md SKILL.md.tmpl conductor.json .env.example \
+        .gitignore bin/dev-setup bin/dev-teardown browse/test/ \
+        browse/SKILL.md.tmpl qa/SKILL.md.tmpl setup-browser-cookies/SKILL.md.tmpl)
+    echo "  Skills: /browse, /qa, /setup-browser-cookies"
+
+    # 5f. MCP Servers (direct registration for servers not installable as plugins)
     echo "\n=== MCP Servers ==="
     claude mcp remove context7 -s user 2>/dev/null
     claude mcp add context7 -s user -- npx -y @upstash/context7-mcp
