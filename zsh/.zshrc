@@ -452,28 +452,13 @@ cc_sync() {
     playwright-cli install --skills
     mv .claude/skills/playwright-cli ~/.claude/skills
 
-    # 5e. gstack (browse + qa + setup-browser-cookies skills)
+    # 5e. gstack
     echo "\n=== gstack ==="
     local gstack_dir="$HOME/.claude/skills/gstack"
     rm -rf "$gstack_dir" "$HOME/.gstack"
     git clone https://github.com/garrytan/gstack.git "$gstack_dir"
     (cd "$gstack_dir" && ./setup)
-    # Remove unwanted skill symlinks (keep browse, qa, setup-browser-cookies)
-    local skill
-    for skill in design-consultation document-release plan-ceo-review \
-                 plan-design-review plan-eng-review qa-design-review qa-only retro \
-                 review ship; do
-        rm -f "$HOME/.claude/skills/$skill"
-    done
-    # Remove unwanted skill dirs and extra files from gstack
-    (cd "$gstack_dir" && rm -rf design-consultation document-release \
-        plan-ceo-review plan-design-review plan-eng-review qa-design-review qa-only \
-        retro review ship \
-        test/ docs/ scripts/ .github/ ARCHITECTURE.md BROWSER.md CHANGELOG.md \
-        CONTRIBUTING.md TODOS.md SKILL.md SKILL.md.tmpl conductor.json .env.example \
-        .gitignore bin/dev-setup bin/dev-teardown browse/test/ \
-        browse/SKILL.md.tmpl qa/SKILL.md.tmpl setup-browser-cookies/SKILL.md.tmpl)
-    echo "  Skills: /browse, /qa, /setup-browser-cookies"
+    echo "gstack skills installed"
 
     # 5f. MCP Servers (direct registration for servers not installable as plugins)
     echo "\n=== MCP Servers ==="
