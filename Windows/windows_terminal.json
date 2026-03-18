@@ -23,6 +23,10 @@
         {
             "id": "Terminal.DuplicatePaneAuto",
             "keys": "alt+shift+d"
+        },
+        {
+            "id": "Terminal.ClosePaneOrTab",
+            "keys": "alt+shift+w"
         }
     ],
     "newTabMenu": 
