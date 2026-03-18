@@ -460,13 +460,13 @@ cc_sync() {
     (cd "$gstack_dir" && ./setup)
     # Remove unwanted skill symlinks (keep browse, qa, setup-browser-cookies)
     local skill
-    for skill in design-consultation document-release gstack-upgrade plan-ceo-review \
+    for skill in design-consultation document-release plan-ceo-review \
                  plan-design-review plan-eng-review qa-design-review qa-only retro \
                  review ship; do
         rm -f "$HOME/.claude/skills/$skill"
     done
     # Remove unwanted skill dirs and extra files from gstack
-    (cd "$gstack_dir" && rm -rf design-consultation document-release gstack-upgrade \
+    (cd "$gstack_dir" && rm -rf design-consultation document-release \
         plan-ceo-review plan-design-review plan-eng-review qa-design-review qa-only \
         retro review ship \
         test/ docs/ scripts/ .github/ ARCHITECTURE.md BROWSER.md CHANGELOG.md \
