@@ -16,7 +16,9 @@
       "Write(~/repos/**)",
       "Write(/tmp/**)",
       "Write(~/.claude/**)",
-      "Write(~/.codex/**)"
+      "Write(~/.codex/**)",
+      "Skill(codex-review)",
+      "Skill(qa)"
     ],
     "deny": [
       "Bash(git push --force:*)",
