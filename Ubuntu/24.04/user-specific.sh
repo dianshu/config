@@ -17,8 +17,9 @@ brew install azure-cli yq
 brew install jq net-tools git tree
 brew install trivy uv node
 brew install gh
-brew install tmux ttyd cloudflared qrencode caddy
+brew install cloudflared qrencode
 curl -fsSL https://bun.sh/install | bash
+brew install neurosnap/tap/zmx
 
 # sing-box
 brew install sing-box
