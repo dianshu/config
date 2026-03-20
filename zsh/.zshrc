@@ -1,15 +1,32 @@
+# === 启动性能日志 ===
+zmodload zsh/datetime
+typeset -g _zshrc_start=$EPOCHREALTIME
+typeset -g _zshrc_last=$EPOCHREALTIME
+typeset -g _zshrc_log=~/.zsh_startup.log
+typeset -ga _zshrc_marks=()
+_zshrc_mark() {
+    local now=$EPOCHREALTIME
+    _zshrc_marks+=("$(printf '  %-28s %6.0fms (+%4.0fms)' "$1" "$(( (now - _zshrc_start) * 1000 ))" "$(( (now - _zshrc_last) * 1000 ))")")
+    _zshrc_last=$now
+}
+
 # 启用插件 abbr-zsh
 # 这个插件会在 /tmp 目录下创建目录来存储命令别名，因此可能会存在权限问题
 source ~/.zsh/plugins/zsh-abbr/zsh-abbr.zsh
+_zshrc_mark "zsh-abbr"
 chmod 777 -R /tmp/zsh-abbr 2&> /dev/null
 source ~/.zsh/plugins/zsh-abbr/zsh-abbr.zsh
+_zshrc_mark "zsh-abbr (2nd)"
 
 # 启用其他插件
 source ~/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+_zshrc_mark "autosuggestions"
 source ~/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+_zshrc_mark "syntax-highlighting"
 
 # 启动历史命令搜索插件
 source ~/.zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
+_zshrc_mark "history-substring-search"
 # Linux & Mac
 bindkey '^[[A' history-substring-search-up
 bindkey '^[[B' history-substring-search-down
@@ -19,6 +36,7 @@ bindkey '^[[B' history-substring-search-down
 
 # 启用彩色提示符
 autoload -U colors && colors
+_zshrc_mark "colors"
 
 # 每次刷新提示符
 setopt prompt_subst
@@ -46,11 +64,13 @@ abbr --quiet -S ccc='cc_clean'
 abbr --quiet -S ccs='cc_sync'
 abbr --quiet -S ccr='cc_remote'
 abbr --quiet -S ccrs='cc_remote_stop'
-abbr --quiet -S gdiff='GDK_SCALE=2 GDK_DPI_SCALE=1.5 smerge --new-window .' 
+abbr --quiet -S gdiff='GDK_SCALE=2 GDK_DPI_SCALE=1.5 smerge --new-window .'
+_zshrc_mark "abbr definitions"
 
 # 启用路径自动补全
 autoload -Uz compinit
 compinit
+_zshrc_mark "compinit"
 
 # 保存命令历史记录
 export HISTSIZE=10000
@@ -71,6 +91,7 @@ export PATH=/snap:$PATH
 
 # 引入 homebrew 相关环境变量
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+_zshrc_mark "brew shellenv"
 
 # 启用 k8s 命令自动补全
 # source <(kubectl completion zsh)
@@ -78,6 +99,7 @@ eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 # 启用 az-cli 命令自动补全
 autoload -U +X bashcompinit && bashcompinit
 source /home/linuxbrew/.linuxbrew/etc/bash_completion.d/az
+_zshrc_mark "az completion"
 
 # enable docker buildkit
 export DOCKER_BUILDKIT=1
@@ -87,6 +109,7 @@ export BROWSER=wslview
 
 # bun completions
 [ -s "/home/fei/.bun/_bun" ] && source "/home/fei/.bun/_bun"
+_zshrc_mark "bun completion"
 
 # bun
 export BUN_INSTALL="$HOME/.bun"
@@ -98,6 +121,7 @@ if [[ -f ~/.claude/user.env ]]; then
 else
     echo "[warn] ~/.claude/user.env not found" >&2
 fi
+_zshrc_mark "claude user.env"
 
 ####################################################################################
 #                                     Functions                                    #
@@ -417,7 +441,6 @@ cc_sync() {
     local plugins_json="$HOME/.claude/plugins/installed_plugins.json"
     local -a plugins=(
         "superpowers@superpowers-marketplace"
-        "double-shot-latte@superpowers-marketplace"
         "microsoft-docs@microsoft-docs-marketplace"
         "document-skills@anthropic-agent-skills"
     )
@@ -544,4 +567,20 @@ cc_remote_stop() {
     fuser -k 40932/tcp 2>/dev/null
     pkill -f "cloudflared.*tunnel" 2>/dev/null
     echo "cc_remote stopped"
+}
+_zshrc_mark "functions"
+
+# === 启动性能日志（结束）===
+{
+    local total=$(( (EPOCHREALTIME - _zshrc_start) * 1000 ))
+    local label="[OK]  "
+    (( total > 500 )) && label="[SLOW]"
+    print "$label $(strftime '%F %T' $epochtime[1]) total=${total}ms PID=$$" >> $_zshrc_log
+    for m in "${_zshrc_marks[@]}"; do
+        print "$m" >> $_zshrc_log
+    done
+    print "" >> $_zshrc_log
+} always {
+    unset _zshrc_start _zshrc_last _zshrc_log _zshrc_marks
+    unfunction _zshrc_mark 2>/dev/null
 }
