@@ -36,6 +36,13 @@
         }
     ],
     "newTabPosition": "afterCurrentTab",
+    "window":
+    {
+        "useMica": false,
+        "useAcrylicInTabRow": true,
+        "showTabsInTitlebar": true,
+        "showTitleInTitlebar": false
+    },
     "profiles": 
     {
         "defaults": 
