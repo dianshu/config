@@ -505,67 +505,22 @@ update_zshrc() {
 }
 
 cc_remote() {
-    local port=40932
-    local cc_log="/tmp/cc-remote.log"
+    local session="cc_remote"
 
     # Stop any existing cc_remote processes
     cc_remote_stop
-    sleep 2
+    sleep 1
 
-    # 1. Start cc-remote in background (captures stdout for token extraction)
-    npx -y @dianshuv/cc-remote@latest --port "$port" > "$cc_log" 2>&1 &
-    local cc_pid=$!
-    echo "cc-remote starting on port $port..."
+    # Start hapi hub in a zmx session (persists in background)
+    HAPI_LISTEN_PORT=40932 zmx run "$session" npx -y @twsxtd/hapi hub --relay
 
-    # Wait for cc-remote to be ready and extract token from log
-    local waited=0
-    local token=""
-    while [[ -z "$token" ]]; do
-        token=$(grep -oP '(?<=\?token=)[a-f0-9]+' "$cc_log" 2>/dev/null)
-        sleep 1
-        waited=$((waited + 1))
-        if [[ $waited -ge 30 ]]; then
-            echo "cc-remote failed to start within 30s"
-            kill "$cc_pid" 2>/dev/null
-            return 1
-        fi
-    done
-    echo "cc-remote ready (token captured)"
-
-    # 2. Start cloudflared tunnel
-    local log_file="/tmp/cloudflared-cc-remote.log"
-    cloudflared tunnel --url "http://localhost:$port" > "$log_file" 2>&1 &
-
-    # Wait for tunnel URL
-    echo "Waiting for Cloudflare tunnel..."
-    waited=0
-    while [[ $waited -lt 15 ]]; do
-        local url
-        url=$(grep -oPm1 'https://[a-z0-9-]+\.trycloudflare\.com' "$log_file" 2>/dev/null)
-        if [[ -n "$url" ]]; then
-            local full_url="${url}?token=${token}"
-            echo "\n=== cc_remote ready ==="
-            echo "URL: $full_url"
-            echo "Token: $token"
-            qrencode -t ANSIUTF8 "$full_url" 2>/dev/null
-            echo "QR code will clear in 20 seconds..."
-            sleep 10
-            echo "QR code will clear in 10 seconds..."
-            sleep 10
-            clear
-            echo "=== cc_remote ready ==="
-            return 0
-        fi
-        sleep 1
-        waited=$((waited + 1))
-    done
-
-    echo "Tunnel started but URL not yet available. Check: cat $log_file"
+    # Attach to see output (QR code, URL, etc.) — Ctrl+\ to detach
+    zmx attach "$session"
 }
 
 cc_remote_stop() {
+    zmx kill cc_remote 2>/dev/null
     fuser -k 40932/tcp 2>/dev/null
-    pkill -f "cloudflared.*tunnel" 2>/dev/null
     echo "cc_remote stopped"
 }
 _zshrc_mark "functions"
