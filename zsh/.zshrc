@@ -274,12 +274,12 @@ EOF
         fi
     fi
 
-    # Start the copilot API in a tmux session
-    tmux kill-session -t cc_proxy 2>/dev/null
-    tmux new-session -d -s cc_proxy "npx --yes @dianshuv/copilot-api@latest start -p $port -a enterprise"
-    echo "copilot-api started in tmux session 'cc_proxy'"
-    echo "  Attach: tmux attach -t cc_proxy"
-    echo "  Stop:   tmux kill-session -t cc_proxy"
+    # Start the copilot API in a zmx session
+    zmx kill cc_proxy 2>/dev/null
+    zmx run cc_proxy npx --yes @dianshuv/copilot-api@latest start -p $port -a enterprise
+    echo "copilot-api started in zmx session 'cc_proxy'"
+    echo "  Attach: zmx attach cc_proxy"
+    echo "  Stop:   zmx kill cc_proxy"
 }
 
 cc_clean() {
@@ -417,9 +417,9 @@ cc_sync() {
     local plugins_json="$HOME/.claude/plugins/installed_plugins.json"
     local -a plugins=(
         "superpowers@superpowers-marketplace"
+        "double-shot-latte@superpowers-marketplace"
         "microsoft-docs@microsoft-docs-marketplace"
         "document-skills@anthropic-agent-skills"
-        "code-simplifier@claude-plugins-official"
     )
     for plugin in "${plugins[@]}"; do
         if [[ -f "$plugins_json" ]] && jq -e --arg p "$plugin" '.plugins | has($p)' "$plugins_json" &>/dev/null; then
