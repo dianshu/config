@@ -508,7 +508,6 @@ cc_remote() {
 
     # Stop any existing cc_remote processes
     cc_remote_stop
-    sleep 1
 
     # Start hapi hub in a zmx session (persists in background)
     zmx attach "$session" npx -y @twsxtd/hapi hub --relay
@@ -516,7 +515,9 @@ cc_remote() {
 
 cc_remote_stop() {
     zmx kill cc_remote 2>/dev/null
-    # fuser -k 3/tcp 2>/dev/null
+    sleep 1
+    fuser -k 3006/tcp 2>/dev/null
+    sleep 1
     echo "cc_remote stopped"
 }
 _zshrc_mark "functions"
