@@ -511,10 +511,7 @@ cc_remote() {
     sleep 1
 
     # Start hapi hub in a zmx session (persists in background)
-    zmx run "$session" npx -y @twsxtd/hapi hub --relay
-
-    # Attach to see output (QR code, URL, etc.) — Ctrl+\ to detach
-    zmx attach "$session"
+    zmx attach "$session" npx -y @twsxtd/hapi hub --relay
 }
 
 cc_remote_stop() {
