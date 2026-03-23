@@ -487,7 +487,12 @@ cc_sync() {
     (cd "$gstack_dir" && ./setup)
     echo "gstack skills installed"
 
-    # 5f. MCP Servers (direct registration for servers not installable as plugins)
+    # 5f. Skill aliases
+    echo "\n=== Skill Aliases ==="
+    ln -snf "$HOME/.claude/skills/codex-review" "$HOME/.claude/skills/cr"
+    echo "  cr -> codex-review"
+
+    # 5g. MCP Servers (direct registration for servers not installable as plugins)
     echo "\n=== MCP Servers ==="
     claude mcp remove context7 -s user 2>/dev/null
     claude mcp add context7 -s user -- npx -y @upstash/context7-mcp
