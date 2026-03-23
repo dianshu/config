@@ -114,6 +114,8 @@ _zshrc_mark "bun completion"
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
+export PATH="$HOME/bin:$PATH"
+
 # 引入 Claude Code 环境变量
 if [[ -f ~/.claude/user.env ]]; then
     source ~/.claude/user.env

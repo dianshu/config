@@ -49,6 +49,9 @@ git config --global credential.https://dev.azure.com.useHttpPath true
 # use git merge
 git config --global pull.rebase false
 
+# install devtunnel
+curl -sL https://aka.ms/DevTunnelCliInstall | bash
+
 # zsh related work
 brew install zsh
 curl https://raw.githubusercontent.com/dianshu/config/HEAD/zsh/.zshrc?${RANDOM} > ~/.zshrc
