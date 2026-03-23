@@ -508,24 +508,51 @@ update_zshrc() {
     echo "Run 'source ~/.zshrc' to reload."
 }
 
-cc_remote() {
-    local session="cc_remote"
+: ${CC_REMOTE_SESSION:=cc_remote}
+: ${CC_REMOTE_TUNNEL_SESSION:=cc_tunnel}
+: ${CC_REMOTE_PORT:=3006}
+: ${CC_REMOTE_TUNNEL_LOG:=/tmp/cloudflared-cc-remote.log}
 
-    # Stop any existing cc_remote processes
+cc_remote() {
     cc_remote_stop
 
-    # Install/update hapi to latest version
     npm install -g @dianshuv/hapi
 
-    # Start hapi hub in a zmx session (persists in background)
-    zmx attach "$session" hapi hub
+    zmx run "$CC_REMOTE_SESSION" hapi hub
+
+    rm -f "$CC_REMOTE_TUNNEL_LOG"
+    zmx run "$CC_REMOTE_TUNNEL_SESSION" cloudflared tunnel --url "http://localhost:$CC_REMOTE_PORT" --logfile "$CC_REMOTE_TUNNEL_LOG" --no-autoupdate
+
+    local url="" attempts=0
+    while [[ -z "$url" && $attempts -lt 30 ]]; do
+        sleep 0.5
+        [[ -s "$CC_REMOTE_TUNNEL_LOG" ]] && \
+            url=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' "$CC_REMOTE_TUNNEL_LOG" | head -1)
+        ((attempts++))
+    done
+
+    if [[ -n "$url" ]]; then
+        echo ""
+        echo "══════════════════════════════════════════"
+        echo "  cc_remote is live!"
+        echo "  $url"
+        echo "══════════════════════════════════════════"
+        echo ""
+        qrencode -t ANSIUTF8 "$url"
+        echo ""
+    else
+        echo "warning: tunnel URL not found after 15s"
+        echo "  Check logs: zmx attach $CC_REMOTE_TUNNEL_SESSION"
+        echo "  Or: cat $CC_REMOTE_TUNNEL_LOG"
+    fi
 }
 
 cc_remote_stop() {
-    zmx kill cc_remote 2>/dev/null
+    zmx kill "$CC_REMOTE_SESSION" 2>/dev/null
+    zmx kill "$CC_REMOTE_TUNNEL_SESSION" 2>/dev/null
     sleep 1
-    fuser -k 3006/tcp 2>/dev/null
-    sleep 1
+    fuser -k "${CC_REMOTE_PORT}/tcp" 2>/dev/null
+    rm -f "$CC_REMOTE_TUNNEL_LOG"
     echo "cc_remote stopped"
 }
 _zshrc_mark "functions"
