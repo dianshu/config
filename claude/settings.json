@@ -18,6 +18,7 @@
       "Write(~/.claude/**)",
       "Write(~/.codex/**)",
       "Skill(codex-review)",
+      "Skill(cr)",
       "Skill(qa)"
     ],
     "deny": [
