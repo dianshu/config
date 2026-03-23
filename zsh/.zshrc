@@ -275,25 +275,30 @@ EOF
     local searxng_port=30963
     local searxng_config="$HOME/.config/searxng"
 
-    docker rm -f searxng > /dev/null 2>&1
-    if ! docker run -d -p ${searxng_port}:8080 \
-        -v "$searxng_config:/etc/searxng" \
-        --restart unless-stopped --name searxng searxng/searxng; then
-        echo "Failed to start SearXNG container"
+    if curl -sf http://localhost:$searxng_port > /dev/null 2>&1; then
+        echo "SearXNG already running on port $searxng_port"
     else
-        echo "Waiting for SearXNG to start..."
-        local max_wait=30
-        local waited=0
-        while ! curl -sf http://localhost:$searxng_port > /dev/null 2>&1; do
-            sleep 1
-            waited=$((waited + 1))
-            if [[ $waited -ge $max_wait ]]; then
-                echo "SearXNG failed to start within ${max_wait}s"
-                break
+        echo "SearXNG not responding, restarting..."
+        docker rm -f searxng > /dev/null 2>&1
+        if ! docker run -d -p ${searxng_port}:8080 \
+            -v "$searxng_config:/etc/searxng" \
+            --restart unless-stopped --name searxng searxng/searxng; then
+            echo "Failed to start SearXNG container"
+        else
+            echo "Waiting for SearXNG to start..."
+            local max_wait=30
+            local waited=0
+            while ! curl -sf http://localhost:$searxng_port > /dev/null 2>&1; do
+                sleep 1
+                waited=$((waited + 1))
+                if [[ $waited -ge $max_wait ]]; then
+                    echo "SearXNG failed to start within ${max_wait}s"
+                    break
+                fi
+            done
+            if [[ $waited -lt $max_wait ]]; then
+                echo "SearXNG started on port $searxng_port"
             fi
-        done
-        if [[ $waited -lt $max_wait ]]; then
-            echo "SearXNG started on port $searxng_port"
         fi
     fi
 
