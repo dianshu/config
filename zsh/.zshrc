@@ -514,8 +514,11 @@ cc_remote() {
     # Stop any existing cc_remote processes
     cc_remote_stop
 
+    # Install/update hapi to latest version
+    npm install -g @dianshuv/hapi
+
     # Start hapi hub in a zmx session (persists in background)
-    zmx attach "$session" npx -y @twsxtd/hapi hub --relay
+    zmx attach "$session" hapi hub
 }
 
 cc_remote_stop() {
