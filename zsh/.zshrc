@@ -521,6 +521,7 @@ update_zshrc() {
 cc_remote() {
     cc_remote_stop
     npm install -g @dianshuv/hapi
+    devtunnel user login -g
     zmx attach "$CC_REMOTE_SESSION" hapi hub --tunnel
 }
 
