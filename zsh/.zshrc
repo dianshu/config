@@ -344,8 +344,10 @@ dl_with_backup() {
     fi
     # Delete old backups (>24h) of this file
     local base_name
+    local deleted_count
     base_name="$(basename "$dest")"
-    find "$dest_dir" -maxdepth 1 -name "${base_name}.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]" -mtime +0 -type f -delete
+    deleted_count="$(find "$dest_dir" -maxdepth 1 -name "${base_name}.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]" -mtime +0 -type f -print -delete | wc -l | tr -d '[:space:]')"
+    echo "  Deleted old backups: ${deleted_count}"
 }
 
 cc_sync() {
