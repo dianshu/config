@@ -32,10 +32,7 @@ az config set extension.dynamic_install_allow_preview=true
 az config set extension.use_dynamic_install=yes_without_prompt
 
 # git
-git config --global alias.l "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
-git config --global log.date "format-local:%Y-%m-%d %H:%M:%S"
-git config --global core.editor vim
-git config --global --bool push.autoSetupRemote true
+wget https://raw.githubusercontent.com/dianshu/config/main/gitconfig -O ~/.gitconfig
 git config --global --replace-all user.name $0
 git config --global --replace-all user.email $1
 
@@ -45,9 +42,6 @@ if [ -f "$gitCredentialManagerArmExecution" ]; then
 else
     git config --global credential.helper "/mnt/c/Program\ Files/Git/mingw64/bin/git-credential-manager.exe"
 fi
-git config --global credential.https://dev.azure.com.useHttpPath true
-# use git merge
-git config --global pull.rebase false
 
 # install devtunnel
 curl -sL https://aka.ms/DevTunnelCliInstall | bash
