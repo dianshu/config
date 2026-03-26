@@ -370,6 +370,10 @@ cc_sync() {
     fi
     npm i -y -g @openai/codex@latest
 
+    # 1c. Install or update Agency
+    echo "\n=== Agency ==="
+    curl -sSfL https://aka.ms/InstallTool.sh | sh -s agency
+
     # 2. Config files (dynamically discover + download all files from claude/ in repo)
     echo "\n=== Config Files ==="
     local raw_base="https://raw.githubusercontent.com/dianshu/config/main"
