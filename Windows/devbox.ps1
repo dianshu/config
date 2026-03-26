@@ -58,7 +58,7 @@ Get-ChildItem "C:\Program Files\WindowsPowerShell\Modules\Az*" -Directory -Error
 Remove-Item "$env:LOCALAPPDATA\Microsoft\Windows\PowerShell\ModuleAnalysisCache" -Force -ErrorAction SilentlyContinue
 
 Write-Output "Going to install latest Az PowerShell module..."
-Install-Module -Name Az -Repository PSGallery -Scope AllUsers -Force -Verbose
+& "Q:\Programs\PowerShell\7\pwsh.exe" -NoProfile -Command "Install-Module -Name Az -Repository PSGallery -Scope AllUsers -Force -Verbose"
 
 Write-Output "Going to install Azure Artifacts Credential Provider..."
 iex "& { $(irm https://aka.ms/install-artifacts-credprovider.ps1) }"
