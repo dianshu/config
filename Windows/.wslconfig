@@ -1,0 +1,9 @@
+[general]
+instanceIdleTimeout=-1
+
+[wsl2]
+networkingMode=mirrored
+vmIdleTimeout=-1
+
+[experimental]
+autoMemoryReclaim=disabled

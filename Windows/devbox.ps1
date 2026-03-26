@@ -106,14 +106,10 @@ Invoke-WebRequest -Uri $remoteFile -OutFile $localPath
 wsl --update
 wsl --install --no-launch Ubuntu-24.04
 
-# Configure WSL2 mirrored networking (required for chrome-devtools-mcp and cross-OS localhost access)
-$wslConfigPath = "$env:USERPROFILE\.wslconfig"
-$wslConfigContent = @"
-[wsl2]
-networkingMode=mirrored
-"@
-Set-Content -Path $wslConfigPath -Value $wslConfigContent -Force
-Write-Output "WSL config written to $wslConfigPath"
+# Overwrite .wslconfig (mirrored networking required for chrome-devtools-mcp and cross-OS localhost access)
+$remoteFile = "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/Windows/.wslconfig"
+$localPath = "$env:USERPROFILE\.wslconfig"
+Invoke-WebRequest -Uri $remoteFile -OutFile $localPath
 
 Write-Output 'Init script for Ubuntu-24.04: sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/dianshu/config/HEAD/Ubuntu/24.04/init.sh?${RANDOM})"'
 Write-Output 'Windows Terminal json config: https://raw.githubusercontent.com/dianshu/config/refs/heads/main/Windows/windows_terminal.json'
