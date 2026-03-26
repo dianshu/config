@@ -29,7 +29,8 @@ $packages = @(
 	"Microsoft.AzureCLI",
  	"Python.Python.3.13",
    	"OpenJS.NodeJS.LTS",
-	"Microsoft.Git"
+	"Microsoft.Git",
+	"Obsidian.Obsidian"
 )
 $locations = @(
 	"Sublime",
@@ -40,7 +41,8 @@ $locations = @(
 	"AzureCLI",
 	"Python313",
   	"NodeJS",
-	"Git"
+	"Git",
+	"Obsidian"
 )
 for ($i = 0; $i -lt $packages.Length; $i++) {
     $package = $packages[$i]
