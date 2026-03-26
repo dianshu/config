@@ -18,7 +18,6 @@ brew install jq net-tools git tree
 brew install trivy uv node
 brew install gh
 curl -fsSL https://bun.sh/install | bash
-brew install neurosnap/tap/zmx
 
 # sing-box
 brew install sing-box

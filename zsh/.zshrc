@@ -304,12 +304,8 @@ EOF
         fi
     fi
 
-    # Start the copilot API in a zmx session
-    zmx kill cc_proxy 2>/dev/null
-    zmx run cc_proxy npx --yes @dianshuv/copilot-api@latest start -p $port -a enterprise
-    echo "copilot-api started in zmx session 'cc_proxy'"
-    echo "  Attach: zmx attach cc_proxy"
-    echo "  Stop:   zmx kill cc_proxy"
+    # Start the copilot API
+    npx --yes @dianshuv/copilot-api@latest start -p $port -a enterprise
 }
 
 cc_clean() {
@@ -511,21 +507,16 @@ update_zshrc() {
     echo "Run 'source ~/.zshrc' to reload."
 }
 
-: ${CC_REMOTE_SESSION:=cc_remote}
-: ${CC_REMOTE_TUNNEL_SESSION:=cc_tunnel}
 : ${CC_REMOTE_PORT:=3006}
-: ${CC_REMOTE_TUNNEL_LOG:=/tmp/cloudflared-cc-remote.log}
 
 cc_remote() {
     cc_remote_stop
     npm install -g @dianshuv/hapi
     devtunnel user login -g
-    zmx attach "$CC_REMOTE_SESSION" hapi hub --tunnel
+    hapi hub --tunnel
 }
 
 cc_remote_stop() {
-    zmx kill "$CC_REMOTE_SESSION" 2>/dev/null
-    sleep 1
     fuser -k "${CC_REMOTE_PORT}/tcp" 2>/dev/null
     echo "cc_remote stopped"
 }
