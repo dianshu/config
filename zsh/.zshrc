@@ -483,15 +483,7 @@ cc_sync() {
     playwright-cli install --skills
     mv .claude/skills/playwright-cli ~/.claude/skills
 
-    # 5e. gstack
-    echo "\n=== gstack ==="
-    local gstack_dir="$HOME/.claude/skills/gstack"
-    rm -rf "$gstack_dir" "$HOME/.gstack"
-    git clone https://github.com/garrytan/gstack.git "$gstack_dir"
-    (cd "$gstack_dir" && ./setup)
-    echo "gstack skills installed"
-
-    # 5f. MCP Servers (direct registration for servers not installable as plugins)
+    # 5e. MCP Servers (direct registration for servers not installable as plugins)
     echo "\n=== MCP Servers ==="
     claude mcp remove context7 -s user 2>/dev/null
     claude mcp add context7 -s user -- npx -y @upstash/context7-mcp
