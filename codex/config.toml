@@ -9,3 +9,6 @@ name = "Local Proxy"
 base_url = "http://localhost:29427/v1"
 wire_api = "responses"
 env_key = "HOME"
+
+[projects."/home/fei/repos"]
+trust_level = "trusted"
