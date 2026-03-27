@@ -1,0 +1,11 @@
+{
+  "banner": "never",
+  "model": "gemini-3.1-pro-preview",
+  "render_markdown": true,
+  "theme": "auto",
+  "trusted_folders": [
+    "/home/fei/repos"
+  ],
+  "staff": true,
+  "log_level": "all"
+}

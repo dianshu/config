@@ -370,6 +370,16 @@ cc_sync() {
     echo "\n=== Agency ==="
     curl -sSfL https://aka.ms/InstallTool.sh | sh -s agency
 
+    # 1d. Install or update Copilot CLI
+    echo "\n=== Copilot CLI ==="
+    if brew list copilot-cli &>/dev/null; then
+        echo "  Found, upgrading..."
+        brew upgrade copilot-cli
+    else
+        echo "  Not found, installing..."
+        brew install copilot-cli
+    fi
+
     # 2. Config files (dynamically discover + download all files from claude/ in repo)
     echo "\n=== Config Files ==="
     local raw_base="https://raw.githubusercontent.com/dianshu/config/main"
@@ -395,6 +405,14 @@ cc_sync() {
             chmod +x "$HOME/.claude/$rel_path"
         fi
     done <<< "$files"
+
+    # 2b. Codex config file
+    echo "\n=== Codex Config ==="
+    dl_with_backup "$raw_base/codex/config.toml" "$HOME/.codex/config.toml"
+
+    # 2c. Copilot CLI config file
+    echo "\n=== Copilot Config ==="
+    dl_with_backup "$raw_base/copilot/config.json" "$HOME/.copilot/config.json"
 
     # Install BurntToast PowerShell module for Windows toast notifications
     if command -v /mnt/q/Programs/PowerShell/7/pwsh.exe &>/dev/null; then
