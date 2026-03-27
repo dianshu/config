@@ -495,13 +495,7 @@ cc_sync() {
     echo "\n=== SearXNG Docker Image ==="
     docker pull searxng/searxng
 
-    # 5d. Playwright cli
-    echo "\n=== Playwright CLI ==="
-    npm i -y -g @playwright/cli@latest
-    playwright-cli install --skills
-    mv .claude/skills/playwright-cli ~/.claude/skills
-
-    # 5e. MCP Servers (direct registration for servers not installable as plugins)
+    # 5d. MCP Servers (direct registration for servers not installable as plugins)
     echo "\n=== MCP Servers ==="
     claude mcp remove context7 -s user 2>/dev/null
     claude mcp add context7 -s user -- npx -y @upstash/context7-mcp

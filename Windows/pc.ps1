@@ -42,10 +42,6 @@ Remove-Item "$env:LOCALAPPDATA\Microsoft\Windows\PowerShell\ModuleAnalysisCache"
 Write-Output "Going to install latest Az PowerShell module..."
 Install-Module -Name Az -Repository PSGallery -Scope AllUsers -Force -Verbose
 
-Write-Output "Going to install playwright cli..."
-npm install -g @playwright/cli@latest
-playwright-cli install --skills
-
 Write-Output "Going to install agency for workpilot..."
 iex "& { $(irm https://aka.ms/InstallTool.ps1)} agency"
 
