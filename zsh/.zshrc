@@ -305,7 +305,7 @@ EOF
     fi
 
     # Start the copilot API
-    npx --yes @dianshuv/copilot-api@latest start -p $port -a enterprise
+    npx --yes @dianshuv/copilot-api@latest start -p $port -a enterprise --posthog-key $CC_POSTHOG_KEY
 }
 
 cc_clean() {
