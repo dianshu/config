@@ -494,6 +494,9 @@ cc_sync() {
     claude mcp remove chrome-devtools -s user 2>/dev/null
     claude mcp add chrome-devtools -s user -- npx -y chrome-devtools-mcp@latest --browserUrl http://localhost:9222
     echo "  MCP server 'chrome-devtools' configured"
+    claude mcp remove mail -s user 2>/dev/null
+    claude mcp add mail -s user -- agency mcp mail
+    echo "  MCP server 'mail' configured"
 
     echo "\n=== cc_sync complete ==="
 }
