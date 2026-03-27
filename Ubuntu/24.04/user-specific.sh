@@ -42,9 +42,6 @@ else
     git config --global credential.helper "/mnt/c/Program\ Files/Git/mingw64/bin/git-credential-manager.exe"
 fi
 
-# install devtunnel
-curl -sL https://aka.ms/DevTunnelCliInstall | bash
-
 # zsh related work
 brew install zsh
 curl https://raw.githubusercontent.com/dianshu/config/HEAD/zsh/.zshrc?${RANDOM} > ~/.zshrc
