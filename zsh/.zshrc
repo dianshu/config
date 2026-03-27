@@ -527,7 +527,6 @@ update_zshrc() {
 cc_remote() {
     cc_remote_stop
     npm install -g @dianshuv/hapi
-    devtunnel user login -g
     hapi hub --tunnel
 }
 
