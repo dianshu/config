@@ -273,6 +273,12 @@ EOF
     fi
     echo "Updated $codex_config with port $port"
 
+    # Update Gemini CLI .env with the new port
+    local gemini_env="$HOME/.gemini/.env"
+    mkdir -p "$HOME/.gemini"
+    echo "GOOGLE_GEMINI_BASE_URL=http://localhost:$port/v1beta" > "$gemini_env"
+    echo "Updated $gemini_env with port $port"
+
     # Start SearXNG container for web search
     local searxng_port=30963
     local searxng_config="$HOME/.config/searxng"
@@ -370,6 +376,15 @@ cc_sync() {
     echo "\n=== Agency ==="
     curl -sSfL https://aka.ms/InstallTool.sh | sh -s agency
 
+    # 1d. Install or update Gemini CLI
+    echo "\n=== Gemini CLI ==="
+    if command -v gemini &>/dev/null; then
+        echo "  Found, updating..."
+    else
+        echo "  Not found, installing..."
+    fi
+    npm i -y -g @google/gemini-cli@latest
+
     # 2. Config files (dynamically discover + download all files from claude/ in repo)
     echo "\n=== Config Files ==="
     local raw_base="https://raw.githubusercontent.com/dianshu/config/main"
@@ -399,6 +414,10 @@ cc_sync() {
     # 2b. Codex config file
     echo "\n=== Codex Config ==="
     dl_with_backup "$raw_base/codex/config.toml" "$HOME/.codex/config.toml"
+
+    # 2c. Gemini CLI config file
+    echo "\n=== Gemini Config ==="
+    dl_with_backup "$raw_base/gemini/settings.json" "$HOME/.gemini/settings.json"
 
     # Install BurntToast PowerShell module for Windows toast notifications
     if command -v /mnt/q/Programs/PowerShell/7/pwsh.exe &>/dev/null; then
