@@ -443,12 +443,19 @@ cc_sync() {
         [find-skills]="vercel-labs/skills@find-skills"
         [skill-creator]="anthropics/skills@skill-creator"
     )
+    typeset -A skill_agents=(
+        [skill-creator]="claude-code"
+    )
     for skill source in "${(@kv)skill_sources}"; do
         if echo "$installed_skills" | grep -qw "$skill"; then
             echo "  Skill '$skill' already installed"
         else
             echo "  Installing skill '$skill'..."
-            npx -y skills add "$source" -g -y
+            if [[ -n "${skill_agents[$skill]}" ]]; then
+                npx -y skills add "$source" -g -a "${skill_agents[$skill]}" -y
+            else
+                npx -y skills add "$source" -g -y
+            fi
         fi
     done
     echo "  Updating all skills..."
