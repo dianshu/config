@@ -310,8 +310,11 @@ EOF
         fi
     fi
 
-    # Start the copilot API
-    npx --yes @dianshuv/copilot-api@latest start -p $port -a enterprise --posthog-key $CC_POSTHOG_KEY
+    # Start the copilot API in a tmux session so it survives terminal close
+    tmux kill-session -t cc_proxy 2>/dev/null
+    tmux new-session -d -s cc_proxy "npx --yes @dianshuv/copilot-api@latest start -p $port -a enterprise --posthog-key $CC_POSTHOG_KEY"
+    echo "copilot-api started in tmux session 'cc_proxy' (port $port)"
+    echo "  attach: tmux attach -t cc_proxy"
 }
 
 cc_clean() {
@@ -532,10 +535,13 @@ update_zshrc() {
 cc_remote() {
     cc_remote_stop
     npm install -g @dianshuv/hapi
-    hapi hub --tunnel
+    tmux new-session -d -s cc_remote "hapi hub --tunnel"
+    echo "hapi hub started in tmux session 'cc_remote'"
+    echo "  attach: tmux attach -t cc_remote"
 }
 
 cc_remote_stop() {
+    tmux kill-session -t cc_remote 2>/dev/null
     fuser -k "${CC_REMOTE_PORT}/tcp" 2>/dev/null
     echo "cc_remote stopped"
 }
