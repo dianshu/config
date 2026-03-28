@@ -276,7 +276,10 @@ EOF
     # Update Gemini CLI .env with the new port
     local gemini_env="$HOME/.gemini/.env"
     mkdir -p "$HOME/.gemini"
-    echo "GOOGLE_GEMINI_BASE_URL=http://localhost:$port/v1beta" > "$gemini_env"
+    cat > "$gemini_env" <<EOF
+GOOGLE_GEMINI_BASE_URL=http://localhost:$port
+GEMINI_API_KEY=dummy
+EOF
     echo "Updated $gemini_env with port $port"
 
     # Start SearXNG container for web search
