@@ -1,6 +1,6 @@
 ---
 name: gemini-review
-description: Use when the user wants a second opinion on code changes or implementation plans, says "gemini review", "review with gemini", "gr", or wants a Gemini-based AI review of uncommitted changes or a plan document. Not for reviewing already-committed code — this reviews working-tree diffs or plan files.
+description: Use when the user wants a second opinion on code changes or implementation plans via Gemini, says "gemini review", "review with gemini", "gr", or wants a Gemini-based AI review of uncommitted changes or a plan document. Not for reviewing already-committed code — this reviews working-tree diffs or plan files.
 allowed-tools: Bash, Read, Grep, Glob, Agent
 ---
 
@@ -396,7 +396,6 @@ PROMPT
 } | gemini -p '' --approval-mode yolo --output-format text
 ```
 
-
 **Fallback (Agent tool):** If Gemini unavailable, spawn a single Agent sub-agent with the plan content and the same review prompt.
 
 ### B3. Present findings as structured verdict
@@ -431,8 +430,6 @@ rm "<temp_file_path>"
 
 | Mistake | Prevention |
 |---------|-----------|
-| Forgetting `--output-format text` | Without it, Gemini may produce interactive output that breaks background execution |
-| 
 | Embedding large plans/diffs with `$()` | Prefer piping via `cat` or heredoc to avoid shell argument length limits |
 | Sending project constraints to individual reviewers | Constraints go to the red-line scan (A5), not to lens prompts |
 | Letting reviewers see each other's output | Each reviewer must run independently — no shared context |
@@ -443,3 +440,5 @@ rm "<temp_file_path>"
 | Using raw `git diff` without `$EXCLUDE_PATHS` | Always append `-- . $EXCLUDE_PATHS` to filter noise files from diffs |
 | Sending full diff for files over 300 lines | Replace with `git diff --stat` summary + truncation note |
 | Exceeding 2000-line budget per reviewer | Apply tail truncation with appended notice after per-file capping |
+| Forgetting `--output-format text` | Without it, Gemini may produce interactive output that breaks background execution |
+| Omitting `--approval-mode yolo` | Without it, Gemini will prompt for tool approval and hang in background |
