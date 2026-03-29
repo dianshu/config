@@ -3,6 +3,6 @@ Follow this workflow when writing code, implementing features, or fixing bugs:
 1. **Before implementation**: Use the /superpowers:test-driven-development skill. Always write tests first.
 2. **After implementation**, loop until clean:
    a. Use the /simplify skill (via the Skill tool, not the code-simplifier agent) to review changed code for reuse, quality, and efficiency.
-   b. Use the /codex-review skill for an independent AI review of the changes.
+   b. Run /codex-review and /gemini-review in parallel for independent AI reviews. Cross-reference findings — issues flagged by both reviewers get priority attention.
    c. Use the /superpowers:verification-before-completion skill. Run verification commands and confirm output before asserting work is done.
    d. If any step found issues, fix them and repeat from (a). Stop when all three find no issues.

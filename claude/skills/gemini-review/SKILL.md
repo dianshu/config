@@ -1,24 +1,24 @@
 ---
-name: codex-review
-description: Use when the user wants a second opinion on code changes or implementation plans, says "codex review", "review with codex", "get a second opinion", "independent review", "review this plan", "codex review plan", or wants an AI review of uncommitted changes or a plan document. Not for reviewing already-committed code — this reviews working-tree diffs or plan files.
+name: gemini-review
+description: Use when the user wants a second opinion on code changes or implementation plans, says "gemini review", "review with gemini", "gr", or wants a Gemini-based AI review of uncommitted changes or a plan document. Not for reviewing already-committed code — this reviews working-tree diffs or plan files.
 allowed-tools: Bash, Read, Grep, Glob, Agent
 ---
 
-# Codex Review — Multi-Lens Adversarial Review
+# Gemini Review — Multi-Lens Adversarial Review
 
-Reviews uncommitted git changes or implementation plans using multi-lens adversarial review. Uses OpenAI's Codex CLI for cross-model independence when available, falls back to Claude sub-agents for single-model-multi-lens review.
+Reviews uncommitted git changes or implementation plans using multi-lens adversarial review. Uses Google's Gemini CLI for cross-model independence when available, falls back to Claude sub-agents for single-model-multi-lens review.
 
 ## Workflow
 
-### 1. Preflight — Check Codex Availability
+### 1. Preflight — Check Gemini Availability
 
 ```bash
-codex --version 2>/dev/null
+timeout 5 gemini --version 2>/dev/null
 ```
 
-- **Available** → Adversarial mode (Codex dispatches reviewers)
-- **Unavailable** → Single-model-multi-lens fallback (Agent tool dispatches reviewers)
-- **Both fail** → BLOCKED — tell user to install Codex or check environment
+- **Available** → Adversarial mode (Gemini dispatches reviewers)
+- **Unavailable/timeout** → Single-model-multi-lens fallback (Agent tool dispatches reviewers)
+- **Both fail** → BLOCKED — tell user to install Gemini CLI or check environment
 
 Record the mode for the verdict report header.
 
@@ -98,7 +98,7 @@ For each file in the filtered diff, if the file's diff exceeds 300 lines, replac
 After per-file processing, if the total diff exceeds 2000 lines, truncate at the budget and append a notice.
 
 ```bash
-TMPDIR=$(mktemp -d /tmp/codex-review-XXXXXX)
+TMPDIR=$(mktemp -d /tmp/gemini-review-XXXXXX)
 
 CONTEXT_FLAG="-U3"
 if [ "$SCALE" = "Medium" ]; then CONTEXT_FLAG="-U2"; fi
@@ -254,7 +254,7 @@ Output format (one per finding, max 10):
 If nothing found, output: LGTM
 ```
 
-#### Dispatch via Codex (adversarial mode)
+#### Dispatch via Gemini (adversarial mode)
 
 Run reviewers in parallel. For each lens, run as a background Bash process writing to a temp file:
 
@@ -265,7 +265,7 @@ Run reviewers in parallel. For each lens, run as a background Bash process writi
 ---
 {challenger prompt with intent filled in}
 PROMPT
-} | codex exec - --cd "$(pwd)" --ephemeral --full-auto > "$TMPDIR/challenger.txt" 2>&1 &
+} | gemini -p '' --approval-mode yolo --output-format text > "$TMPDIR/challenger.txt" 2>&1 &
 
 # Architect (Medium/Heavy only)
 { git diff --name-only -- . $EXCLUDE_PATHS; git diff --cached --name-only -- . $EXCLUDE_PATHS; cat <<'PROMPT'
@@ -273,7 +273,7 @@ PROMPT
 ---
 {architect prompt with intent filled in}
 PROMPT
-} | codex exec - --cd "$(pwd)" --ephemeral --full-auto > "$TMPDIR/architect.txt" 2>&1 &
+} | gemini -p '' --approval-mode yolo --output-format text > "$TMPDIR/architect.txt" 2>&1 &
 
 # Subtractor (Heavy only)
 { cat "$TMPDIR/subtractor_diff.txt"; cat <<'PROMPT'
@@ -281,14 +281,14 @@ PROMPT
 ---
 {subtractor prompt with intent filled in}
 PROMPT
-} | codex exec - --cd "$(pwd)" --ephemeral --full-auto > "$TMPDIR/subtractor.txt" 2>&1 &
+} | gemini -p '' --approval-mode yolo --output-format text > "$TMPDIR/subtractor.txt" 2>&1 &
 
 wait
 ```
 
 #### Dispatch via Agent Tool (single-model-multi-lens fallback)
 
-When Codex is unavailable, spawn independent Claude Agent sub-agents per lens using the Agent tool. Each agent:
+When Gemini is unavailable, spawn independent Claude Agent sub-agents per lens using the Agent tool. Each agent:
 - Gets its lens-specific prompt
 - Gets the prepared diff content (from `$TMPDIR/challenger_diff.txt` or `$TMPDIR/subtractor_diff.txt`) directly in the prompt
 - Cannot see other agents' output (isolation is automatic with separate Agent calls)
@@ -316,7 +316,7 @@ Collect all findings from all lenses and the red-line scan. Produce a structured
 ## Code Review — {short description of changes}
 
 **Scale**: Light / Medium / Heavy
-**Mode**: codex-adversarial / single-model-multi-lens
+**Mode**: gemini-adversarial / single-model-multi-lens
 **Reviewers**: Challenger [+ Architect] [+ Subtractor]
 **Filtered**: {EXCLUDED_COUNT} noise files excluded, {LARGE_FILE_COUNT} large files summarized, {BUDGET_TRUNCATED} lines budget-truncated
 
@@ -367,7 +367,7 @@ rm -rf "$TMPDIR"
 
 ### B2. Run Plan Review
 
-**Via Codex (if available):**
+**Via Gemini (if available):**
 
 ```bash
 { cat "<plan_file_path>"; cat <<'PROMPT'
@@ -393,15 +393,11 @@ Also check for:
 Output each finding as:
 [!]/[~]/[.] [Category] description
 PROMPT
-} | codex exec - --skip-git-repo-check --ephemeral
+} | gemini -p '' --approval-mode yolo --output-format text
 ```
 
-Key flags:
-- `--skip-git-repo-check` — plan files may not be in a git repo
-- `--ephemeral` — no persistent state needed
-- No `--uncommitted` — that flag is for code diffs only
 
-**Fallback (Agent tool):** If Codex unavailable, spawn a single Agent sub-agent with the plan content and the same review prompt.
+**Fallback (Agent tool):** If Gemini unavailable, spawn a single Agent sub-agent with the plan content and the same review prompt.
 
 ### B3. Present findings as structured verdict
 
@@ -410,7 +406,7 @@ Format the plan review output into the verdict table:
 ```markdown
 ## Plan Review — {plan title or filename}
 
-**Mode**: codex-adversarial / single-model-multi-lens
+**Mode**: gemini-adversarial / single-model-multi-lens
 
 ### Verdict: PASS / CONTESTED / REJECT
 
@@ -435,13 +431,13 @@ rm "<temp_file_path>"
 
 | Mistake | Prevention |
 |---------|-----------|
-| Passing a custom prompt with `--uncommitted` | These are mutually exclusive in codex-cli. Use `--uncommitted` alone or use piped input with a prompt. |
-| Using `--uncommitted` for plan review | Plan review uses piped input with a prompt, not `--uncommitted` |
+| Forgetting `--output-format text` | Without it, Gemini may produce interactive output that breaks background execution |
+| 
 | Embedding large plans/diffs with `$()` | Prefer piping via `cat` or heredoc to avoid shell argument length limits |
 | Sending project constraints to individual reviewers | Constraints go to the red-line scan (A5), not to lens prompts |
 | Letting reviewers see each other's output | Each reviewer must run independently — no shared context |
 | Skipping scale detection | Always run A2 before dispatching — it determines which lenses to use |
-| Using `--model` flag with codex | Respect the user's `config.toml` model setting — never override it |
+| Using `-m` flag with gemini | Respect the user's `settings.json` model setting — never override it |
 | Using `claude -p` from Claude Code | Use the Agent tool for fallback sub-agents, not the `claude` CLI |
 | Editing files based on review output | This is a read-only review — present findings only |
 | Using raw `git diff` without `$EXCLUDE_PATHS` | Always append `-- . $EXCLUDE_PATHS` to filter noise files from diffs |
