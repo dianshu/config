@@ -78,6 +78,7 @@ Write-Output "Going to create new directories..."
 $needToCreatePaths = @(
 	"Q:\Repos",
  	"Q:\ChromeProfiles",
+	"Q:\ChromeProfiles\mcp",
   	"Q:\ObsidianVaults"
 )
 foreach ($path in $needToCreatePaths) {
