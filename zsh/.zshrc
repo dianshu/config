@@ -11,12 +11,10 @@ _zshrc_mark() {
 }
 
 # 启用插件 abbr-zsh
-# 这个插件会在 /tmp 目录下创建目录来存储命令别名，因此可能会存在权限问题
+# zsh-abbr stores temp data in /tmp/zsh-abbr; fix perms before sourcing
+[[ -d /tmp/zsh-abbr ]] && chmod 700 /tmp/zsh-abbr 2>/dev/null
 source ~/.zsh/plugins/zsh-abbr/zsh-abbr.zsh
 _zshrc_mark "zsh-abbr"
-chmod 777 -R /tmp/zsh-abbr 2&> /dev/null
-source ~/.zsh/plugins/zsh-abbr/zsh-abbr.zsh
-_zshrc_mark "zsh-abbr (2nd)"
 
 # 启用其他插件
 source ~/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
@@ -45,25 +43,29 @@ setopt prompt_subst
 PROMPT='❰%{$reset_color%}%{$fg[red]%}[$(TZ="Asia/Shanghai" date +%H:%M)]%{$reset_color%}%F{#41C4C2}%n%{$reset_color%}|%{$fg[yellow]%}%1~%{$reset_color%}%F{#5DC441}$(git branch --show-current 2&> /dev/null | xargs -I branch echo "(branch)")%{$reset_color%}❱
 %F{#FC7E00}%#%{$reset_color%} '
 
-# 设置常用的命令别名
-abbr --quiet -S gl='git l'
-abbr --quiet -S gp='git push'
-abbr --quiet -S gb='git branch'
-abbr --quiet -S gs='git status'
-abbr --quiet -S gco='git checkout'
-abbr --quiet -S gcm='git checkout main && git pull'
-abbr --quiet -S grep='grep --color=auto'
-abbr --quiet -S k='kubectl'
-abbr --quiet -S ll='ls -lah'
-abbr --quiet -S dc='docker compose'
-abbr --quiet -S d='docker'
-abbr --quiet -S cc='hapi'
-abbr --quiet -S ccp='cc_proxy'
-abbr --quiet -S ccc='cc_clean'
-abbr --quiet -S ccs='cc_sync'
-abbr --quiet -S ccr='cc_remote'
-abbr --quiet -S ccrs='cc_remote_stop'
-abbr --quiet -S gdiff='GDK_SCALE=2 GDK_DPI_SCALE=1.5 smerge --new-window .'
+# Direct session abbreviation loading — bypasses abbr command overhead.
+# Coupled to zsh-abbr v6.4.0 internals: keys/values use ${(qqq)...} quoting
+# (literal double quotes). If zsh-abbr is upgraded, verify this still works.
+ABBR_REGULAR_SESSION_ABBREVIATIONS+=(
+  '"cc"'     '"hapi"'
+  '"ccc"'    '"cc_clean"'
+  '"ccp"'    '"cc_proxy"'
+  '"ccr"'    '"cc_remote"'
+  '"ccrs"'   '"cc_remote_stop"'
+  '"ccs"'    '"cc_sync"'
+  '"d"'      '"docker"'
+  '"dc"'     '"docker compose"'
+  '"gco"'    '"git checkout"'
+  '"gcm"'    '"git checkout main && git pull"'
+  '"gdiff"'  '"GDK_SCALE=2 GDK_DPI_SCALE=1.5 smerge --new-window ."'
+  '"gl"'     '"git l"'
+  '"gp"'     '"git push"'
+  '"gb"'     '"git branch"'
+  '"grep"'   '"grep --color=auto"'
+  '"gs"'     '"git status"'
+  '"k"'      '"kubectl"'
+  '"ll"'     '"ls -lah"'
+)
 _zshrc_mark "abbr definitions"
 
 # 启用路径自动补全
