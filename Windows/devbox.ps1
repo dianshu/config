@@ -23,9 +23,6 @@ foreach ($package in $needToUninstallPackages) {
 $packages = @(
 	"SublimeHQ.SublimeText.4",
 	"Microsoft.VisualStudioCode",
-	"Microsoft.PowerShell",
-	"Tencent.WeChat",
-	"MikeFarah.yq",
 	"Microsoft.AzureCLI",
  	"Python.Python.3.13",
    	"OpenJS.NodeJS.LTS",
@@ -35,9 +32,6 @@ $packages = @(
 $locations = @(
 	"Sublime",
 	"VisualStudioCode",
-	"PowerShell",
-	"WeChat",
-	"Yq",
 	"AzureCLI",
 	"Python313",
   	"NodeJS",
@@ -60,7 +54,7 @@ Get-ChildItem "C:\Program Files\WindowsPowerShell\Modules\Az*" -Directory -Error
 Remove-Item "$env:LOCALAPPDATA\Microsoft\Windows\PowerShell\ModuleAnalysisCache" -Force -ErrorAction SilentlyContinue
 
 Write-Output "Going to install latest Az PowerShell module..."
-& "Q:\Programs\PowerShell\7\pwsh.exe" -NoProfile -Command "Install-Module -Name Az -Repository PSGallery -Scope AllUsers -Force -Verbose"
+Install-Module -Name Az -Repository PSGallery -Scope AllUsers -Force -Verbose
 
 Write-Output "Going to install Azure Artifacts Credential Provider..."
 iex "& { $(irm https://aka.ms/install-artifacts-credprovider.ps1) }"
@@ -69,6 +63,7 @@ Write-Output "Going to delete redundant directories and files..."
 $needToDeletePaths = @(
 	"Q:\Edge",
  	"Q:\src",
+	"Q:\cr",
   	"Q:\.tools\QuickBuild",
    	"C:\CommonTools\*"
 )
