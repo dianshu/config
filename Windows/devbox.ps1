@@ -27,7 +27,8 @@ $packages = @(
  	"Python.Python.3.13",
    	"OpenJS.NodeJS.LTS",
 	"Microsoft.Git",
-	"Obsidian.Obsidian"
+	"Obsidian.Obsidian",
+	"Google.Chrome"
 )
 $locations = @(
 	"Sublime",
@@ -36,7 +37,8 @@ $locations = @(
 	"Python313",
   	"NodeJS",
 	"Git",
-	"Obsidian"
+	"Obsidian",
+	"Chrome"
 )
 for ($i = 0; $i -lt $packages.Length; $i++) {
     $package = $packages[$i]
@@ -73,7 +75,15 @@ foreach ($path in $needToDeletePaths) {
 }
 
 Write-Output "Going to create new directories..."
-New-Item -ItemType Directory -Path "Q:\Repos" -Force
+$needToCreatePaths = @(
+	"Q:\Repos",
+ 	"Q:\ChromeProfiles",
+  	"Q:\ObsidianVaults"
+)
+foreach ($path in $needToCreatePaths) {
+	Write-Output "Going to create $path..."
+ 	New-Item -ItemType Directory -Path $path -Force
+}
 
 Write-Output "Going to install vscode extensions..."
 $vscodeExtensions = @(
