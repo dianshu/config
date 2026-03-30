@@ -18,9 +18,9 @@
       "Write(/tmp/**)",
       "Write(~/.claude/**)",
       "Write(~/.codex/**)",
+      "Write(~/.gemini/**)",
       "Skill(codex-review)",
-      "Skill(cr)",
-      "Skill(qa)"
+      "Skill(gemini-review)"
     ],
     "deny": [
       "Bash(git push --force:*)",
@@ -34,6 +34,17 @@
   },
   "model": "opus[1m]",
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/session-context.sh"
+          }
+        ]
+      }
+    ],
     "Notification": [
       {
         "matcher": "",
