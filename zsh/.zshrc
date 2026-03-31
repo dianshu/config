@@ -524,7 +524,7 @@ cc_sync() {
     claude mcp add searxng -s user -e SEARXNG_URL="http://localhost:30963" -- npx -y mcp-searxng
     echo "  MCP server 'searxng' configured"
     claude mcp remove chrome-devtools -s user 2>/dev/null
-    claude mcp add chrome-devtools -s user -- npx -y chrome-devtools-mcp@latest
+    claude mcp add chrome-devtools -s user -- npx -y chrome-devtools-mcp@latest --executablePath "/mnt/c/Program Files/Google/Chrome/Application/chrome.exe" --userDataDir /mnt/q/ChromeProfiles/mcp
     echo "  MCP server 'chrome-devtools' configured"
     claude mcp remove mail -s user 2>/dev/null
     claude mcp add mail -s user -- agency mcp mail
