@@ -74,8 +74,8 @@ fi
 | Scale | Condition | Reviewers |
 |-------|-----------|-----------|
 | Light | < 50 lines | Challenger only |
-| Medium | 50–200 lines | Challenger + Architect |
-| Heavy | 200+ lines OR 3+ dirs | Challenger + Architect + Subtractor |
+| Medium | 50–200 lines | Challenger + Architect + Devil's Advocate |
+| Heavy | 200+ lines OR 3+ dirs | Challenger + Architect + Subtractor + Devil's Advocate |
 
 ### A2.5. Prepare Diff Content
 
@@ -254,6 +254,33 @@ Output format (one per finding, max 10):
 If nothing found, output: LGTM
 ```
 
+#### Devil's Advocate Lens
+
+Input: prepared diff (`$TMPDIR/challenger_diff.txt`)
+
+Prompt:
+```
+You are the DEVIL'S ADVOCATE reviewer. Challenge whether this is the right approach.
+
+Don't look for bugs or style issues — the other reviewers handle that.
+Your job is to question the premise: is this the right solution to the problem?
+
+Intent: {intent}
+
+Checklist:
+- Is there a simpler or more standard approach that achieves the same goal?
+- What implicit assumptions does this implementation depend on?
+- Where could this design fail under real-world conditions (scale, concurrency, changing requirements)?
+- Are there silent tradeoffs being made (performance vs readability, flexibility vs simplicity)?
+- Does this change introduce accidental complexity that will compound over time?
+- Would this approach survive a "why not just..." challenge from a senior engineer?
+
+Output format (one per finding, max 10):
+[!]/[~]/[.] `file:line` current approach → assumption/risk → alternative
+
+If nothing found, output: LGTM
+```
+
 #### Dispatch via Gemini (adversarial mode)
 
 Run reviewers in parallel. For each lens, run as a background Bash process writing to a temp file:
@@ -283,6 +310,14 @@ PROMPT
 PROMPT
 } | gemini -p '' --approval-mode yolo --output-format text > "$TMPDIR/subtractor.txt" 2>&1 &
 
+# Devil's Advocate (Medium/Heavy)
+{ cat "$TMPDIR/challenger_diff.txt"; cat <<'PROMPT'
+
+---
+{devil's advocate prompt with intent filled in}
+PROMPT
+} | gemini -p '' --approval-mode yolo --output-format text > "$TMPDIR/devils_advocate.txt" 2>&1 &
+
 wait
 ```
 
@@ -293,7 +328,7 @@ When Gemini is unavailable, spawn independent Claude Agent sub-agents per lens u
 - Gets the prepared diff content (from `$TMPDIR/challenger_diff.txt` or `$TMPDIR/subtractor_diff.txt`) directly in the prompt
 - Cannot see other agents' output (isolation is automatic with separate Agent calls)
 
-Run agents in parallel by making multiple Agent tool calls in a single message. Use `subagent_type: "general-purpose"` for each.
+Run agents in parallel by making multiple Agent tool calls in a single message. Use `subagent_type: "general-purpose"` for each. At Medium/Heavy scale, include the Devil's Advocate agent in the same parallel batch, with the prepared diff from `$TMPDIR/challenger_diff.txt` and its lens-specific prompt.
 
 ### A5. Red-Line Scan
 
@@ -317,7 +352,7 @@ Collect all findings from all lenses and the red-line scan. Produce a structured
 
 **Scale**: Light / Medium / Heavy
 **Mode**: gemini-adversarial / single-model-multi-lens
-**Reviewers**: Challenger [+ Architect] [+ Subtractor]
+**Reviewers**: Challenger [+ Architect] [+ Devil's Advocate] [+ Subtractor]
 **Filtered**: {EXCLUDED_COUNT} noise files excluded, {LARGE_FILE_COUNT} large files summarized, {BUDGET_TRUNCATED} lines budget-truncated
 
 ### Verdict: PASS / CONTESTED / REJECT
