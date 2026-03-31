@@ -1,3 +1,3 @@
-Commit message reminder: prefer not to include "claude code" or "hapi" in commit messages.
+Do not include "claude code" or "hapi" in commit messages or as co-author.
 
-When ready to commit and push, use the /push skill — it handles staging, committing, pushing, and optional PR creation.
+Do not automatically use the /push skill to push code unless pushing is explicitly part of the plan or requested by the user.
