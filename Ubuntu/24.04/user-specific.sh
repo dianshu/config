@@ -19,6 +19,11 @@ brew install trivy uv node
 brew install gh frpc
 curl -fsSL https://bun.sh/install | bash
 
+# google chrome
+wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+sudo apt install -y ./google-chrome-stable_current_amd64.deb
+rm -f google-chrome-stable_current_amd64.deb
+
 # sing-box
 brew install sing-box
 mkdir $HOME/.sing-box
