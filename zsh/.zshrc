@@ -530,21 +530,6 @@ cc_sync() {
     claude mcp add mail -s user -- agency mcp mail
     echo "  MCP server 'mail' configured"
 
-    # 5e. Google Chrome update
-    echo "\n=== Google Chrome ==="
-    if command -v google-chrome &>/dev/null; then
-        if [[ -f /etc/apt/sources.list.d/google-chrome.list ]]; then
-            sudo apt update -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/google-chrome.list -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
-        else
-            echo "  WARN: google-chrome.list not found, running full apt update"
-            sudo apt update
-        fi
-        sudo apt install -y --only-upgrade google-chrome-stable
-        echo "  Chrome updated: $(google-chrome --version)"
-    else
-        echo "  Chrome not installed, skipping"
-    fi
-
     echo "\n=== cc_sync complete ==="
 }
 
