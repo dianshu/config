@@ -45,6 +45,17 @@
         ]
       }
     ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/session-learnings.sh"
+          }
+        ]
+      }
+    ],
     "Notification": [
       {
         "matcher": "",

@@ -1,1 +1,0 @@
-At the end of each session, if you learned something new about the project or made mistakes that should be avoided in the future, create or update CLAUDE.md in the current working directory with concise notes. Keep entries short and actionable — focus on mistakes to avoid and patterns to follow. Do not duplicate instructions already in existing CLAUDE.md files.
