@@ -31,7 +31,7 @@ if ($phase -eq "2") {
     if (-not $isAdmin) {
         Write-Output "=== Phase 2: Elevating to admin ==="
         $pwshExe = (Get-Process -Id $PID).Path
-        Start-Process $pwshExe -Verb RunAs -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "`$env:DEVBOX_PHASE='3'; Invoke-Expression -Command (Invoke-WebRequest -Uri '$scriptUrl').Content"
+        Start-Process $pwshExe -Verb RunAs -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "`$env:DEVBOX_PHASE='3'; Invoke-Expression -Command (Invoke-WebRequest -Uri '$scriptUrl').Content; pause"
         exit
     }
     $phase = "3"
