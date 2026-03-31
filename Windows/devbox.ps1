@@ -1,3 +1,44 @@
+$scriptUrl = "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/Windows/devbox.ps1"
+$phase = $env:DEVBOX_PHASE
+$pwshLocation = "Q:\Programs\PowerShell"
+
+# Phase 1 (default): Install/update PowerShell 7, then relaunch in pwsh.exe
+if (-not $phase -or $phase -eq "1") {
+    Write-Output "=== Phase 1: Installing/updating PowerShell 7 ==="
+    winget install --accept-package-agreements --accept-source-agreements -i -l $pwshLocation -e Microsoft.PowerShell
+
+    if ($PSVersionTable.PSEdition -ne "Core") {
+        Write-Output "Relaunching in PowerShell 7..."
+        # pwsh.exe may not be in PATH yet after fresh install
+        $pwshExe = (Get-Command pwsh -ErrorAction SilentlyContinue).Source
+        if (-not $pwshExe) {
+            $pwshExe = "$pwshLocation\pwsh.exe"
+        }
+        if (-not (Test-Path $pwshExe)) {
+            Write-Error "Could not find pwsh.exe. Please add PowerShell 7 to PATH and re-run."
+            exit 1
+        }
+        $env:DEVBOX_PHASE = "2"
+        Start-Process $pwshExe -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "Invoke-Expression -Command (Invoke-WebRequest -Uri '$scriptUrl').Content"
+        exit
+    }
+    $phase = "2"
+}
+
+# Phase 2: Self-elevate to admin (already running in pwsh.exe at this point)
+if ($phase -eq "2") {
+    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if (-not $isAdmin) {
+        Write-Output "=== Phase 2: Elevating to admin ==="
+        $pwshExe = (Get-Process -Id $PID).Path
+        Start-Process $pwshExe -Verb RunAs -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "`$env:DEVBOX_PHASE='3'; Invoke-Expression -Command (Invoke-WebRequest -Uri '$scriptUrl').Content"
+        exit
+    }
+    $phase = "3"
+}
+
+Write-Output "=== Phase 3: Main initialization (pwsh.exe, admin) ==="
+
 $needToUninstallPackages = @(
 	"Microsoft.VisualStudioCode",
 	"Anaconda.Anaconda3",
