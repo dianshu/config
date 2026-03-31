@@ -68,8 +68,7 @@ $packages = @(
  	"Python.Python.3.13",
    	"OpenJS.NodeJS.LTS",
 	"Microsoft.Git",
-	"Obsidian.Obsidian",
-	"Google.Chrome"
+	"Obsidian.Obsidian"
 )
 $locations = @(
 	"Sublime",
@@ -78,8 +77,7 @@ $locations = @(
 	"Python313",
   	"NodeJS",
 	"Git",
-	"Obsidian",
-	"Chrome"
+	"Obsidian"
 )
 for ($i = 0; $i -lt $packages.Length; $i++) {
     $package = $packages[$i]
@@ -118,8 +116,6 @@ foreach ($path in $needToDeletePaths) {
 Write-Output "Going to create new directories..."
 $needToCreatePaths = @(
 	"Q:\Repos",
- 	"Q:\ChromeProfiles",
-	"Q:\ChromeProfiles\mcp",
   	"Q:\ObsidianVaults"
 )
 foreach ($path in $needToCreatePaths) {
