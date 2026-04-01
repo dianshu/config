@@ -247,9 +247,9 @@ cc_proxy() {
     # Update or create settings.json with the new port
     local tmp_file=$(mktemp)
     if [[ -f "$settings_file" ]]; then
-        jq --arg port "$port" '.env.ANTHROPIC_BASE_URL = "http://localhost:\($port)" | .env.ANTHROPIC_AUTH_TOKEN = "your-anthropic-auth-token" | .env.CLAUDE_CODE_SKIP_AUTH_LOGIN = "true" | .env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1"' "$settings_file" > "$tmp_file" && mv "$tmp_file" "$settings_file"
+        jq --arg port "$port" '.env.ANTHROPIC_BASE_URL = "http://localhost:\($port)" | .env.ANTHROPIC_AUTH_TOKEN = "your-anthropic-auth-token" | .env.CLAUDE_CODE_SKIP_AUTH_LOGIN = "true" | .env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1" | .env.CLAUDE_CODE_NO_FLICKER = "1"' "$settings_file" > "$tmp_file" && mv "$tmp_file" "$settings_file"
     else
-        echo "{\"env\":{\"ANTHROPIC_BASE_URL\":\"http://localhost:$port\",\"ANTHROPIC_AUTH_TOKEN\":\"your-anthropic-auth-token\",\"CLAUDE_CODE_SKIP_AUTH_LOGIN\":\"true\",\"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\":\"1\"}}" | jq . > "$settings_file"
+        echo "{\"env\":{\"ANTHROPIC_BASE_URL\":\"http://localhost:$port\",\"ANTHROPIC_AUTH_TOKEN\":\"your-anthropic-auth-token\",\"CLAUDE_CODE_SKIP_AUTH_LOGIN\":\"true\",\"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\":\"1\",\"CLAUDE_CODE_NO_FLICKER\":\"1\"}}" | jq . > "$settings_file"
     fi
     echo "Updated $settings_file with port $port"
 
