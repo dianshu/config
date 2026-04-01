@@ -368,7 +368,7 @@ cc_sync() {
         claude update
     else
         echo "  Not found, installing..."
-        curl -fsSL https://claude.ai/install.sh | bash
+        curl -fsSL -4 https://claude.ai/install.sh | bash
     fi
 
     # 1b. Install or update Codex CLI
@@ -524,7 +524,6 @@ cc_sync() {
     claude mcp add searxng -s user -e SEARXNG_URL="http://localhost:30963" -- npx -y mcp-searxng
     echo "  MCP server 'searxng' configured"
     claude mcp remove chrome -s user 2>/dev/null
-    claude mcp remove chrome-devtools -s user 2>/dev/null
     claude mcp add chrome -s user -- npx -y chrome-devtools-mcp@latest --browserUrl http://localhost:9222
     echo "  MCP server 'chrome' configured"
     claude mcp remove mail -s user 2>/dev/null
