@@ -2,6 +2,12 @@
 
 When investigating bugs or verifying bug fixes / feature implementations, use standardized Makefile targets to start services and perform end-to-end validation.
 
+### Integration with Systematic Debugging
+
+When `/superpowers:systematic-debugging` is active, **Phase 1 step 2 ("Reproduce Consistently")** MUST use the E2E workflow below if a Makefile with an `up` target exists. Do not consider a bug "reproduced" based solely on reading code or logs — start the services, trigger the bug through the actual UI or API, and observe the failure firsthand.
+
+Similarly, **Phase 4 step 3 ("Verify Fix")** MUST use the E2E workflow to confirm the fix works end-to-end, not just that tests pass.
+
 ### Standard Makefile Targets
 
 | Target | Required | Purpose |
