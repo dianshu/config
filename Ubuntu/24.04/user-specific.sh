@@ -35,11 +35,11 @@ wget https://raw.githubusercontent.com/dianshu/config/main/gitconfig -O ~/.gitco
 git config --global --replace-all user.name $0
 git config --global --replace-all user.email $1
 
-gitCredentialManagerArmExecution="/mnt/c/Programs/Git/clangarm64/bin/git-credential-manager.exe"
-if [ -f "$gitCredentialManagerArmExecution" ]; then
-    git config --global credential.helper $gitCredentialManagerArmExecution
+gcm_exe=$(find /mnt/c /mnt/d /mnt/q -maxdepth 5 -name "git-credential-manager.exe" -type f 2>/dev/null | head -1)
+if [ -n "$gcm_exe" ]; then
+    git config --global credential.helper "$gcm_exe"
 else
-    git config --global credential.helper "/mnt/c/Program\ Files/Git/mingw64/bin/git-credential-manager.exe"
+    echo "WARNING: git-credential-manager.exe not found on Windows drives"
 fi
 
 # zsh related work
