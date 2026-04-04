@@ -321,6 +321,24 @@ PROMPT
 wait
 ```
 
+**Retry failed reviewers:** After `wait`, check each output file. A reviewer failed if its output contains `Retry attempts exhausted`, `Error executing tool`, or `NumericalClassifier`, or has no meaningful content after stripping startup noise. Retry each failed reviewer **once, sequentially** (to avoid re-triggering the rate limit that caused the failure):
+
+```bash
+FAIL_PATTERNS="Retry attempts exhausted|Error executing tool|NumericalClassifier"
+
+for LENS in challenger architect subtractor devils_advocate; do
+    FILE="$TMPDIR/${LENS}.txt"
+    [ ! -f "$FILE" ] && continue
+    CONTENT=$(grep -vE "^OpenAI Codex|^----|^workdir:|^model:|^provider:|^approval:|^sandbox:|^reasoning|^session id:|^$" "$FILE" | head -3)
+    if [ -z "$CONTENT" ] || grep -qE "$FAIL_PATTERNS" "$FILE"; then
+        echo "[retry] $LENS failed, retrying once..."
+        # Re-run using the same input file and prompt (reuse the original command)
+    fi
+done
+```
+
+If the retry also fails, mark that lens as `[FAILED]` in the verdict report — do not silently omit it.
+
 #### Dispatch via Agent Tool (single-model-multi-lens fallback)
 
 When Codex is unavailable, spawn independent Claude Agent sub-agents per lens using the Agent tool. Each agent:

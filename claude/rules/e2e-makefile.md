@@ -1,12 +1,19 @@
 ## E2E Makefile Verification
 
+### Gate: E2E Reproduction Before Code Analysis
+
+**When debugging a bug, the FIRST action is E2E reproduction — not reading code.**
+
+Before reading source files, spawning Explore agents, or forming hypotheses:
+1. Check if the project root has a Makefile with an `up` target
+2. If yes, start services and reproduce the bug through the actual UI or API
+3. Only after observing the failure firsthand, proceed to code analysis
+
+Reading code tells you WHERE to look. Only running the system tells you WHAT the bug actually is. Code analysis without reproduction leads to incomplete or wrong hypotheses.
+
+This gate applies to `/superpowers:systematic-debugging` Phase 1 step 2 ("Reproduce Consistently") and Phase 4 step 3 ("Verify Fix").
+
 When investigating bugs or verifying bug fixes / feature implementations, use standardized Makefile targets to start services and perform end-to-end validation.
-
-### Integration with Systematic Debugging
-
-When `/superpowers:systematic-debugging` is active, **Phase 1 step 2 ("Reproduce Consistently")** MUST use the E2E workflow below if a Makefile with an `up` target exists. Do not consider a bug "reproduced" based solely on reading code or logs — start the services, trigger the bug through the actual UI or API, and observe the failure firsthand.
-
-Similarly, **Phase 4 step 3 ("Verify Fix")** MUST use the E2E workflow to confirm the fix works end-to-end, not just that tests pass.
 
 ### Standard Makefile Targets
 
