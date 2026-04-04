@@ -393,6 +393,14 @@ cc_sync() {
     fi
     npm i -y -g @google/gemini-cli@latest
 
+    # 1e. Upgrade Homebrew packages
+    echo "\n=== Homebrew ==="
+    if command -v brew &>/dev/null; then
+        brew update && brew upgrade
+    else
+        echo "  brew not found, skipping"
+    fi
+
     # 2. Config files (dynamically discover + download all files from claude/ in repo)
     echo "\n=== Config Files ==="
     local raw_base="https://raw.githubusercontent.com/dianshu/config/main"
