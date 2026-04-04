@@ -98,6 +98,15 @@
             "command": "bash ~/.claude/hooks/py-syntaxcheck.sh"
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/py-ruff.sh"
+          }
+        ]
       }
     ]
   },
