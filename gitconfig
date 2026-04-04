@@ -3,7 +3,17 @@
 [log]
         date = format-local:%Y-%m-%d %H:%M:%S
 [core]
-        editor = vim                                                                                                              
+        editor = vim
+        pager = delta
+[interactive]
+        diffFilter = delta --color-only
+[delta]
+        navigate = true
+        side-by-side = true
+[merge]
+        conflictstyle = zdiff3
+[diff]
+        colorMoved = default
 [push]
         autoSetupRemote = true
 [credential "https://dev.azure.com"]
