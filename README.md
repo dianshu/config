@@ -6,6 +6,6 @@
 4. Codex 配置（config.toml）
 5. Mac terminal 描述文件（custom-from-Snazzy.terminal）
 6. Ubuntu 初始化脚本
-7. Windows 配置（PowerShell, Windows Terminal, Tabby, devbox）
+7. Windows 配置（PowerShell, Windows Terminal, Tabby, devbox, pc）
 8. sing-box 代理配置（sing-box.config.json）
 ```
