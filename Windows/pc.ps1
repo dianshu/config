@@ -42,10 +42,6 @@ Write-Output "=== Phase 3: Main initialization (pwsh.exe, admin) ==="
 $packages = @(
 	"SublimeHQ.SublimeText.4",
 	"Microsoft.VisualStudioCode",
-	"Tencent.WeChat",
-	"Microsoft.AzureCLI",
-	"Python.Python.3.13",
-	"OpenJS.NodeJS.LTS",
 	"Microsoft.Git",
 	"Obsidian.Obsidian",
 	"Google.Chrome"
@@ -53,10 +49,6 @@ $packages = @(
 $locations = @(
 	"Sublime",
 	"VisualStudioCode",
-	"WeChat",
-	"AzureCLI",
-	"Python313",
-	"NodeJS",
 	"Git",
 	"Obsidian",
 	"Chrome"
