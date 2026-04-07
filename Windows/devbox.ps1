@@ -64,9 +64,7 @@ foreach ($package in $needToUninstallPackages) {
 $packages = @(
 	"SublimeHQ.SublimeText.4",
 	"Microsoft.VisualStudioCode",
-	"Microsoft.AzureCLI",
  	"Python.Python.3.13",
-   	"OpenJS.NodeJS.LTS",
 	"Microsoft.Git",
 	"Obsidian.Obsidian",
 	"Google.Chrome"
@@ -74,9 +72,7 @@ $packages = @(
 $locations = @(
 	"Sublime",
 	"VisualStudioCode",
-	"AzureCLI",
 	"Python313",
-  	"NodeJS",
 	"Git",
 	"Obsidian",
 	"Chrome"
