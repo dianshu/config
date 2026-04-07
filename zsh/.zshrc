@@ -536,6 +536,10 @@ cc_sync() {
     echo "  MCP server 'chrome' configured"
     claude mcp remove mail -s user 2>/dev/null
     claude mcp add mail -s user -- agency mcp mail
+    claude mcp remove s360 -s user 2>/dev/null
+    claude mcp add s360 -s user -- agency mcp s360-breeze
+    claude mcp remove teams -s user 2>/dev/null
+    claude mcp add teams -s user -- agency mcp teams
     echo "  MCP server 'mail' configured"
 
     echo "\n=== cc_sync complete ==="
