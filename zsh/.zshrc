@@ -377,7 +377,11 @@ cc_sync() {
 
     # 1c. Install or update Agency
     echo "\n=== Agency ==="
-    curl -sSfL https://aka.ms/InstallTool.sh | sh -s agency
+    if command -v agency &>/dev/null; then
+        agency update
+    else
+        curl -sSfL https://aka.ms/InstallTool.sh | sh -s agency
+    fi
 
     # 1d. Install or update Gemini CLI
     echo "\n=== Gemini CLI ==="
@@ -580,3 +584,9 @@ _zshrc_mark "functions"
     unset _zshrc_start _zshrc_last _zshrc_log _zshrc_marks
     unfunction _zshrc_mark 2>/dev/null
 }
+
+# BEGIN Agency MANAGED BLOCK
+if [[ ":${PATH}:" != *":/home/fei/.config/agency/CurrentVersion:"* ]]; then
+    export PATH="/home/fei/.config/agency/CurrentVersion:${PATH}"
+fi
+# END Agency MANAGED BLOCK
