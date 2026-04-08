@@ -327,11 +327,6 @@ cc_clean() {
     for t in "${targets[@]}"; do
         [[ -e "$t" || -L "$t" ]] && echo "Removing $t" && rm -rf "$t"
     done
-    for dir in ~/repos/*/; do
-        for target in "$dir/.claude" "$dir/.mcp.json"; do
-            [[ -e "$target" || -L "$target" ]] && echo "Removing $target" && rm -rf "$target"
-        done
-    done
     echo "All Claude Code data cleaned. Run 'claude' to re-authenticate."
 }
 
