@@ -400,6 +400,16 @@ cc_sync() {
         echo "  brew not found, skipping"
     fi
 
+    # 1f. Clean Trivy local DB cache
+    echo "\n=== Trivy Cache ==="
+    if [[ -d "$HOME/.cache/trivy" ]]; then
+        echo "  Removing Trivy cache (~/.cache/trivy)..."
+        rm -rf "$HOME/.cache/trivy"
+        echo "  Done"
+    else
+        echo "  No cache found, skipping"
+    fi
+
     # 2. Config files (dynamically discover + download all files from claude/ in repo)
     echo "\n=== Config Files ==="
     local raw_base="https://raw.githubusercontent.com/dianshu/config/main"
