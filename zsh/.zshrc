@@ -496,6 +496,7 @@ cc_sync() {
         "superpowers@superpowers-marketplace"
         "microsoft-docs@microsoft-docs-marketplace"
         "document-skills@anthropic-agent-skills"
+        "playground@claude-plugins-official"
     )
     for plugin in "${plugins[@]}"; do
         if [[ -f "$plugins_json" ]] && jq -e --arg p "$plugin" '.plugins | has($p)' "$plugins_json" &>/dev/null; then
