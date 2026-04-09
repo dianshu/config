@@ -10,6 +10,10 @@
     [
         {
             "command": "paste",
+            "mouseButtons": "right"
+        },
+        {
+            "command": "paste",
             "keys": "ctrl+v"
         },
         {
