@@ -22,7 +22,7 @@ curl -fsSL https://bun.sh/install | bash
 
 # sing-box
 brew install sing-box
-mkdir $HOME/.sing-box
+mkdir -p $HOME/.sing-box
 wget https://raw.githubusercontent.com/dianshu/config/main/sing-box.config.json -O $HOME/.sing-box/config.json
 
 # azure cli
@@ -32,7 +32,7 @@ az config set extension.dynamic_install_allow_preview=true
 az config set extension.use_dynamic_install=yes_without_prompt
 
 # git
-wget https://raw.githubusercontent.com/dianshu/config/main/gitconfig -O ~/.gitconfig
+wget https://raw.githubusercontent.com/dianshu/config/main/gitconfig -O $HOME/.gitconfig
 git config --global --replace-all user.name $0
 git config --global --replace-all user.email $1
 
@@ -45,28 +45,28 @@ fi
 
 # zsh related work
 brew install zsh
-curl https://raw.githubusercontent.com/dianshu/config/HEAD/zsh/.zshrc?${RANDOM} > ~/.zshrc
+curl https://raw.githubusercontent.com/dianshu/config/HEAD/zsh/.zshrc?${RANDOM} > $HOME/.zshrc
 
-rm -rf ~/.zsh/plugins/zsh-abbr
-git clone --depth 1 --recurse-submodules https://github.com/olets/zsh-abbr ~/.zsh/plugins/zsh-abbr
+rm -rf $HOME/.zsh/plugins/zsh-abbr
+git clone --depth 1 --recurse-submodules https://github.com/olets/zsh-abbr $HOME/.zsh/plugins/zsh-abbr
 
-rm -rf ~/.zsh/plugins/zsh-autosuggestions
-git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-autosuggestions ~/.zsh/plugins/zsh-autosuggestions
+rm -rf $HOME/.zsh/plugins/zsh-autosuggestions
+git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-autosuggestions $HOME/.zsh/plugins/zsh-autosuggestions
 
-rm -rf ~/.zsh/plugins/zsh-syntax-highlighting
-git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-syntax-highlighting ~/.zsh/plugins/zsh-syntax-highlighting
+rm -rf $HOME/.zsh/plugins/zsh-syntax-highlighting
+git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-syntax-highlighting $HOME/.zsh/plugins/zsh-syntax-highlighting
 
-rm -rf ~/.zsh/plugins/zsh-history-substring-search
-git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-history-substring-search ~/.zsh/plugins/zsh-history-substring-search
+rm -rf $HOME/.zsh/plugins/zsh-history-substring-search
+git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-history-substring-search $HOME/.zsh/plugins/zsh-history-substring-search
 
 # replace "/usr/bin/env zsh" to actually zsh "/home/linuxbrew/.linuxbrew/bin/zsh" to avoid error "/usr/bin/env: 'zsh': Permission denied"
-find ~/.zsh/plugins/ -type f -name "*.zsh" -exec sed -i 's|^#!/usr/bin/env zsh|#!/home/linuxbrew/.linuxbrew/bin/zsh|' {} +
+find $HOME/.zsh/plugins/ -type f -name "*.zsh" -exec sed -i 's|^#!/usr/bin/env zsh|#!/home/linuxbrew/.linuxbrew/bin/zsh|' {} +
 
 command -v zsh | sudo tee -a /etc/shells
 sudo chsh -s `command -v zsh` ${USER}
 
 # vim related work
-cat > ~/.vimrc << EOF
+cat > $HOME/.vimrc << EOF
 " Doc: https://linuxhint.com/vimrc_tutorial/
 
 set number
@@ -96,13 +96,8 @@ if uname -a | grep -qi "WSL"; then
 
     # use browser in windows
     sudo apt install -y wslu
-    echo "export BROWSER=wslview" >> ~/.zshrc
+    echo "export BROWSER=wslview" >> $HOME/.zshrc
 fi
-
-# sublime merge (git diff viewer)
-wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/sublimehq-archive.gpg > /dev/null
-echo "deb https://download.sublimetext.com/ apt/stable/" | sudo tee /etc/apt/sources.list.d/sublime-text.list
-sudo apt update && sudo apt install -y sublime-merge
 
 # locale related work
 sudo apt install -y language-pack-zh-hans
@@ -110,5 +105,5 @@ sudo sed -i 's/# zh_CN.UTF-8 UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen
 sudo locale-gen
 
 # prepare git repos
-mkdir -p ~/repos
-wget https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/CLAUDE.md -O ~/repos/CLAUDE.md
+mkdir -p $HOME/repos
+wget https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/CLAUDE.md -O $HOME/repos/CLAUDE.md
