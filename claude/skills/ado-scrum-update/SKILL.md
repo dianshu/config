@@ -115,6 +115,21 @@ After collecting commits, summarize into this format. Write **concise descriptio
 - concise description
 ```
 
+## Obsidian Vault Output
+
+If `~/repos/obsidian` exists, also save the scrum update there and push:
+
+1. Write the summarized markdown to `~/repos/obsidian/dianshu/AIHardware Scrum/YYYY-MM-DD.md` (today's date)
+2. Commit and push:
+   ```bash
+   cd ~/repos/obsidian
+   git add "dianshu/AIHardware Scrum/YYYY-MM-DD.md"
+   git commit -m "scrum update YYYY-MM-DD"
+   git push
+   ```
+
+Skip this step silently if `~/repos/obsidian` does not exist.
+
 ## Common Mistakes
 
 | Mistake | Prevention |
