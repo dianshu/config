@@ -74,8 +74,6 @@ foreach ($path in $needToCreatePaths) {
 
 Write-Output "Going to install vscode extensions..."
 $vscodeExtensions = @(
-	"alefragnani.project-manager",
-	"ms-azuretools.vscode-bicep",
 	"github.copilot",
 	"github.copilot-chat",
 	"ms-python.python",
