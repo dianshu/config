@@ -596,6 +596,13 @@ _zshrc_mark "functions"
     unfunction _zshrc_mark 2>/dev/null
 }
 
+# BEGIN HarmonyOS MANAGED BLOCK
+export HARMONYOS_CLI_HOME="$HOME/.harmonyos-cli"
+export DEVECO_SDK_HOME="$HARMONYOS_CLI_HOME/sdk"
+export PATH="$HARMONYOS_CLI_HOME/bin:$PATH"
+export PATH="$DEVECO_SDK_HOME/default/openharmony/toolchains:$PATH"
+# END HarmonyOS MANAGED BLOCK
+
 # BEGIN Agency MANAGED BLOCK
 if [[ ":${PATH}:" != *":/home/fei/.config/agency/CurrentVersion:"* ]]; then
     export PATH="/home/fei/.config/agency/CurrentVersion:${PATH}"

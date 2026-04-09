@@ -17,6 +17,7 @@ brew install azure-cli yq
 brew install jq net-tools git tree tmux
 brew install trivy uv node ruff git-delta
 brew install gh frpc
+brew install openjdk@21
 curl -fsSL https://bun.sh/install | bash
 
 # sing-box
