@@ -3,7 +3,7 @@ name: debug
 description: |
   Use when encountering any bug, test failure, or unexpected behavior,
   before proposing fixes. Starts with E2E reproduction via `make up`
-  when a Makefile is available, then follows the 4-phase systematic
+  when a Makefile is available, then follows the 5-phase systematic
   debugging framework. Proactively use when the user reports something
   broken, failing, or behaving unexpectedly.
 ---
@@ -24,7 +24,7 @@ Random fixes waste time and create new bugs. Quick patches mask underlying issue
 NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
 ```
 
-If you haven't completed Phase 0 and Phase 1, you cannot propose fixes.
+If you haven't completed Phase 1 and Phase 2, you cannot propose fixes.
 
 ## When to Use
 
@@ -48,7 +48,7 @@ Use for ANY technical issue:
 - You're in a hurry (rushing guarantees rework)
 - Manager wants it fixed NOW (systematic is faster than thrashing)
 
-## Phase 0: E2E Reproduction Gate
+## Phase 1: E2E Reproduction Gate
 
 **When debugging a bug, the FIRST action is E2E reproduction — not reading code.**
 
@@ -56,7 +56,7 @@ Before reading source files, spawning Explore agents, or forming hypotheses:
 
 1. **Check for Makefile**
    - Does the project root have a Makefile with an `up` target?
-   - If NO → suggest adding one but don't force it; skip to Phase 1
+   - If NO → suggest adding one but don't force it; skip to Phase 2
 
 2. **Start Services**
    - Run `make up` in the background (use Bash tool with `run_in_background: true`)
@@ -70,7 +70,7 @@ Before reading source files, spawning Explore agents, or forming hypotheses:
    - Document the exact failure observed
 
 4. **Only Then Proceed**
-   - Only after observing the failure firsthand → proceed to Phase 1
+   - Only after observing the failure firsthand → proceed to Phase 2
    - If you cannot reproduce → gather more data, check logs, try different inputs
    - Do NOT skip to code analysis without reproduction
 
@@ -80,7 +80,7 @@ Before reading source files, spawning Explore agents, or forming hypotheses:
 
 You MUST complete each phase before proceeding to the next.
 
-### Phase 1: Root Cause Investigation
+### Phase 2: Root Cause Investigation
 
 **BEFORE attempting ANY fix:**
 
@@ -91,8 +91,8 @@ You MUST complete each phase before proceeding to the next.
    - Note line numbers, file paths, error codes
 
 2. **Reproduce Consistently**
-   - If Phase 0 was completed, reference those findings here
-   - If Phase 0 was skipped (no Makefile), reproduce now using available methods (tests, scripts, CLI)
+   - If Phase 1 was completed, reference those findings here
+   - If Phase 1 was skipped (no Makefile), reproduce now using available methods (tests, scripts, CLI)
    - If not reproducible → gather more data, don't guess
 
 3. **Check Recent Changes**
@@ -151,7 +151,7 @@ You MUST complete each phase before proceeding to the next.
    - Keep tracing up until you find the source
    - Fix at source, not at symptom
 
-### Phase 2: Pattern Analysis
+### Phase 3: Pattern Analysis
 
 **Find the pattern before fixing:**
 
@@ -174,7 +174,7 @@ You MUST complete each phase before proceeding to the next.
    - What settings, config, environment?
    - What assumptions does it make?
 
-### Phase 3: Hypothesis and Testing
+### Phase 4: Hypothesis and Testing
 
 **Scientific method:**
 
@@ -189,7 +189,7 @@ You MUST complete each phase before proceeding to the next.
    - Don't fix multiple things at once
 
 3. **Verify Before Continuing**
-   - Did it work? Yes → Phase 4
+   - Did it work? Yes → Phase 5
    - Didn't work? Form NEW hypothesis
    - DON'T add more fixes on top
 
@@ -199,7 +199,7 @@ You MUST complete each phase before proceeding to the next.
    - Ask for help
    - Research more
 
-### Phase 4: Implementation
+### Phase 5: Implementation
 
 **Fix the root cause, not the symptom:**
 
@@ -223,7 +223,7 @@ You MUST complete each phase before proceeding to the next.
 
    **E2E Verification (if Makefile with `up` target exists):**
 
-   After unit tests pass, follow the same E2E procedure as Phase 0 (start services, verify through UI/API), plus:
+   After unit tests pass, follow the same E2E procedure as Phase 1 (start services, verify through UI/API), plus:
    - Capture evidence (screenshots, API responses)
    - Clean up: run `make down` if available, otherwise kill the background processes
 
@@ -232,7 +232,7 @@ You MUST complete each phase before proceeding to the next.
 4. **If Fix Doesn't Work**
    - STOP
    - Count: How many fixes have you tried?
-   - If < 3: Return to Phase 1, re-analyze with new information
+   - If < 3: Return to Phase 2, re-analyze with new information
    - **If ≥ 3: STOP and question the architecture (step 5 below)**
    - DON'T attempt Fix #4 without architectural discussion
 
@@ -268,9 +268,9 @@ If you catch yourself thinking:
 - **Each fix reveals new problem in different place**
 - **"Let me read the code first" (before reproducing the bug)**
 
-**ALL of these mean: STOP. Return to Phase 0 or Phase 1.**
+**ALL of these mean: STOP. Return to Phase 1 or Phase 2.**
 
-**If 3+ fixes failed:** Question the architecture (see Phase 4, Step 5)
+**If 3+ fixes failed:** Question the architecture (see Phase 5, Step 5)
 
 ## Human Partner Signals You're Doing It Wrong
 
@@ -282,7 +282,7 @@ If you catch yourself thinking:
 - "We're stuck?" (frustrated) - Your approach isn't working
 - "Did you actually run it?" - You skipped E2E reproduction
 
-**When you see these:** STOP. Return to Phase 0 or Phase 1.
+**When you see these:** STOP. Return to Phase 1 or Phase 2.
 
 ## Common Rationalizations
 
@@ -302,11 +302,11 @@ If you catch yourself thinking:
 
 | Phase | Key Activities | Success Criteria |
 |-------|---------------|------------------|
-| **0. E2E Reproduction** | Start services, reproduce bug through UI/API | Observed the failure firsthand |
-| **1. Root Cause** | Read errors, reproduce, check changes, gather evidence | Understand WHAT and WHY |
-| **2. Pattern** | Find working examples, compare | Identify differences |
-| **3. Hypothesis** | Form theory, test minimally | Confirmed or new hypothesis |
-| **4. Implementation** | Create test, fix, verify (including E2E) | Bug resolved, tests pass, E2E verified |
+| **1. E2E Reproduction** | Start services, reproduce bug through UI/API | Observed the failure firsthand |
+| **2. Root Cause** | Read errors, reproduce, check changes, gather evidence | Understand WHAT and WHY |
+| **3. Pattern** | Find working examples, compare | Identify differences |
+| **4. Hypothesis** | Form theory, test minimally | Confirmed or new hypothesis |
+| **5. Implementation** | Create test, fix, verify (including E2E) | Bug resolved, tests pass, E2E verified |
 
 ## When Process Reveals "No Root Cause"
 
@@ -328,7 +328,7 @@ These techniques are part of systematic debugging and available in this director
 - **`condition-based-waiting.md`** - Replace arbitrary timeouts with condition polling
 
 **Related skills:**
-- **superpowers:test-driven-development** - For creating failing test case (Phase 4, Step 1)
+- **superpowers:test-driven-development** - For creating failing test case (Phase 5, Step 1)
 - **superpowers:verification-before-completion** - Verify fix worked before claiming success
 
 ## Real-World Impact
