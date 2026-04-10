@@ -19,8 +19,8 @@ if (-not $phase -or $phase -eq "1") {
             exit 1
         }
         $env:DEVBOX_PHASE = "2"
-        Start-Process $pwshExe -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "Invoke-Expression -Command (Invoke-WebRequest -Uri '$scriptUrl').Content"
-        exit
+        Start-Process $pwshExe -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "Invoke-Expression -Command (Invoke-WebRequest -Uri '$scriptUrl').Content; pause"
+        pause; exit
     }
     $phase = "2"
 }
@@ -32,7 +32,7 @@ if ($phase -eq "2") {
         Write-Output "=== Phase 2: Elevating to admin ==="
         $pwshExe = (Get-Process -Id $PID).Path
         Start-Process $pwshExe -Verb RunAs -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "`$env:DEVBOX_PHASE='3'; Invoke-Expression -Command (Invoke-WebRequest -Uri '$scriptUrl').Content; pause"
-        exit
+        pause; exit
     }
     $phase = "3"
 }
@@ -123,7 +123,7 @@ if ($phase -eq "3") {
     Write-Output "Launching Phase 4 (non-elevated) for per-user setup..."
     $pwshExe = (Get-Process -Id $PID).Path
     Start-Process $pwshExe -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "`$env:DEVBOX_PHASE='4'; Invoke-Expression -Command (Invoke-WebRequest -Uri '$scriptUrl').Content; pause"
-    exit
+    pause; exit
 }
 
 # Phase 4: Per-user setup (non-elevated, avoids REGDB_E_CLASSNOTREG for WSL)
@@ -181,5 +181,4 @@ if ($phase -eq "4") {
 
     Write-Output 'Init script for Ubuntu-24.04: sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/dianshu/config/HEAD/Ubuntu/24.04/init.sh?${RANDOM})"'
     Write-Output 'Windows Terminal json config: https://raw.githubusercontent.com/dianshu/config/refs/heads/main/Windows/windows_terminal.json'
-    exit
 }
