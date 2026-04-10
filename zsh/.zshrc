@@ -459,7 +459,6 @@ cc_sync() {
     local installed_skills
     installed_skills="$(npx -y skills list -g 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g')"
     typeset -A skill_sources=(
-        [find-skills]="vercel-labs/skills@find-skills"
         [skill-creator]="anthropics/skills@skill-creator"
     )
     typeset -A skill_agents=(
