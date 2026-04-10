@@ -356,6 +356,10 @@ dl_with_backup() {
 }
 
 cc_sync() {
+    # Detect work vs personal environment
+    local is_work=false
+    [[ -d "/mnt/q" ]] && is_work=true
+
     # 1. Install or update Claude CLI
     echo "=== Claude CLI ==="
     if command -v claude &>/dev/null; then
@@ -377,10 +381,14 @@ cc_sync() {
 
     # 1c. Install or update Agency
     echo "\n=== Agency ==="
-    if command -v agency &>/dev/null; then
-        agency update
+    if [[ "$is_work" == true ]]; then
+        if command -v agency &>/dev/null; then
+            agency update
+        else
+            curl -sSfL https://aka.ms/InstallTool.sh | sh -s agency
+        fi
     else
-        curl -sSfL https://aka.ms/InstallTool.sh | sh -s agency
+        echo "  Skipping (no work account available)"
     fi
 
     # 1d. Install or update Gemini CLI
@@ -544,12 +552,16 @@ cc_sync() {
     claude mcp add chrome -s user -- npx -y chrome-devtools-mcp@latest --browserUrl http://localhost:9222
     echo "  MCP server 'chrome' configured"
     claude mcp remove mail -s user 2>/dev/null
-    claude mcp add mail -s user -- agency mcp mail
     claude mcp remove s360 -s user 2>/dev/null
-    claude mcp add s360 -s user -- agency mcp s360-breeze
     claude mcp remove teams -s user 2>/dev/null
-    claude mcp add teams -s user -- agency mcp teams
-    echo "  MCP server 'mail' configured"
+    if [[ "$is_work" == true ]]; then
+        claude mcp add mail -s user -- agency mcp mail
+        claude mcp add s360 -s user -- agency mcp s360-breeze
+        claude mcp add teams -s user -- agency mcp teams
+        echo "  MCP servers 'mail', 's360', 'teams' configured"
+    else
+        echo "  Skipping Agency MCP servers (no work account available)"
+    fi
 
     echo "\n=== cc_sync complete ==="
 }
