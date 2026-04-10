@@ -2,3 +2,5 @@
 !*.env.template
 
 docs/superpowers
+
+.codex
