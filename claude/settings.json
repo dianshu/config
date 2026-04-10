@@ -24,7 +24,8 @@
       "Write(~/.codex/**)",
       "Write(~/.gemini/**)",
       "Skill(codex-review)",
-      "Skill(gemini-review)"
+      "Skill(gemini-review)",
+      "Skill(review)"
     ],
     "deny": [
       "Bash(git push --force:*)",
@@ -122,8 +123,9 @@
     "superpowers@superpowers-marketplace": true,
     "microsoft-docs@microsoft-docs-marketplace": true,
     "document-skills@anthropic-agent-skills": true,
-    "code-simplifier@claude-plugins-official": true
+    "code-simplifier@claude-plugins-official": true,
+    "playground@claude-plugins-official": true
   },
-  "effortLevel": "high",
-  "outputStyle": "explanatory"
+  "outputStyle": "explanatory",
+  "effortLevel": "high"
 }
