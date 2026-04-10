@@ -77,9 +77,49 @@ If validation fails:
 3. Re-run validation
 4. Maximum 3 fix cycles
 
-## Step 6: Report Completion
+## Step 6: Generate Chinese Report
+Generate a Chinese translation of `report.md` and write it to `report-zh.md` in the output directory.
+
+Translation rules:
+- Translate all prose, section headings, and table headers into Chinese
+- **Keep technical terms and proper nouns in English** (e.g., GitHub Copilot, Azure DevOps, MCP Server, SWE-agent, NeurIPS, Sprint 269, GA, PR, CI/CD, LLM, RAG)
+- Keep all `[N]` citation references unchanged
+- Keep all URLs, code blocks, and command-line examples unchanged
+- Keep table data values in their original form (version numbers, dates, scores)
+- The Bibliography section should remain in English (source titles and URLs don't translate)
+- The Methodology section should be translated
+
+## Step 7: Report Completion
 Tell the user:
-- Report path: `{output_dir}/report.md`
-- Word count
+- Report paths: `{output_dir}/report.md` (English), `{output_dir}/report-zh.md` (Chinese)
+- Word count (English report)
 - Number of sources
 - Validation result (PASS/FAIL)
+
+## Step 8: Preview Report in Browser
+Convert the Chinese report to HTML and open in Chrome for visual preview:
+
+1. Convert markdown to styled HTML:
+```bash
+cd {output_dir} && npx -y marked -i report-zh.md | cat <(echo '<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;max-width:900px;margin:2rem auto;padding:0 1rem;line-height:1.6;color:#24292f}table{border-collapse:collapse;width:100%}th,td{border:1px solid #d0d7de;padding:8px 12px;text-align:left}th{background:#f6f8fa}code{background:#f6f8fa;padding:2px 6px;border-radius:3px;font-size:85%}pre{background:#f6f8fa;padding:16px;border-radius:6px;overflow-x:auto}h1,h2,h3{border-bottom:1px solid #d0d7de;padding-bottom:0.3em}blockquote{border-left:4px solid #d0d7de;margin:0;padding:0 1em;color:#57606a}</style></head><body>') - <(echo '</body></html>') > report-zh.html
+```
+
+2. Start a local file server in the background:
+```bash
+kill $(lsof -ti:8199) 2>/dev/null; nohup python3 -m http.server 8199 --directory {output_dir} > /dev/null 2>&1 & echo "PID: $!"
+```
+
+3. Open in Chrome MCP:
+```
+mcp__chrome__new_page url=http://localhost:8199/report-zh.html
+```
+
+4. Take a screenshot:
+```
+mcp__chrome__take_screenshot
+```
+
+5. Stop the background server after preview:
+```bash
+kill $(lsof -ti:8199) 2>/dev/null
+```

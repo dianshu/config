@@ -82,7 +82,8 @@ Read the `research-report` skill from `~/.claude/skills/research/skills/research
 ## Completion
 After Phase 6, report to the user:
 - Output directory path
-- Report file path (`report.md`)
+- Report file paths (`report.md` for English, `report-zh.md` for Chinese)
 - Word count
 - Number of sources
 - Research type used
+- Preview the Chinese report in Chrome MCP (convert to HTML, serve locally, open in browser)
