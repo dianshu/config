@@ -115,6 +115,7 @@ if ($phase -eq "4") {
     Invoke-WebRequest -Uri $remoteFile -OutFile $localPath
 
     wsl --update
+    wsl --unregister Ubuntu-24.04 2>$null
     wsl --install --no-launch Ubuntu-24.04
 
     # Overwrite .wslconfig (mirrored networking required for chrome-devtools-mcp and cross-OS localhost access)
