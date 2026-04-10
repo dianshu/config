@@ -52,7 +52,7 @@ For build failure or manual validation emails:
    ```
    az pipelines build show --id <buildId> --org <org> --project <project> --query "{status: status, result: result, finishTime: finishTime, definitionName: definition.name}" -o json
    ```
-3. If the build already completed successfully → mark as "can ignore"
+3. If the build already completed successfully → mark as "can ignore". **This includes manual validation pending emails** — if the overall build/release run has status=completed and result=succeeded, it means the validation stage was already approved or bypassed. Do NOT tell the user they still need to approve it.
 4. For build failures, check if a subsequent run on the same branch succeeded:
    ```
    az pipelines build list --org <org> --project <project> --top 5 --query "[?definition.name=='<pipeline>'].{id:id, buildNumber:buildNumber, status:status, result:result, finishTime:finishTime, sourceBranch:sourceBranch}" -o json
@@ -94,11 +94,14 @@ For build failure or manual validation emails:
 
 #### Grok AI Daily Digest
 
-1. Extract the Grok chat URL from the email body (look for `grok.com/chat/` links in the HTML)
-2. Open the URL using Chrome MCP (`new_page`)
-3. If login is required, use Google login flow
-4. Take a snapshot and extract the full content
-5. Summarize the key points
+**IMPORTANT: Always execute these steps for Grok emails. Do NOT just summarize the email body — it is always truncated.**
+
+1. Read the full email HTML via `GetMessage` with `preferHtml: true`
+2. Extract the Grok chat URL from the HTML (search for `grok.com/chat/` in link hrefs, use the `originalsrc` attribute, not the safelinks wrapper)
+3. Open the URL using Chrome MCP (`new_page`)
+4. If login is required, use Google login flow (click "使用 Google 登录", select account)
+5. Take a snapshot (`take_snapshot`) and extract the full content
+6. Summarize the key points and present in **Worth Noting**
 
 #### Meeting Invites / Learning Events
 
@@ -126,6 +129,11 @@ Output a structured summary table:
 | Email | Rule |
 |-------|------|
 | [Subject] | [which rule matched, e.g. "Medium article", "build succeeded notification", "Microsoft Daily Digest"] |
+
+### Meeting Invites / Learning Events
+| Subject | Sender | Description |
+|---------|--------|-------------|
+| [Subject] | [Sender name] | [One-line summary of the event/meeting] |
 ```
 
 **Distinction:**
