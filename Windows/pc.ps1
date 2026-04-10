@@ -86,11 +86,21 @@ foreach ($extension in $vscodeExtensions) {
 }
 
 # Overwrite pwsh profile
+# Create parent directory if not exist to avoid Set-Content failure
+$profileDir = Split-Path -Parent $PROFILE
+if (-not (Test-Path $profileDir)) {
+    New-Item -ItemType Directory -Path $profileDir -Force
+}
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/Windows/pwsh_profile.ps1" | Select-Object -ExpandProperty Content | Set-Content -Path $PROFILE -Force
 
 # Overwrite windows terminal settings.json
 $remoteFile = "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/Windows/windows_terminal.json"
 $localPath = "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
+# Create parent directory if not exist to avoid OutFile failure
+$localDir = Split-Path -Parent $localPath
+if (-not (Test-Path $localDir)) {
+    New-Item -ItemType Directory -Path $localDir -Force
+}
 Invoke-WebRequest -Uri $remoteFile -OutFile $localPath
 
 wsl --update
@@ -99,6 +109,11 @@ wsl --install --no-launch Ubuntu-24.04
 # Overwrite .wslconfig (mirrored networking required for chrome-devtools-mcp and cross-OS localhost access)
 $remoteFile = "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/Windows/.wslconfig"
 $localPath = "$env:USERPROFILE\.wslconfig"
+# Create parent directory if not exist to avoid OutFile failure
+$localDir = Split-Path -Parent $localPath
+if (-not (Test-Path $localDir)) {
+    New-Item -ItemType Directory -Path $localDir -Force
+}
 Invoke-WebRequest -Uri $remoteFile -OutFile $localPath
 
 Write-Output 'Init script for Ubuntu-24.04: sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/dianshu/config/HEAD/Ubuntu/24.04/init.sh?${RANDOM})"'
