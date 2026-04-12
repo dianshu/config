@@ -17,9 +17,26 @@ description: Scan and Fix Vulnerabilities
    ```bash
    az acr login --name aihardware
    ```
-4. **Build and scan all images** (see Phase 2 steps 1–4).
-5. **If no fixable CVEs found across all images**: print the console summary (Phase 3) and **stop** — do not create a branch or PR.
-6. **If fixable CVEs exist**, create a branch and proceed to apply fixes:
+4. **Ensure Trivy DB freshness** (stale = older than 30 minutes). This runs once before parallel dispatch to avoid race conditions between concurrent agents:
+   ```bash
+   TRIVY_DB_META="${HOME}/.cache/trivy/db/metadata.json"
+   if [ -f "$TRIVY_DB_META" ]; then
+     DB_AGE=$(( ($(date +%s) - $(stat -c %Y "$TRIVY_DB_META")) / 60 ))
+     if [ "$DB_AGE" -gt 30 ]; then
+       echo "Trivy DB is ${DB_AGE}m old (>30m). Refreshing..."
+       trivy clean --vuln-db
+       trivy image --download-db-only
+     else
+       echo "Trivy DB is ${DB_AGE}m old (≤30m). Using cached DB."
+     fi
+   else
+     echo "No Trivy DB found. Downloading..."
+     trivy image --download-db-only
+   fi
+   ```
+5. **Build and scan all images** (see Phase 2 steps 1–4).
+6. **If no fixable CVEs found across all images**: print the console summary (Phase 3) and **stop** — do not create a branch or PR.
+7. **If fixable CVEs exist**, create a branch and proceed to apply fixes:
    ```bash
    git checkout -b fix/vulns-$(date +%Y%m%d)
    ```
@@ -45,7 +62,7 @@ If the build fails, log the error and skip this Dockerfile.
 
 #### Step 2: Scan
 ```bash
-trivy image --ignore-unfixed --format json --output trivy-results.json vuln-scan-IMAGE:latest
+trivy image --skip-db-update --ignore-unfixed --format json --output trivy-results.json vuln-scan-IMAGE:latest
 ```
 
 #### Step 3: Parse Results
@@ -110,7 +127,7 @@ For each fixable CVE, apply the **smallest change** that resolves it:
 #### Step 6: Rebuild & Verify
 ```bash
 docker build --no-cache -t vuln-scan-IMAGE:latest -f $DOCKERFILE $(dirname $DOCKERFILE)
-trivy image --ignore-unfixed --format json vuln-scan-IMAGE:latest
+trivy image --skip-db-update --ignore-unfixed --format json vuln-scan-IMAGE:latest
 ```
 Compare new scan results against original. Confirm fixed CVEs are resolved.
 
