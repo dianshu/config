@@ -18,12 +18,14 @@ fi
   exit 1
 }
 
-# setsid fully detaches from the hook's process group and stdin
-setsid "$CHROME_EXE" \
-  --remote-debugging-port=$PORT \
-  --user-data-dir='Q:\ChromeProfiles\mcp' \
-  --no-first-run \
-  </dev/null >/dev/null 2>&1 &
+# Launch Chrome then minimize its window via PowerShell
+CHROME_WIN='C:\Program Files\Google\Chrome\Application\chrome.exe'
+setsid pwsh.exe -NoProfile -Command "
+  Start-Process '$CHROME_WIN' -ArgumentList '--remote-debugging-port=$PORT','--user-data-dir=Q:\ChromeProfiles\mcp','--no-first-run'
+  Start-Sleep -Milliseconds 1500
+  Add-Type -Name NativeMethods -Namespace Win32 -MemberDefinition '[DllImport(\"user32.dll\")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);'
+  Get-Process chrome -ErrorAction SilentlyContinue | Where-Object { \$_.MainWindowHandle -ne 0 } | ForEach-Object { [Win32.NativeMethods]::ShowWindow(\$_.MainWindowHandle, 6) }
+" </dev/null >/dev/null 2>&1 &
 
 for ((i=1; i<=15; i++)); do
   if curl -sf --connect-timeout 0.5 "$CHROME_URL" >/dev/null 2>&1; then
