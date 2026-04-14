@@ -37,7 +37,7 @@ Classify each email into one of these categories:
 | **Alerts** | Azure Monitor alerts, build failures, Sev incidents | Verify current status |
 | **Reports** | S360 daily report, digest emails | Cross-check with source system |
 | **Informational** | Build succeeded, resolved incidents, newsletters | Summarize briefly |
-| **Noise** | Marketing, Medium articles, auto-digests | Skip unless user asks |
+| **Noise** | Medium articles, auto-digests, Microsoft Daily Digest | Skip unless user asks |
 
 ### Step 3: Verify Actionability
 
@@ -102,6 +102,13 @@ For build failure or manual validation emails:
 4. If login is required, use Google login flow (click "使用 Google 登录", select account)
 5. Take a snapshot (`take_snapshot`) and extract the full content
 6. Summarize the key points and present in **Worth Noting**
+
+#### Meetup Registration / Team Events
+
+**IMPORTANT: Meetup registration emails (e.g., "Time to Meetup!", "Register for Meetup") are high-priority — always surface them in "Needs Action" with the registration link.**
+
+1. Read the full email via `GetMessage` to extract the registration link
+2. Present in **Needs Action** with the registration deadline and link
 
 #### Meeting Invites / Learning Events
 
