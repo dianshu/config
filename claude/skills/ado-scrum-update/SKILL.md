@@ -102,7 +102,24 @@ done
 
 ## Output Format
 
-After collecting commits, summarize into this format. Write **concise descriptions** of what changed — do not copy raw commit messages verbatim. Group related commits into single bullet points.
+After collecting commits, summarize into this format. Write **concise descriptions** of what changed — do not copy raw commit messages verbatim.
+
+### Consolidating related commits
+
+Multiple commits in the same repo that relate to the same logical change must be merged into a single bullet point describing the original intent. Follow-up commits that fix bugs, adjust config, or refine the initial change are part of that same work item — they are not separate accomplishments.
+
+**Example:** These four commits in the same repo:
+1. "Add probe job and alert rules"
+2. "Fix alert rule query bug"
+3. "Fix probe job scheduling issue"
+4. "Adjust alert rule threshold"
+
+Should become **one** bullet point:
+- Added probe job and corresponding alert rules
+
+The scrum audience cares about *what was delivered*, not the intermediate iteration steps. Bug fixes and tweaks to something introduced in the same time period are implementation details, not separate line items.
+
+### Final format
 
 ```markdown
 ## Scrum Update (date range)
