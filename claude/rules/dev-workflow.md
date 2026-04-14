@@ -14,3 +14,11 @@ You MUST run the full loop below after EVERY implementation task, before reporti
    c. Use the /e2e-verify skill for end-to-end verification.
    d. Use the /superpowers:verification-before-completion skill. Run verification commands and confirm output before asserting work is done.
    e. If any step found issues, fix them and repeat from (a). Stop when all steps find no issues.
+
+3. **Explicit skip**: If a step genuinely cannot run (e.g., no runnable application for e2e-verify), declare it inline in your response:
+   ```
+   SKIP: <step-name> — reason: <explanation>
+   ```
+   Valid step names: `simplify`, `codex-review`, `gemini-review`, `e2e-verify`, `verification-before-completion`.
+   Each skip requires a genuine reason — do not skip to save time.
+   A Stop hook enforces this: you will be blocked from completing your turn if steps are missing and not explicitly skipped.

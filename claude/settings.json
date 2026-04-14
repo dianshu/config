@@ -73,6 +73,18 @@
         ]
       }
     ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/dev-workflow-gate.sh",
+            "statusMessage": "Checking dev-workflow compliance..."
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "mcp__chrome__.*",
@@ -81,6 +93,16 @@
             "type": "command",
             "command": "bash ~/.claude/hooks/chrome-ensure.sh",
             "statusMessage": "Ensuring Chrome is running..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/dev-workflow-gate-precommit.sh",
+            "statusMessage": "Checking dev-workflow before commit..."
           }
         ]
       }
