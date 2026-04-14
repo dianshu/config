@@ -1,3 +1,3 @@
-The @config repo mirrors dotfiles and tool configs from the home directory. `~/.claude/` maps to `@config/claude/`. When you change any files under `~/.claude`, `~/.codex`, or `~/.config`, apply the same changes to the corresponding paths in @config repo so they stay in sync.
+The @config repo mirrors dotfiles and tool configs from the home directory. When you change any files under `~/.claude`, `~/.codex`, or `~/.config`, apply the same changes to the corresponding paths in @config repo so they stay in sync. The map is: `~/.claude/` maps to `@config/claude/`, same pattern for .codex and .config dir
 
 This directory (`~/repos`) is a normal directory, not a git repo. It is used to hold git repos. Do not run git commands directly in this directory.
