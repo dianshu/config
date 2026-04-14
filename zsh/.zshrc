@@ -462,32 +462,7 @@ cc_sync() {
         echo "  BurntToast module ensured"
     fi
 
-    # 3. Skills (find-skills, skill-creator)
-    echo "\n=== Skills ==="
-    local installed_skills
-    installed_skills="$(npx -y skills list -g 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g')"
-    typeset -A skill_sources=(
-        [skill-creator]="anthropics/skills@skill-creator"
-    )
-    typeset -A skill_agents=(
-        [skill-creator]="claude-code"
-    )
-    for skill source in "${(@kv)skill_sources}"; do
-        if echo "$installed_skills" | grep -qw "$skill"; then
-            echo "  Skill '$skill' already installed"
-        else
-            echo "  Installing skill '$skill'..."
-            if [[ -n "${skill_agents[$skill]}" ]]; then
-                npx -y skills add "$source" -g -a "${skill_agents[$skill]}" -y
-            else
-                npx -y skills add "$source" -g -y
-            fi
-        fi
-    done
-    echo "  Updating all skills..."
-    npx -y skills update
-
-    # 4. Marketplaces (add if missing, then update all)
+    # 3. Marketplaces (add if missing, then update all)
     echo "\n=== Marketplaces ==="
     local mp_json="$HOME/.claude/plugins/known_marketplaces.json"
     typeset -A marketplaces=(
@@ -506,7 +481,7 @@ cc_sync() {
     echo "  Updating all marketplaces..."
     claude plugin marketplace update
 
-    # 5. Plugins (install if missing, update if exists)
+    # 4. Plugins (install if missing, update if exists)
     echo "\n=== Plugins ==="
     local plugins_json="$HOME/.claude/plugins/installed_plugins.json"
     local -a plugins=(
@@ -514,6 +489,7 @@ cc_sync() {
         "microsoft-docs@microsoft-docs-marketplace"
         "document-skills@anthropic-agent-skills"
         "playground@claude-plugins-official"
+        "skill-creator@claude-plugins-official"
     )
     for plugin in "${plugins[@]}"; do
         if [[ -f "$plugins_json" ]] && jq -e --arg p "$plugin" '.plugins | has($p)' "$plugins_json" &>/dev/null; then
@@ -528,7 +504,7 @@ cc_sync() {
         claude plugin enable "$plugin" -s user 2>/dev/null
     done
 
-    # 5b. SearXNG config
+    # 4b. SearXNG config
     echo "\n=== SearXNG Config ==="
     local searxng_config="$HOME/.config/searxng"
     [[ -d "$searxng_config" ]] && sudo chown -R "$(id -u):$(id -g)" "$searxng_config"
@@ -536,11 +512,11 @@ cc_sync() {
         "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/zsh/searxng-settings.yml" \
         "$searxng_config/settings.yml"
 
-    # 5c. SearXNG Docker image
+    # 4c. SearXNG Docker image
     echo "\n=== SearXNG Docker Image ==="
     docker pull searxng/searxng
 
-    # 5d. MCP Servers (direct registration for servers not installable as plugins)
+    # 4d. MCP Servers (direct registration for servers not installable as plugins)
     echo "\n=== MCP Servers ==="
     claude mcp remove context7 -s user 2>/dev/null
     claude mcp add context7 -s user -- npx -y @upstash/context7-mcp
