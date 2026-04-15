@@ -24,20 +24,46 @@ if [ -n "$ctx_pct" ] && [ -n "$ctx_usage" ] && [ -n "$ctx_total" ]; then
   ctx_detail="${ctx_pct}% [${ctx_usage_k}/${ctx_total_k}]"
 fi
 
-# 3. Git Branch (magenta)
-git_branch=$(git --no-optional-locks branch --show-current 2>/dev/null)
-git_display="${git_branch:-no git}"
-
-# 4. Current working dir (yellow)
-cwd=$(echo "$input" | jq -r '.cwd // empty')
-cwd="${cwd/#$HOME/\~}"
-
 # ANSI color codes
 GREEN='\033[38;5;70m'
 MAGENTA='\033[38;5;96m'
 YELLOW='\033[38;5;178m'
 GRAY='\033[38;5;245m'
+RED='\033[38;5;167m'
 RESET='\033[0m'
+
+# 3. Git Branch (magenta) + file change counts
+if git_branch=$(git --no-optional-locks branch --show-current 2>/dev/null); then
+  git_display="${git_branch:-detached}"
+else
+  git_display="no git"
+fi
+
+# Git file change counts (whole repo, one line per file)
+git_changes=""
+if [ "$git_display" != "no git" ]; then
+  read -r new_files modified deleted < <(
+    git --no-optional-locks status --porcelain -uall --ignore-submodules 2>/dev/null \
+    | awk '
+      /^\?\?/    { n++ ; next }
+      /^A/       { n++ ; next }
+      /^.D|^D/   { d++ ; next }
+      { m++ }
+      END { print n+0, m+0, d+0 }
+    '
+  )
+  : "${new_files:=0}" "${modified:=0}" "${deleted:=0}"
+
+  parts=""
+  [ "$new_files" -gt 0 ] && parts="${parts} ${GREEN}+${new_files}${RESET}"
+  [ "$modified" -gt 0 ] && parts="${parts} ${YELLOW}~${modified}${RESET}"
+  [ "$deleted" -gt 0 ] && parts="${parts} ${RED}-${deleted}${RESET}"
+  git_changes="${parts}"
+fi
+
+# 4. Current working dir (yellow)
+cwd=$(echo "$input" | jq -r '.cwd // empty')
+cwd="${cwd/#$HOME/\~}"
 
 # Build output
 output="${RESET}"
@@ -48,7 +74,7 @@ if [ -n "$ctx_detail" ]; then
   output="${output}Ctx: ${ctx_detail}"
 fi
 
-output="${output} ${GRAY}|${RESET} ${MAGENTA}⎇ ${git_display}${RESET}"
+output="${output} ${GRAY}|${RESET} ${MAGENTA}⎇ ${git_display}${git_changes}${RESET}"
 
 if [ -n "$cwd" ]; then
   output="${output} ${GRAY}|${RESET} ${YELLOW}cwd: ${cwd}${RESET}"
