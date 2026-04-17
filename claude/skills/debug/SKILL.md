@@ -67,6 +67,12 @@ Before touching code, running anything, or reading source files — confirm your
 
 3. **Only then proceed** to Phase 2
 
+**GATE UNLOCK:** After user confirms understanding, run:
+```bash
+echo done > ~/.claude/debug-gate/SESSION_ID/phase1-done
+```
+Replace `SESSION_ID` with your session ID (shown in the hook's block message, or find it with `ls ~/.claude/debug-gate/`).
+
 ### Phase 2: E2E Reproduction Gate
 
 <HARD-GATE>
@@ -98,6 +104,11 @@ The FIRST action after understanding confirmation is E2E reproduction — not re
 **Only after observing the failure firsthand → proceed to Phase 3**
 
 If you cannot reproduce → gather more data, check logs, try different inputs. Do NOT skip to code analysis without reproduction.
+
+**GATE UNLOCK:** After reproducing the bug and documenting the failure, run:
+```bash
+echo done > ~/.claude/debug-gate/SESSION_ID/phase2-done
+```
 
 **Why this gate exists:** Reading code tells you WHERE to look. Only running the system tells you WHAT the bug actually is. Code analysis without reproduction leads to incomplete or wrong hypotheses.
 
@@ -333,6 +344,11 @@ If you catch yourself thinking:
 | **4. Pattern** | Find working examples, compare | Identify differences |
 | **5. Hypothesis** | Form theory, test minimally | Confirmed or new hypothesis |
 | **6. Implementation** | Create test, fix, verify (including E2E) | Bug resolved, tests pass, E2E verified |
+
+**GATE CLEANUP:** After the fix is verified, clean up the debug gate:
+```bash
+rm -rf ~/.claude/debug-gate/SESSION_ID/
+```
 
 ## When Process Reveals "No Root Cause"
 

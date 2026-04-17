@@ -105,6 +105,25 @@
             "statusMessage": "Checking dev-workflow before commit..."
           }
         ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/debug-gate-create.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Grep|Glob|Edit|Write|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/debug-gate.sh",
+            "statusMessage": "Checking debug discipline..."
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -147,7 +166,8 @@
     "microsoft-docs@microsoft-docs-marketplace": true,
     "document-skills@anthropic-agent-skills": true,
     "code-simplifier@claude-plugins-official": true,
-    "playground@claude-plugins-official": true
+    "playground@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true
   },
   "outputStyle": "explanatory",
   "effortLevel": "high"
