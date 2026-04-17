@@ -2,10 +2,10 @@
 name: debug
 description: |
   Use when encountering any bug, test failure, or unexpected behavior,
-  before proposing fixes. Starts with E2E reproduction via `make up`
-  when a Makefile is available, then follows the 5-phase systematic
-  debugging framework. Proactively use when the user reports something
-  broken, failing, or behaving unexpectedly.
+  before proposing fixes. Starts with understanding confirmation and
+  E2E reproduction, then follows the 6-phase systematic debugging
+  framework. Proactively use when the user reports something broken,
+  failing, or behaving unexpectedly.
 ---
 
 # Systematic Debugging
@@ -24,7 +24,7 @@ Random fixes waste time and create new bugs. Quick patches mask underlying issue
 NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
 ```
 
-If you haven't completed Phase 1 and Phase 2, you cannot propose fixes.
+If you haven't completed Phase 1, Phase 2, and Phase 3, you cannot propose fixes.
 
 ## When to Use
 
@@ -48,39 +48,60 @@ Use for ANY technical issue:
 - You're in a hurry (rushing guarantees rework)
 - Manager wants it fixed NOW (systematic is faster than thrashing)
 
-## Phase 1: E2E Reproduction Gate
-
-**When debugging a bug, the FIRST action is E2E reproduction — not reading code.**
-
-Before reading source files, spawning Explore agents, or forming hypotheses:
-
-1. **Check for Makefile**
-   - Does the project root have a Makefile with an `up` target?
-   - If NO → suggest adding one but don't force it; skip to Phase 2
-
-2. **Start Services**
-   - Run `make up` in the background (use Bash tool with `run_in_background: true`)
-   - Note the task ID and output file path from the result
-   - Use `Read` on the output file to check service logs when debugging
-   - Wait for services to be ready
-
-3. **Reproduce the Bug**
-   - Frontend: Use Chrome MCP to open the page, take screenshots, interact with elements
-   - Backend: Use `curl` to call API endpoints and check responses
-   - Document the exact failure observed
-
-4. **Only Then Proceed**
-   - Only after observing the failure firsthand → proceed to Phase 2
-   - If you cannot reproduce → gather more data, check logs, try different inputs
-   - Do NOT skip to code analysis without reproduction
-
-**Why this gate exists:** Reading code tells you WHERE to look. Only running the system tells you WHAT the bug actually is. Code analysis without reproduction leads to incomplete or wrong hypotheses.
-
-## The Five Phases
+## The Six Phases
 
 You MUST complete each phase before proceeding to the next.
 
-### Phase 2: Root Cause Investigation
+### Phase 1: Understanding Confirmation
+
+<HARD-GATE>
+Before touching code, running anything, or reading source files — confirm your understanding with the user. No proceeding without user confirmation.
+</HARD-GATE>
+
+1. **Restate the bug** in your own words:
+   - What is happening? (observed behavior)
+   - What should happen? (expected behavior)
+   - What is the impact? (who/what is affected)
+
+2. **Ask the user to confirm** your understanding is correct
+
+3. **Only then proceed** to Phase 2
+
+### Phase 2: E2E Reproduction Gate
+
+<HARD-GATE>
+The FIRST action after understanding confirmation is E2E reproduction — not reading code. You CANNOT skip this phase on your own. If you believe reproduction is impossible, you MUST ask the user for permission to skip. Claude cannot self-decide to skip.
+</HARD-GATE>
+
+**Try reproduction methods in this order:**
+
+1. **`make up`** — if Makefile with `up` target exists
+   - Run in background (use Bash tool with `run_in_background: true`)
+   - Wait for services to be ready
+
+2. **`docker compose up`** — if docker-compose.yml exists
+
+3. **Dev server** — `npm run dev`, `python manage.py runserver`, `cargo run`, etc.
+
+4. **Run the failing test directly** — `pytest path/to/test.py`, `npm test -- --testPathPattern=...`
+
+5. **CLI/script reproduction** — curl endpoints, run scripts, invoke CLI commands
+
+6. **If none of the above work** — ask the user: "I couldn't find a way to reproduce this. Can I proceed to code analysis, or can you suggest how to run/reproduce it?"
+
+**Reproduce the Bug:**
+- Frontend: Use Chrome MCP to open the page, take screenshots, interact with elements
+- Backend: Use `curl` to call API endpoints and check responses
+- Tests: Run the specific failing test and capture output
+- Document the exact failure observed
+
+**Only after observing the failure firsthand → proceed to Phase 3**
+
+If you cannot reproduce → gather more data, check logs, try different inputs. Do NOT skip to code analysis without reproduction.
+
+**Why this gate exists:** Reading code tells you WHERE to look. Only running the system tells you WHAT the bug actually is. Code analysis without reproduction leads to incomplete or wrong hypotheses.
+
+### Phase 3: Root Cause Investigation
 
 **BEFORE attempting ANY fix:**
 
@@ -91,8 +112,8 @@ You MUST complete each phase before proceeding to the next.
    - Note line numbers, file paths, error codes
 
 2. **Reproduce Consistently**
-   - If Phase 1 was completed, reference those findings here
-   - If Phase 1 was skipped (no Makefile), reproduce now using available methods (tests, scripts, CLI)
+   - If Phase 2 was completed, reference those findings here
+   - If Phase 2 was skipped (with user permission), reproduce now using available methods (tests, scripts, CLI)
    - If not reproducible → gather more data, don't guess
 
 3. **Check Recent Changes**
@@ -151,7 +172,7 @@ You MUST complete each phase before proceeding to the next.
    - Keep tracing up until you find the source
    - Fix at source, not at symptom
 
-### Phase 3: Pattern Analysis
+### Phase 4: Pattern Analysis
 
 **Find the pattern before fixing:**
 
@@ -174,7 +195,7 @@ You MUST complete each phase before proceeding to the next.
    - What settings, config, environment?
    - What assumptions does it make?
 
-### Phase 4: Hypothesis and Testing
+### Phase 5: Hypothesis and Testing
 
 **Scientific method:**
 
@@ -189,7 +210,7 @@ You MUST complete each phase before proceeding to the next.
    - Don't fix multiple things at once
 
 3. **Verify Before Continuing**
-   - Did it work? Yes → Phase 5
+   - Did it work? Yes → Phase 6
    - Didn't work? Form NEW hypothesis
    - DON'T add more fixes on top
 
@@ -199,7 +220,7 @@ You MUST complete each phase before proceeding to the next.
    - Ask for help
    - Research more
 
-### Phase 5: Implementation
+### Phase 6: Implementation
 
 **Fix the root cause, not the symptom:**
 
@@ -223,7 +244,7 @@ You MUST complete each phase before proceeding to the next.
 
    **E2E Verification (if Makefile with `up` target exists):**
 
-   After unit tests pass, follow the same E2E procedure as Phase 1 (start services, verify through UI/API), plus:
+   After unit tests pass, follow the same E2E procedure as Phase 2 (start services, verify through UI/API), plus:
    - Capture evidence (screenshots, API responses)
    - Clean up: run `make down` if available, otherwise kill the background processes
 
@@ -232,7 +253,7 @@ You MUST complete each phase before proceeding to the next.
 4. **If Fix Doesn't Work**
    - STOP
    - Count: How many fixes have you tried?
-   - If < 3: Return to Phase 2, re-analyze with new information
+   - If < 3: Return to Phase 3, re-analyze with new information
    - **If ≥ 3: STOP and question the architecture (step 5 below)**
    - DON'T attempt Fix #4 without architectural discussion
 
@@ -267,10 +288,12 @@ If you catch yourself thinking:
 - **"One more fix attempt" (when already tried 2+)**
 - **Each fix reveals new problem in different place**
 - **"Let me read the code first" (before reproducing the bug)**
+- **"I can see the issue from the code" (skipping reproduction)**
+- **"Reproduction isn't necessary here" (rationalizing skip)**
 
 **ALL of these mean: STOP. Return to Phase 1 or Phase 2.**
 
-**If 3+ fixes failed:** Question the architecture (see Phase 5, Step 5)
+**If 3+ fixes failed:** Question the architecture (see Phase 6, Step 5)
 
 ## Human Partner Signals You're Doing It Wrong
 
@@ -297,16 +320,19 @@ If you catch yourself thinking:
 | "I see the problem, let me fix it" | Seeing symptoms ≠ understanding root cause. |
 | "One more fix attempt" (after 2+ failures) | 3+ failures = architectural problem. Question pattern, don't fix again. |
 | "Let me just read the code first" | Code tells you WHERE to look. Running the system tells you WHAT the bug is. Reproduce first. |
+| "I can see the issue from the code" | You're seeing symptoms, not the bug. Run the system to confirm. |
+| "Reproduction isn't necessary here" | It always is. Ask the user if you truly can't find a way. |
 
 ## Quick Reference
 
 | Phase | Key Activities | Success Criteria |
 |-------|---------------|------------------|
-| **1. E2E Reproduction** | Start services, reproduce bug through UI/API | Observed the failure firsthand |
-| **2. Root Cause** | Read errors, reproduce, check changes, gather evidence | Understand WHAT and WHY |
-| **3. Pattern** | Find working examples, compare | Identify differences |
-| **4. Hypothesis** | Form theory, test minimally | Confirmed or new hypothesis |
-| **5. Implementation** | Create test, fix, verify (including E2E) | Bug resolved, tests pass, E2E verified |
+| **1. Understanding** | Restate bug, confirm with user | User confirms understanding |
+| **2. E2E Reproduction** | Start services, reproduce bug through UI/API/tests | Observed the failure firsthand |
+| **3. Root Cause** | Read errors, reproduce, check changes, gather evidence | Understand WHAT and WHY |
+| **4. Pattern** | Find working examples, compare | Identify differences |
+| **5. Hypothesis** | Form theory, test minimally | Confirmed or new hypothesis |
+| **6. Implementation** | Create test, fix, verify (including E2E) | Bug resolved, tests pass, E2E verified |
 
 ## When Process Reveals "No Root Cause"
 
@@ -328,7 +354,7 @@ These techniques are part of systematic debugging and available in this director
 - **`condition-based-waiting.md`** - Replace arbitrary timeouts with condition polling
 
 **Related skills:**
-- **superpowers:test-driven-development** - For creating failing test case (Phase 5, Step 1)
+- **superpowers:test-driven-development** - For creating failing test case (Phase 6, Step 1)
 - **superpowers:verification-before-completion** - Verify fix worked before claiming success
 
 ## Real-World Impact
