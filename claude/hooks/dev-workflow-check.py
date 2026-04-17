@@ -34,6 +34,7 @@ EXCLUDED_PATH_PATTERNS = [
     "/.claude/settings",
     "/.claude/hooks/",
     "/.claude/rules/",
+    "/config/claude/",
 ]
 
 BASH_WRITE_PATTERN = re.compile(
