@@ -34,6 +34,8 @@ EXCLUDED_PATH_PATTERNS = [
     "/.claude/settings",
     "/.claude/hooks/",
     "/.claude/rules/",
+    "/.claude/agents/",
+    "/.claude/skills/",
     "/config/claude/",
 ]
 
