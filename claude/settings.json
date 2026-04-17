@@ -60,6 +60,16 @@
             "command": "bash ~/.claude/hooks/session-learnings.sh"
           }
         ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/debug-gate-prompt.sh",
+            "statusMessage": "Activating debug gate..."
+          }
+        ]
       }
     ],
     "Notification": [
@@ -111,17 +121,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/debug-gate-create.sh"
+            "command": "bash ~/.claude/hooks/debug-gate-skill.sh"
           }
         ]
       },
       {
-        "matcher": "Read|Grep|Glob|Edit|Write|Bash",
+        "matcher": "Edit|Write|NotebookEdit",
         "hooks": [
           {
             "type": "command",
             "command": "bash ~/.claude/hooks/debug-gate.sh",
-            "statusMessage": "Checking debug discipline..."
+            "statusMessage": "Checking debug gate..."
           }
         ]
       }

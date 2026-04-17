@@ -2,13 +2,12 @@
 name: debug
 description: |
   Use when encountering any bug, test failure, or unexpected behavior,
-  before proposing fixes. Starts with understanding confirmation and
-  E2E reproduction, then follows the 6-phase systematic debugging
-  framework. Proactively use when the user reports something broken,
-  failing, or behaving unexpectedly.
+  before proposing fixes. Dispatches specialized agents for reproduction,
+  investigation, and fixing. Proactively use when the user reports something
+  broken, failing, or behaving unexpectedly.
 ---
 
-# Systematic Debugging
+# Systematic Debugging — Agent Orchestrated
 
 ## Overview
 
@@ -16,367 +15,115 @@ Random fixes waste time and create new bugs. Quick patches mask underlying issue
 
 **Core principle:** ALWAYS find root cause before attempting fixes. Symptom fixes are failure.
 
-**Violating the letter of this process is violating the spirit of debugging.**
-
 ## The Iron Law
 
 ```
 NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
 ```
 
-If you haven't completed Phase 1, Phase 2, and Phase 3, you cannot propose fixes.
-
 ## When to Use
 
-Use for ANY technical issue:
-- Test failures
-- Bugs in production
-- Unexpected behavior
-- Performance problems
-- Build failures
-- Integration issues
+Use for ANY technical issue: test failures, bugs, unexpected behavior, performance problems, build failures, integration issues.
 
 **Use this ESPECIALLY when:**
 - Under time pressure (emergencies make guessing tempting)
 - "Just one quick fix" seems obvious
 - You've already tried multiple fixes
-- Previous fix didn't work
 - You don't fully understand the issue
 
-**Don't skip when:**
-- Issue seems simple (simple bugs have root causes too)
-- You're in a hurry (rushing guarantees rework)
-- Manager wants it fixed NOW (systematic is faster than thrashing)
+## Agent Dispatch Protocol
 
-## The Six Phases
+**You MUST use the three debug agents in strict order. Do NOT perform debug work directly.**
 
-You MUST complete each phase before proceeding to the next.
+### Step 1: Debug Session Activation (Automatic)
 
-### Phase 1: Understanding Confirmation
+The debug gate is activated automatically by hooks when `/debug` is invoked or the debug skill is used. No manual action needed.
 
-<HARD-GATE>
-Before touching code, running anything, or reading source files — confirm your understanding with the user. No proceeding without user confirmation.
-</HARD-GATE>
+### Step 2: Dispatch debug-reproducer
 
-1. **Restate the bug** in your own words:
-   - What is happening? (observed behavior)
-   - What should happen? (expected behavior)
-   - What is the impact? (who/what is affected)
-
-2. **Ask the user to confirm** your understanding is correct
-
-3. **Only then proceed** to Phase 2
-
-**GATE UNLOCK:** After user confirms understanding, run:
-```bash
-echo done > ~/.claude/debug-gate/SESSION_ID/phase1-done
 ```
-Replace `SESSION_ID` with your session ID (shown in the hook's block message, or find it with `ls ~/.claude/debug-gate/`).
-
-### Phase 2: E2E Reproduction Gate
-
-<HARD-GATE>
-The FIRST action after understanding confirmation is E2E reproduction — not reading code. You CANNOT skip this phase on your own. If you believe reproduction is impossible, you MUST ask the user for permission to skip. Claude cannot self-decide to skip.
-</HARD-GATE>
-
-**Try reproduction methods in this order:**
-
-1. **`make up`** — if Makefile with `up` target exists
-   - Run in background (use Bash tool with `run_in_background: true`)
-   - Wait for services to be ready
-
-2. **`docker compose up`** — if docker-compose.yml exists
-
-3. **Dev server** — `npm run dev`, `python manage.py runserver`, `cargo run`, etc.
-
-4. **Run the failing test directly** — `pytest path/to/test.py`, `npm test -- --testPathPattern=...`
-
-5. **CLI/script reproduction** — curl endpoints, run scripts, invoke CLI commands
-
-6. **If none of the above work** — ask the user: "I couldn't find a way to reproduce this. Can I proceed to code analysis, or can you suggest how to run/reproduce it?"
-
-**Reproduce the Bug:**
-- Frontend: Use Chrome MCP to open the page, take screenshots, interact with elements
-- Backend: Use `curl` to call API endpoints and check responses
-- Tests: Run the specific failing test and capture output
-- Document the exact failure observed
-
-**Only after observing the failure firsthand → proceed to Phase 3**
-
-If you cannot reproduce → gather more data, check logs, try different inputs. Do NOT skip to code analysis without reproduction.
-
-**GATE UNLOCK:** After reproducing the bug and documenting the failure, run:
-```bash
-echo done > ~/.claude/debug-gate/SESSION_ID/phase2-done
+Agent(subagent_type: "debug-reproducer", prompt: "<bug description from user>")
 ```
 
-**Why this gate exists:** Reading code tells you WHERE to look. Only running the system tells you WHAT the bug actually is. Code analysis without reproduction leads to incomplete or wrong hypotheses.
+**Before proceeding, check the output:**
+- Has `understanding`? → Relay to user for confirmation. If user disagrees, re-dispatch with corrected understanding.
+- Has `reproduction` with evidence? → Proceed to Step 3.
+- Has `reproduction: null`? → Report to user: "Could not reproduce. Reason: {reason}. Should I proceed to code analysis, or can you suggest how to reproduce?"
 
-### Phase 3: Root Cause Investigation
+### Step 3: Dispatch debug-investigator
 
-**BEFORE attempting ANY fix:**
+```
+Agent(subagent_type: "debug-investigator", prompt: "Reproduction evidence: <output from reproducer>")
+```
 
-1. **Read Error Messages Carefully**
-   - Don't skip past errors or warnings
-   - They often contain the exact solution
-   - Read stack traces completely
-   - Note line numbers, file paths, error codes
+**Before proceeding, check the output:**
+- Has `root_cause`? → Proceed to Step 4.
+- Has `root_cause: null`? → Report hypotheses to user. Ask which to pursue or if user has additional context.
 
-2. **Reproduce Consistently**
-   - If Phase 2 was completed, reference those findings here
-   - If Phase 2 was skipped (with user permission), reproduce now using available methods (tests, scripts, CLI)
-   - If not reproducible → gather more data, don't guess
+### Step 4: Dispatch debug-fixer
 
-3. **Check Recent Changes**
-   - What changed that could cause this?
-   - Git diff, recent commits
-   - New dependencies, config changes
-   - Environmental differences
+```
+Agent(subagent_type: "debug-fixer", prompt: "Root cause: <output from investigator>")
+```
 
-4. **Gather Evidence in Multi-Component Systems**
+**After completion, check the output:**
+- Has `changes` + passing `test_results`? → Report to user. Clean up debug session.
+- Has `failure_reason`? → Report to user. Discuss before retrying.
 
-   **WHEN system has multiple components (CI → build → signing, API → service → database):**
+### Step 5: Clean Up
 
-   **BEFORE proposing fixes, add diagnostic instrumentation:**
-   ```
-   For EACH component boundary:
-     - Log what data enters component
-     - Log what data exits component
-     - Verify environment/config propagation
-     - Check state at each layer
+Remove the debug gate directory for your session:
+```bash
+ls ~/.claude/debug-gate/
+```
+Then delete your session's directory (the one matching your session ID). If unsure, `ls` the directory first to confirm which one is yours.
 
-   Run once to gather evidence showing WHERE it breaks
-   THEN analyze evidence to identify failing component
-   THEN investigate that specific component
-   ```
+**Important:** Always clean up the gate directory, even if the debug flow is abandoned early (user pivots, reproduction fails and user wants to move on, etc.). A stale gate directory blocks all Edit/Write for the rest of the session.
 
-   **Example (multi-layer system):**
-   ```bash
-   # Layer 1: Workflow
-   echo "=== Secrets available in workflow: ==="
-   echo "IDENTITY: ${IDENTITY:+SET}${IDENTITY:-UNSET}"
+## Hard Rules
 
-   # Layer 2: Build script
-   echo "=== Env vars in build script: ==="
-   env | grep IDENTITY || echo "IDENTITY not in environment"
+1. **Do NOT edit files directly** during a debug session. The hook will block you. All edits go through debug-fixer.
+2. **Do NOT skip agents.** You cannot call debug-fixer without first going through reproducer → investigator.
+3. **Do NOT call debug-investigator without reproduction evidence** (or explicit user permission to skip reproduction).
+4. **Check each agent's output contract** before proceeding. If output is malformed or missing required fields, re-dispatch.
 
-   # Layer 3: Signing script
-   echo "=== Keychain state: ==="
-   security list-keychains
-   security find-identity -v
-
-   # Layer 4: Actual signing
-   codesign --sign "$IDENTITY" --verbose=4 "$APP"
-   ```
-
-   **This reveals:** Which layer fails (secrets → workflow ✓, workflow → build ✗)
-
-5. **Trace Data Flow**
-
-   **WHEN error is deep in call stack:**
-
-   See `root-cause-tracing.md` in this directory for the complete backward tracing technique.
-
-   **Quick version:**
-   - Where does bad value originate?
-   - What called this with bad value?
-   - Keep tracing up until you find the source
-   - Fix at source, not at symptom
-
-### Phase 4: Pattern Analysis
-
-**Find the pattern before fixing:**
-
-1. **Find Working Examples**
-   - Locate similar working code in same codebase
-   - What works that's similar to what's broken?
-
-2. **Compare Against References**
-   - If implementing pattern, read reference implementation COMPLETELY
-   - Don't skim - read every line
-   - Understand the pattern fully before applying
-
-3. **Identify Differences**
-   - What's different between working and broken?
-   - List every difference, however small
-   - Don't assume "that can't matter"
-
-4. **Understand Dependencies**
-   - What other components does this need?
-   - What settings, config, environment?
-   - What assumptions does it make?
-
-### Phase 5: Hypothesis and Testing
-
-**Scientific method:**
-
-1. **Form Single Hypothesis**
-   - State clearly: "I think X is the root cause because Y"
-   - Write it down
-   - Be specific, not vague
-
-2. **Test Minimally**
-   - Make the SMALLEST possible change to test hypothesis
-   - One variable at a time
-   - Don't fix multiple things at once
-
-3. **Verify Before Continuing**
-   - Did it work? Yes → Phase 6
-   - Didn't work? Form NEW hypothesis
-   - DON'T add more fixes on top
-
-4. **When You Don't Know**
-   - Say "I don't understand X"
-   - Don't pretend to know
-   - Ask for help
-   - Research more
-
-### Phase 6: Implementation
-
-**Fix the root cause, not the symptom:**
-
-1. **Create Failing Test Case**
-   - Simplest possible reproduction
-   - Automated test if possible
-   - One-off test script if no framework
-   - MUST have before fixing
-   - Use the `superpowers:test-driven-development` skill for writing proper failing tests
-
-2. **Implement Single Fix**
-   - Address the root cause identified
-   - ONE change at a time
-   - No "while I'm here" improvements
-   - No bundled refactoring
-
-3. **Verify Fix**
-   - Test passes now?
-   - No other tests broken?
-   - Issue actually resolved?
-
-   **E2E Verification (if Makefile with `up` target exists):**
-
-   After unit tests pass, follow the same E2E procedure as Phase 2 (start services, verify through UI/API), plus:
-   - Capture evidence (screenshots, API responses)
-   - Clean up: run `make down` if available, otherwise kill the background processes
-
-   This complements (does not replace) unit tests and the verification-before-completion workflow.
-
-4. **If Fix Doesn't Work**
-   - STOP
-   - Count: How many fixes have you tried?
-   - If < 3: Return to Phase 3, re-analyze with new information
-   - **If ≥ 3: STOP and question the architecture (step 5 below)**
-   - DON'T attempt Fix #4 without architectural discussion
-
-5. **If 3+ Fixes Failed: Question Architecture**
-
-   **Pattern indicating architectural problem:**
-   - Each fix reveals new shared state/coupling/problem in different place
-   - Fixes require "massive refactoring" to implement
-   - Each fix creates new symptoms elsewhere
-
-   **STOP and question fundamentals:**
-   - Is this pattern fundamentally sound?
-   - Are we "sticking with it through sheer inertia"?
-   - Should we refactor architecture vs. continue fixing symptoms?
-
-   **Discuss with your human partner before attempting more fixes**
-
-   This is NOT a failed hypothesis - this is a wrong architecture.
-
-## Red Flags - STOP and Follow Process
+## Red Flags — STOP and Follow Process
 
 If you catch yourself thinking:
 - "Quick fix for now, investigate later"
 - "Just try changing X and see if it works"
-- "Add multiple changes, run tests"
-- "Skip the test, I'll manually verify"
 - "It's probably X, let me fix that"
 - "I don't fully understand but this might work"
-- "Pattern says X but I'll adapt it differently"
-- "Here are the main problems: [lists fixes without investigation]"
-- Proposing solutions before tracing data flow
-- **"One more fix attempt" (when already tried 2+)**
-- **Each fix reveals new problem in different place**
-- **"Let me read the code first" (before reproducing the bug)**
-- **"I can see the issue from the code" (skipping reproduction)**
-- **"Reproduction isn't necessary here" (rationalizing skip)**
+- "Let me read the code first" (before reproducing)
+- "I can see the issue from the code" (skipping reproduction)
+- "One more fix attempt" (when already tried 2+)
+- Each fix reveals new problem in different place
 
-**ALL of these mean: STOP. Return to Phase 1 or Phase 2.**
-
-**If 3+ fixes failed:** Question the architecture (see Phase 6, Step 5)
-
-## Human Partner Signals You're Doing It Wrong
-
-**Watch for these redirections:**
-- "Is that not happening?" - You assumed without verifying
-- "Will it show us...?" - You should have added evidence gathering
-- "Stop guessing" - You're proposing fixes without understanding
-- "Ultrathink this" - Question fundamentals, not just symptoms
-- "We're stuck?" (frustrated) - Your approach isn't working
-- "Did you actually run it?" - You skipped E2E reproduction
-
-**When you see these:** STOP. Return to Phase 1 or Phase 2.
+**ALL of these mean: STOP. Go back to the correct agent.**
 
 ## Common Rationalizations
 
 | Excuse | Reality |
 |--------|---------|
-| "Issue is simple, don't need process" | Simple issues have root causes too. Process is fast for simple bugs. |
+| "Issue is simple, don't need agents" | Simple issues have root causes too. Agents are fast for simple bugs. |
 | "Emergency, no time for process" | Systematic debugging is FASTER than guess-and-check thrashing. |
-| "Just try this first, then investigate" | First fix sets the pattern. Do it right from the start. |
-| "I'll write test after confirming fix works" | Untested fixes don't stick. Test first proves it. |
-| "Multiple fixes at once saves time" | Can't isolate what worked. Causes new bugs. |
-| "Reference too long, I'll adapt the pattern" | Partial understanding guarantees bugs. Read it completely. |
-| "I see the problem, let me fix it" | Seeing symptoms ≠ understanding root cause. |
-| "One more fix attempt" (after 2+ failures) | 3+ failures = architectural problem. Question pattern, don't fix again. |
-| "Let me just read the code first" | Code tells you WHERE to look. Running the system tells you WHAT the bug is. Reproduce first. |
-| "I can see the issue from the code" | You're seeing symptoms, not the bug. Run the system to confirm. |
+| "I'll just fix it directly" | The hook will block you. Use the agents. |
+| "One more fix attempt" (after 2+ failures) | 3+ failures = architectural problem. Discuss with user. |
 | "Reproduction isn't necessary here" | It always is. Ask the user if you truly can't find a way. |
-
-## Quick Reference
-
-| Phase | Key Activities | Success Criteria |
-|-------|---------------|------------------|
-| **1. Understanding** | Restate bug, confirm with user | User confirms understanding |
-| **2. E2E Reproduction** | Start services, reproduce bug through UI/API/tests | Observed the failure firsthand |
-| **3. Root Cause** | Read errors, reproduce, check changes, gather evidence | Understand WHAT and WHY |
-| **4. Pattern** | Find working examples, compare | Identify differences |
-| **5. Hypothesis** | Form theory, test minimally | Confirmed or new hypothesis |
-| **6. Implementation** | Create test, fix, verify (including E2E) | Bug resolved, tests pass, E2E verified |
-
-**GATE CLEANUP:** After the fix is verified, clean up the debug gate:
-```bash
-rm -rf ~/.claude/debug-gate/SESSION_ID/
-```
-
-## When Process Reveals "No Root Cause"
-
-If systematic investigation reveals issue is truly environmental, timing-dependent, or external:
-
-1. You've completed the process
-2. Document what you investigated
-3. Implement appropriate handling (retry, timeout, error message)
-4. Add monitoring/logging for future investigation
-
-**But:** 95% of "no root cause" cases are incomplete investigation.
 
 ## Supporting Techniques
 
-These techniques are part of systematic debugging and available in this directory:
+Available in this directory:
+- **`root-cause-tracing.md`** — Trace bugs backward through call stack
+- **`defense-in-depth.md`** — Add validation at multiple layers after finding root cause
+- **`condition-based-waiting.md`** — Replace arbitrary timeouts with condition polling
 
-- **`root-cause-tracing.md`** - Trace bugs backward through call stack to find original trigger
-- **`defense-in-depth.md`** - Add validation at multiple layers after finding root cause
-- **`condition-based-waiting.md`** - Replace arbitrary timeouts with condition polling
+## Quick Reference
 
-**Related skills:**
-- **superpowers:test-driven-development** - For creating failing test case (Phase 6, Step 1)
-- **superpowers:verification-before-completion** - Verify fix worked before claiming success
-
-## Real-World Impact
-
-From debugging sessions:
-- Systematic approach: 15-30 minutes to fix
-- Random fixes approach: 2-3 hours of thrashing
-- First-time fix rate: 95% vs 40%
-- New bugs introduced: Near zero vs common
+| Step | Agent | Key Activity | Success Criteria |
+|------|-------|-------------|------------------|
+| 1 | — | Activate debug session | Gate directory created |
+| 2 | debug-reproducer | Understand + reproduce | Evidence of failure |
+| 3 | debug-investigator | Root cause analysis | Identified root cause |
+| 4 | debug-fixer | TDD fix + verify | Tests pass, bug resolved |
+| 5 | — | Clean up | Gate directory removed |

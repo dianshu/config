@@ -1,5 +1,6 @@
 #!/bin/bash
-# PreToolUse hook for Skill tool: activates debug gate when debug skill is invoked.
+set -uo pipefail
+# PreToolUse hook for Skill: activates debug gate when debug skill is invoked.
 
 INPUT=$(cat)
 read -r SKILL SESSION_ID < <(
