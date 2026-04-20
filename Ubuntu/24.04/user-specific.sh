@@ -36,7 +36,7 @@ wget https://raw.githubusercontent.com/dianshu/config/main/gitconfig -O $HOME/.g
 git config --global --replace-all user.name $0
 git config --global --replace-all user.email $1
 
-gcm_exe=$(find /mnt/c/Programs/Git /mnt/q/Programs/Git -maxdepth 5 -name "git-credential-manager.exe" -type f 2>/dev/null | head -1)
+gcm_exe=$(find /mnt/c/Programs/Git /mnt/q/Programs/Git -maxdepth 5 -name "git-credential-manager.exe" -type f 2>/dev/null | head -1 || true)
 if [ -n "$gcm_exe" ]; then
     git config --global credential.helper "$gcm_exe"
 else
