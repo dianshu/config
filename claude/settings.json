@@ -60,16 +60,6 @@
             "command": "bash ~/.claude/hooks/session-learnings.sh"
           }
         ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/hooks/debug-gate-prompt.sh",
-            "statusMessage": "Activating debug gate..."
-          }
-        ]
       }
     ],
     "Notification": [
@@ -113,25 +103,6 @@
             "type": "command",
             "command": "bash ~/.claude/hooks/dev-workflow-gate-precommit.sh",
             "statusMessage": "Checking dev-workflow before commit..."
-          }
-        ]
-      },
-      {
-        "matcher": "Skill",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/hooks/debug-gate-skill.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|Write|NotebookEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/hooks/debug-gate.sh",
-            "statusMessage": "Checking debug gate..."
           }
         ]
       }
