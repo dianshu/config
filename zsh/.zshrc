@@ -469,6 +469,7 @@ cc_sync() {
         [superpowers-marketplace]="obra/superpowers-marketplace"
         [microsoft-docs-marketplace]="microsoftdocs/mcp"
         [anthropic-agent-skills]="anthropics/skills"
+        [claude-plugins-official]="anthropics/claude-plugins-official"
     )
     for mp_key mp_repo in "${(@kv)marketplaces}"; do
         if [[ -f "$mp_json" ]] && jq -e --arg k "$mp_key" 'has($k)' "$mp_json" &>/dev/null; then
