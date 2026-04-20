@@ -323,7 +323,7 @@ EOF
 }
 
 cc_clean() {
-    local targets=(~/.claude ~/.local/share/claude ~/.claude.json)
+    local targets=(~/.claude ~/.local/share/claude ~/.claude.json ~/repos/.claude)
     for t in "${targets[@]}"; do
         [[ -e "$t" || -L "$t" ]] && echo "Removing $t" && rm -rf "$t"
     done
