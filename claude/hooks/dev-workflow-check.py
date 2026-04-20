@@ -39,15 +39,6 @@ EXCLUDED_PATH_PATTERNS = [
     "/config/claude/",
 ]
 
-BASH_WRITE_PATTERN = re.compile(
-    r"(?:"
-    r"\S+\s*[^>&\d]>[^>]"    # redirect > (not >&, not >>)
-    r"|\S+\s*>>"              # append redirect >>
-    r"|\btee\s"               # tee command (followed by space)
-    r"|\bsed\s+-i\b"          # sed in-place
-    r")"
-)
-
 SKIP_PATTERN = re.compile(
     r"SKIP:\s*(simplify|codex-review|gemini-review|e2e-verify|verification-before-completion)"
     r"\s*[\u2014\u2013\-]\s*reason:\s*(.+)",
@@ -57,10 +48,6 @@ SKIP_PATTERN = re.compile(
 
 def is_excluded_path(file_path):
     return any(pat in file_path for pat in EXCLUDED_PATH_PATTERNS)
-
-
-def is_bash_file_write(command):
-    return bool(BASH_WRITE_PATTERN.search(command))
 
 
 def scan_transcript(transcript_path):
@@ -91,6 +78,7 @@ def scan_transcript(transcript_path):
             if not isinstance(content, list):
                 continue
 
+            has_workflow_skill = False
             for block in content:
                 if not isinstance(block, dict):
                     continue
@@ -101,18 +89,20 @@ def scan_transcript(transcript_path):
                     if not isinstance(inp, dict):
                         inp = {}
 
-                    # Check Edit/Write for implementation work
-                    if name in ("Edit", "Write"):
-                        file_path = inp.get("file_path", "")
-                        if not is_excluded_path(file_path):
-                            last_impl_line = line_num
-
-                    # Check Skill invocations
                     if name == "Skill":
                         skill_name = inp.get("skill", "")
                         if skill_name in SKILL_TO_STEP:
                             step = SKILL_TO_STEP[skill_name]
                             step_lines[step] = line_num
+                            has_workflow_skill = True
+
+                    elif name in ("Edit", "Write"):
+                        fp = inp.get("file_path", "")
+                        if (
+                            not has_workflow_skill
+                            and not is_excluded_path(fp)
+                        ):
+                            last_impl_line = line_num
 
                 elif block.get("type") == "text":
                     text = block.get("text", "")

@@ -29,6 +29,26 @@ text_line() {
   printf '{"type":"assistant","message":{"content":[{"type":"text","text":"%s"}]}}\n' "$escaped"
 }
 
+# Helper: create a JSONL line with multiple tool_use blocks in one assistant message
+# Usage: multi_tool_line '{"type":"tool_use","name":"Skill","input":{"skill":"simplify"}}' '{"type":"tool_use","name":"Edit","input":{"file_path":"/x","old_string":"a","new_string":"b"}}'
+multi_tool_line() {
+  local blocks=""
+  local sep=""
+  for block in "$@"; do
+    blocks="${blocks}${sep}${block}"
+    sep=","
+  done
+  printf '{"type":"assistant","message":{"content":[%s]}}\n' "$blocks"
+}
+
+# Helper: create a JSONL transcript line for a user message
+user_line() {
+  local text="${1:-continue}"
+  local escaped
+  escaped=$(printf '%s' "$text" | sed 's/"/\\"/g')
+  printf '{"type":"user","message":{"content":[{"type":"text","text":"%s"}]}}\n' "$escaped"
+}
+
 # Helper: create all 5 skill invocations
 all_skills() {
   tool_use_line "Skill" '{"skill":"simplify"}'
@@ -311,6 +331,64 @@ test_precommit_hook "git-C-commit blocked" 2 "git -C /tmp/repo commit -m 'test'"
 F="$TMPDIR/t30.jsonl"
 tool_use_line "Edit" '{"file_path":"/home/fei/repos/app/main.ts","old_string":"a","new_string":"b"}' > "$F"
 test_precommit_hook "git-log passthrough" 0 "git log --oneline" "$F"
+
+echo ""
+echo "--- Checker: Workflow scope (edits by review skills) ---"
+
+# Test 31: Edit → simplify makes edits (same message) → remaining steps → pass (THE FIX)
+F="$TMPDIR/t31.jsonl"
+tool_use_line "Edit" '{"file_path":"/home/fei/repos/app/main.ts","old_string":"a","new_string":"b"}' > "$F"
+# Simplify skill + its edits in the same assistant message
+multi_tool_line \
+  '{"type":"tool_use","name":"Skill","input":{"skill":"simplify"}}' \
+  '{"type":"tool_use","name":"Edit","input":{"file_path":"/home/fei/repos/app/main.ts","old_string":"b","new_string":"c"}}' \
+  '{"type":"tool_use","name":"Edit","input":{"file_path":"/home/fei/repos/app/utils.ts","old_string":"x","new_string":"y"}}' >> "$F"
+tool_use_line "Skill" '{"skill":"codex-review"}' >> "$F"
+tool_use_line "Skill" '{"skill":"gemini-review"}' >> "$F"
+tool_use_line "Skill" '{"skill":"e2e-verify"}' >> "$F"
+tool_use_line "Skill" '{"skill":"superpowers:verification-before-completion"}' >> "$F"
+test_checker "workflow-scope: simplify edits don't reset gate" 0 "$F"
+
+# Test 32: Edit → simplify edits → user message → new edit → should require steps again
+F="$TMPDIR/t32.jsonl"
+tool_use_line "Edit" '{"file_path":"/home/fei/repos/app/main.ts","old_string":"a","new_string":"b"}' > "$F"
+multi_tool_line \
+  '{"type":"tool_use","name":"Skill","input":{"skill":"simplify"}}' \
+  '{"type":"tool_use","name":"Edit","input":{"file_path":"/home/fei/repos/app/main.ts","old_string":"b","new_string":"c"}}' >> "$F"
+all_skills >> "$F"
+user_line "now add feature X" >> "$F"
+tool_use_line "Edit" '{"file_path":"/home/fei/repos/app/main.ts","old_string":"c","new_string":"d"}' >> "$F"
+test_checker "workflow-scope: user message resets scope, new edit needs steps" 2 "$F" "Missing steps.*5/5"
+
+# Test 33: Edit → non-workflow Skill → edit → should advance last_impl_line
+F="$TMPDIR/t33.jsonl"
+tool_use_line "Edit" '{"file_path":"/home/fei/repos/app/main.ts","old_string":"a","new_string":"b"}' > "$F"
+tool_use_line "Skill" '{"skill":"push"}' >> "$F"
+tool_use_line "Edit" '{"file_path":"/home/fei/repos/app/main.ts","old_string":"b","new_string":"c"}' >> "$F"
+test_checker "workflow-scope: non-workflow skill doesn't shield edits" 2 "$F" "Missing steps.*5/5"
+
+# Test 34: Multiple workflow skills with edits in same messages → all shielded
+F="$TMPDIR/t34.jsonl"
+tool_use_line "Edit" '{"file_path":"/home/fei/repos/app/main.ts","old_string":"a","new_string":"b"}' > "$F"
+multi_tool_line \
+  '{"type":"tool_use","name":"Skill","input":{"skill":"simplify"}}' \
+  '{"type":"tool_use","name":"Edit","input":{"file_path":"/home/fei/repos/app/main.ts","old_string":"b","new_string":"c"}}' >> "$F"
+multi_tool_line \
+  '{"type":"tool_use","name":"Skill","input":{"skill":"e2e-verify"}}' \
+  '{"type":"tool_use","name":"Edit","input":{"file_path":"/home/fei/repos/app/test.ts","old_string":"t1","new_string":"t2"}}' >> "$F"
+tool_use_line "Skill" '{"skill":"codex-review"}' >> "$F"
+tool_use_line "Skill" '{"skill":"gemini-review"}' >> "$F"
+tool_use_line "Skill" '{"skill":"superpowers:verification-before-completion"}' >> "$F"
+test_checker "workflow-scope: multiple workflow skills shield interleaved edits" 0 "$F"
+
+# Test 35: Workflow scope with excluded paths still works
+F="$TMPDIR/t35.jsonl"
+tool_use_line "Edit" '{"file_path":"/home/fei/repos/app/main.ts","old_string":"a","new_string":"b"}' > "$F"
+tool_use_line "Skill" '{"skill":"simplify"}' >> "$F"
+tool_use_line "Write" '{"file_path":"/home/fei/.claude/plans/plan.md","content":"plan"}' >> "$F"
+tool_use_line "Edit" '{"file_path":"/home/fei/repos/app/main.ts","old_string":"b","new_string":"c"}' >> "$F"
+all_skills >> "$F"
+test_checker "workflow-scope: excluded paths unaffected by scope" 0 "$F"
 
 echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="
