@@ -57,7 +57,6 @@ ABBR_REGULAR_SESSION_ABBREVIATIONS+=(
   '"dc"'     '"docker compose"'
   '"gco"'    '"git checkout"'
   '"gcm"'    '"git checkout main && git pull"'
-  '"gdiff"'  '"GDK_SCALE=2 GDK_DPI_SCALE=1.5 smerge --new-window ."'
   '"gl"'     '"git l"'
   '"gp"'     '"git push"'
   '"gb"'     '"git branch"'
