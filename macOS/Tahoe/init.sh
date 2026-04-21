@@ -46,13 +46,18 @@ xcodebuild -downloadPlatform iOS
 brew install cocoapods swiftlint swiftformat
 
 # === CLI Packages ===
-brew install azure-cli yq jq git tree tmux trivy uv node ruff git-delta gh frpc glow openjdk@21 sing-box zsh
+brew install azure-cli yq jq
+brew install git tree tmux trivy
+brew install uv node ruff git-delta
+brew install gh frpc glow 
+brew install openjdk@21 sing-box zsh
 
 # bun
 curl -fsSL https://bun.sh/install | bash
 
 # === GUI Applications ===
-brew install --cask google-chrome microsoft-edge visual-studio-code sublime-text ghostty obsidian docker
+brew install --cask google-chrome microsoft-edge visual-studio-code
+brew install --cask sublime-text ghostty obsidian docker
 
 # === VS Code Extensions ===
 code --install-extension github.copilot
@@ -84,35 +89,13 @@ rm -rf $HOME/.zsh/plugins/zsh-history-substring-search
 git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-history-substring-search $HOME/.zsh/plugins/zsh-history-substring-search
 
 # === Vim Config ===
-cat > $HOME/.vimrc << EOF
-" Doc: https://linuxhint.com/vimrc_tutorial/
-
-set number
-syntax on
-set tabstop=4
-set autoindent
-set expandtab
-set cursorline
-set wildmenu
-set showmatch
-set incsearch
-set hlsearch
-set foldenable
-set foldlevelstart=10
-set foldmethod=indent
-set backspace=indent,eol,start
-
-set cursorcolumn
-set cursorline
-highlight CursorLine   cterm=NONE ctermbg=black ctermfg=yellow
-EOF
+wget https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/24.04/vimrc -O $HOME/.vimrc
 
 # === Sing-box ===
 mkdir -p $HOME/.sing-box
 curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/sing-box.config.json -o $HOME/.sing-box/config.json
 
 # === Azure CLI Config ===
-az extension add --upgrade --yes --name ml
 az config set extension.dynamic_install_allow_preview=true
 az config set extension.use_dynamic_install=yes_without_prompt
 

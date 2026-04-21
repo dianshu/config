@@ -26,8 +26,6 @@ mkdir -p $HOME/.sing-box
 wget https://raw.githubusercontent.com/dianshu/config/main/sing-box.config.json -O $HOME/.sing-box/config.json
 
 # azure cli
-# add ml extension
-az extension add --upgrade --yes --name ml
 az config set extension.dynamic_install_allow_preview=true
 az config set extension.use_dynamic_install=yes_without_prompt
 
@@ -66,28 +64,7 @@ command -v zsh | sudo tee -a /etc/shells
 sudo chsh -s `command -v zsh` ${USER}
 
 # vim related work
-cat > $HOME/.vimrc << EOF
-" Doc: https://linuxhint.com/vimrc_tutorial/
-
-set number
-syntax on
-set tabstop=4
-set autoindent
-set expandtab
-set cursorline
-set wildmenu
-set showmatch
-set incsearch
-set hlsearch
-set foldenable
-set foldlevelstart=10
-set foldmethod=indent
-set backspace=indent,eol,start
-
-set cursorcolumn
-set cursorline
-highlight CursorLine   cterm=NONE ctermbg=black ctermfg=yellow
-EOF
+wget https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/24.04/vimrc -O $HOME/.vimrc
 
 if uname -a | grep -qi "WSL"; then
     # add wsl.conf

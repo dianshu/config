@@ -4,6 +4,7 @@ typeset -g _zshrc_start=$EPOCHREALTIME
 typeset -g _zshrc_last=$EPOCHREALTIME
 typeset -g _zshrc_log=~/.zsh_startup.log
 typeset -ga _zshrc_marks=()
+typeset -g _zshrc_os=$(uname)
 _zshrc_mark() {
     local now=$EPOCHREALTIME
     _zshrc_marks+=("$(printf '  %-28s %6.0fms (+%4.0fms)' "$1" "$(( (now - _zshrc_start) * 1000 ))" "$(( (now - _zshrc_last) * 1000 ))")")
@@ -87,12 +88,12 @@ setopt HIST_FIND_NO_DUPS
 setopt HIST_IGNORE_ALL_DUPS
 
 # 索引 snap 安装的命令
-if [[ "$(uname)" != "Darwin" ]]; then
+if [[ "$_zshrc_os" != "Darwin" ]]; then
     export PATH=/snap:$PATH
 fi
 
 # 引入 homebrew 相关环境变量
-if [[ "$(uname)" == "Darwin" ]]; then
+if [[ "$_zshrc_os" == "Darwin" ]]; then
     eval "$(/opt/homebrew/bin/brew shellenv)"
 else
     eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
@@ -104,7 +105,7 @@ _zshrc_mark "brew shellenv"
 
 # 启用 az-cli 命令自动补全
 autoload -U +X bashcompinit && bashcompinit
-if [[ "$(uname)" == "Darwin" ]]; then
+if [[ "$_zshrc_os" == "Darwin" ]]; then
     source /opt/homebrew/etc/bash_completion.d/az
 else
     source /home/linuxbrew/.linuxbrew/etc/bash_completion.d/az
@@ -238,7 +239,7 @@ sb_stop() {
 }
 
 is_work() {
-    [[ "$(uname)" == "Darwin" ]] || [[ -d "/mnt/q" ]]
+    [[ "$_zshrc_os" == "Darwin" ]] || [[ -d "/mnt/q" ]]
 }
 
 cc_proxy() {
