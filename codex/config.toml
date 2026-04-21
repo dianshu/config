@@ -12,3 +12,6 @@ env_key = "HOME"
 
 [projects."/home/fei/repos"]
 trust_level = "trusted"
+
+[projects."/Users/fei/repos"]
+trust_level = "trusted"
