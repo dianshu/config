@@ -438,6 +438,10 @@ cc_sync() {
     local rel_path
     while IFS= read -r file_path; do
         rel_path="${file_path#claude/}"
+        if [[ "$rel_path" == "repos_claude.md" ]]; then
+            dl_with_backup "$raw_base/$file_path" "$HOME/repos/CLAUDE.md"
+            continue
+        fi
         dl_with_backup "$raw_base/$file_path" "$HOME/.claude/$rel_path"
         if [[ "$rel_path" == *.sh ]]; then
             chmod +x "$HOME/.claude/$rel_path"
