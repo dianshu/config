@@ -1,0 +1,10 @@
+# Splits
+keybind = cmd+shift+minus=new_split:down
+keybind = cmd+shift+equal=new_split:right
+keybind = cmd+shift+w=close_surface
+
+# Resize splits
+keybind = cmd+shift+left=resize_split:left,10
+keybind = cmd+shift+right=resize_split:right,10
+keybind = cmd+shift+up=resize_split:up,10
+keybind = cmd+shift+down=resize_split:down,10

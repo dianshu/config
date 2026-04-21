@@ -509,19 +509,35 @@ cc_sync() {
         claude plugin enable "$plugin" -s user 2>/dev/null
     done
 
-    # 4b. SearXNG config
+    # 4b. Glow configs
+    echo "\n=== Glow Config ==="
+    local glow_config="$HOME/.config/glow"
+    [[ -d "$glow_config" ]] && sudo chown -R "$(id -u):$(id -g)" "$glow_config"
+    dl_with_backup \
+        "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/glow/glow.yml" \
+        "$glow_config/glow.yml"
+
+    # 4c. Ghostty configs
+    echo "\n=== Ghostty Config ==="
+    local ghostty_config="$HOME/.config/ghostty"
+    [[ -d "$ghostty_config" ]] && sudo chown -R "$(id -u):$(id -g)" "$ghostty_config"
+    dl_with_backup \
+        "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/ghostty/config" \
+        "$ghostty_config/config"
+
+    # 4d. SearXNG config
     echo "\n=== SearXNG Config ==="
     local searxng_config="$HOME/.config/searxng"
     [[ -d "$searxng_config" ]] && sudo chown -R "$(id -u):$(id -g)" "$searxng_config"
     dl_with_backup \
-        "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/zsh/searxng-settings.yml" \
+        "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/searxng/settings.yml" \
         "$searxng_config/settings.yml"
 
-    # 4c. SearXNG Docker image
+    # 4e. SearXNG Docker image
     echo "\n=== SearXNG Docker Image ==="
     docker pull searxng/searxng
 
-    # 4d. MCP Servers (direct registration for servers not installable as plugins)
+    # 4f. MCP Servers (direct registration for servers not installable as plugins)
     echo "\n=== MCP Servers ==="
     claude mcp remove context7 -s user 2>/dev/null
     claude mcp add context7 -s user -- npx -y @upstash/context7-mcp
