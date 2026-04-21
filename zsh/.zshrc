@@ -229,6 +229,10 @@ sb_stop() {
     echo "sing-box stopped, Proxy OFF (shell + Docker daemon)"
 }
 
+is_work() {
+    [[ -d "/mnt/q" ]]
+}
+
 cc_proxy() {
     local port="${1:-29427}"
     local settings_file="$HOME/.claude/settings.json"
@@ -320,6 +324,19 @@ EOF
     tmux new-session -d -s cc_proxy "npx --yes @dianshuv/copilot-api@latest start -p $port -a enterprise --posthog-key $CC_POSTHOG_KEY"
     echo "copilot-api started in tmux session 'cc_proxy' (port $port)"
     echo "  attach: tmux attach -t cc_proxy"
+
+    # Start Agency MCP servers in separate tmux sessions (HTTP transport)
+    if is_work; then
+        for svc_port in "mail:30970" "s360-breeze:30971"; do
+            local svc="${svc_port%%:*}"
+            local p="${svc_port##*:}"
+            local name="${svc%%-*}"  # mail, s360
+            lsof -ti :"$p" | xargs kill -9 2>/dev/null
+            tmux kill-session -t "cc_$name" 2>/dev/null
+            tmux new-session -d -s "cc_$name" "agency mcp $svc --transport http --port $p"
+            echo "Agency MCP '$name' started in tmux session 'cc_$name' (port $p)"
+        done
+    fi
 }
 
 cc_clean() {
@@ -356,10 +373,6 @@ dl_with_backup() {
 }
 
 cc_sync() {
-    # Detect work vs personal environment
-    local is_work=false
-    [[ -d "/mnt/q" ]] && is_work=true
-
     # 1. Install or update Claude CLI
     echo "=== Claude CLI ==="
     if command -v claude &>/dev/null; then
@@ -381,7 +394,7 @@ cc_sync() {
 
     # 1c. Install or update Agency
     echo "\n=== Agency ==="
-    if [[ "$is_work" == true ]]; then
+    if is_work; then
         if command -v agency &>/dev/null; then
             agency update
         else
@@ -550,10 +563,10 @@ cc_sync() {
     echo "  MCP server 'chrome' configured"
     claude mcp remove mail -s user 2>/dev/null
     claude mcp remove s360 -s user 2>/dev/null
-    if [[ "$is_work" == true ]]; then
-        claude mcp add mail -s user -- agency mcp mail
-        claude mcp add s360 -s user -- agency mcp s360-breeze
-        echo "  MCP servers 'mail', 's360' configured"
+    if is_work; then
+        claude mcp add mail -s user --transport http http://localhost:30970
+        claude mcp add s360 -s user --transport http http://localhost:30971
+        echo "  MCP servers 'mail' (http), 's360' (http) configured"
     else
         echo "  Skipping Agency MCP servers (no work account available)"
     fi
