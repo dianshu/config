@@ -134,6 +134,15 @@
             "command": "bash ~/.claude/hooks/py-ruff.sh"
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/open-spec-plan.sh"
+          }
+        ]
       }
     ]
   },
@@ -149,6 +158,26 @@
     "code-simplifier@claude-plugins-official": true,
     "playground@claude-plugins-official": true,
     "skill-creator@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "microsoft-docs-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "microsoftdocs/mcp"
+      }
+    },
+    "anthropic-agent-skills": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/skills"
+      }
+    },
+    "superpowers-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "obra/superpowers-marketplace"
+      }
+    }
   },
   "outputStyle": "explanatory",
   "effortLevel": "high"
