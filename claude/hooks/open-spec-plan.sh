@@ -12,8 +12,8 @@ ESCAPED_PATH=$(printf '%s' "$FILE_PATH" | sed 's/[][\\.^$*+?(){}|]/\\&/g')
 pgrep -f "$GLOW.*$ESCAPED_PATH" &>/dev/null && exit 0
 
 if [[ -n "$WSL_DISTRO_NAME" ]]; then
-  wt.exe -w new --title "$TITLE" wsl.exe -d "$WSL_DISTRO_NAME" -- "$GLOW" -p -s dracula -w 0 "$FILE_PATH" &
+  wt.exe -w new --title "$TITLE" wsl.exe -d "$WSL_DISTRO_NAME" -- "$GLOW" "$FILE_PATH" &
 elif [[ "$OSTYPE" == darwin* ]]; then
-  ghostty -e "$GLOW" -p -s dracula -w 0 "$FILE_PATH" --title="$TITLE" &
+  ghostty -e "$GLOW" "$FILE_PATH" --title="$TITLE" &
 fi
 exit 0
