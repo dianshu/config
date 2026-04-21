@@ -87,10 +87,16 @@ setopt HIST_FIND_NO_DUPS
 setopt HIST_IGNORE_ALL_DUPS
 
 # 索引 snap 安装的命令
-export PATH=/snap:$PATH
+if [[ "$(uname)" != "Darwin" ]]; then
+    export PATH=/snap:$PATH
+fi
 
 # 引入 homebrew 相关环境变量
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+if [[ "$(uname)" == "Darwin" ]]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+else
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+fi
 _zshrc_mark "brew shellenv"
 
 # 启用 k8s 命令自动补全
@@ -98,7 +104,11 @@ _zshrc_mark "brew shellenv"
 
 # 启用 az-cli 命令自动补全
 autoload -U +X bashcompinit && bashcompinit
-source /home/linuxbrew/.linuxbrew/etc/bash_completion.d/az
+if [[ "$(uname)" == "Darwin" ]]; then
+    source /opt/homebrew/etc/bash_completion.d/az
+else
+    source /home/linuxbrew/.linuxbrew/etc/bash_completion.d/az
+fi
 _zshrc_mark "az completion"
 
 # enable docker buildkit
@@ -108,7 +118,7 @@ export PATH="$HOME/.local/bin:$PATH"
 export BROWSER=wslview
 
 # bun completions
-[ -s "/home/fei/.bun/_bun" ] && source "/home/fei/.bun/_bun"
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 _zshrc_mark "bun completion"
 
 # bun

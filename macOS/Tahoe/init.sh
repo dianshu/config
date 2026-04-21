@@ -65,3 +65,20 @@ curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/gitconfig -o $H
 git config --global --replace-all user.name "$GitUserName"
 git config --global --replace-all user.email "$GitUserEmail"
 git config --global credential.helper osxkeychain
+
+# === Zsh Plugins & Config ===
+curl -fsSL "https://raw.githubusercontent.com/dianshu/config/HEAD/zsh/.zshrc?${RANDOM}" -o $HOME/.zshrc
+
+mkdir -p $HOME/.zsh/plugins
+
+rm -rf $HOME/.zsh/plugins/zsh-abbr
+git clone --depth 1 --recurse-submodules https://github.com/olets/zsh-abbr $HOME/.zsh/plugins/zsh-abbr
+
+rm -rf $HOME/.zsh/plugins/zsh-autosuggestions
+git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-autosuggestions $HOME/.zsh/plugins/zsh-autosuggestions
+
+rm -rf $HOME/.zsh/plugins/zsh-syntax-highlighting
+git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-syntax-highlighting $HOME/.zsh/plugins/zsh-syntax-highlighting
+
+rm -rf $HOME/.zsh/plugins/zsh-history-substring-search
+git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-history-substring-search $HOME/.zsh/plugins/zsh-history-substring-search
