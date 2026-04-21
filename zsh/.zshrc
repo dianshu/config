@@ -115,7 +115,6 @@ _zshrc_mark "az completion"
 export DOCKER_BUILDKIT=1
 
 export PATH="$HOME/.local/bin:$PATH"
-export BROWSER=wslview
 
 # bun completions
 [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
