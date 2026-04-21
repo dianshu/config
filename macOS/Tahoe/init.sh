@@ -82,3 +82,42 @@ git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-syntax
 
 rm -rf $HOME/.zsh/plugins/zsh-history-substring-search
 git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-history-substring-search $HOME/.zsh/plugins/zsh-history-substring-search
+
+# === Vim Config ===
+cat > $HOME/.vimrc << EOF
+" Doc: https://linuxhint.com/vimrc_tutorial/
+
+set number
+syntax on
+set tabstop=4
+set autoindent
+set expandtab
+set cursorline
+set wildmenu
+set showmatch
+set incsearch
+set hlsearch
+set foldenable
+set foldlevelstart=10
+set foldmethod=indent
+set backspace=indent,eol,start
+
+set cursorcolumn
+set cursorline
+highlight CursorLine   cterm=NONE ctermbg=black ctermfg=yellow
+EOF
+
+# === Sing-box ===
+mkdir -p $HOME/.sing-box
+curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/sing-box.config.json -o $HOME/.sing-box/config.json
+
+# === Azure CLI Config ===
+az extension add --upgrade --yes --name ml
+az config set extension.dynamic_install_allow_preview=true
+az config set extension.use_dynamic_install=yes_without_prompt
+
+# === Repos Directory ===
+mkdir -p $HOME/repos
+
+echo "=== macOS Tahoe init complete ==="
+echo "Please restart your terminal or run: source ~/.zshrc"

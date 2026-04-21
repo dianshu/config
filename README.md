@@ -8,4 +8,5 @@
 6. Ubuntu 初始化脚本
 7. Windows 配置（PowerShell, Windows Terminal, Tabby, devbox, pc）
 8. sing-box 代理配置（sing-box.config.json）
+9. macOS 初始化脚本
 ```
