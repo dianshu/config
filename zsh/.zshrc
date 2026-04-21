@@ -530,12 +530,10 @@ cc_sync() {
     echo "  MCP server 'chrome' configured"
     claude mcp remove mail -s user 2>/dev/null
     claude mcp remove s360 -s user 2>/dev/null
-    claude mcp remove teams -s user 2>/dev/null
     if [[ "$is_work" == true ]]; then
         claude mcp add mail -s user -- agency mcp mail
         claude mcp add s360 -s user -- agency mcp s360-breeze
-        claude mcp add teams -s user -- agency mcp teams
-        echo "  MCP servers 'mail', 's360', 'teams' configured"
+        echo "  MCP servers 'mail', 's360' configured"
     else
         echo "  Skipping Agency MCP servers (no work account available)"
     fi
