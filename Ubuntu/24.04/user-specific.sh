@@ -106,4 +106,3 @@ sudo locale-gen
 
 # prepare git repos
 mkdir -p $HOME/repos
-wget https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/CLAUDE.md -O $HOME/repos/CLAUDE.md
