@@ -230,7 +230,7 @@ sb_stop() {
 }
 
 is_work() {
-    [[ -d "/mnt/q" ]]
+    [[ "$(uname)" == "Darwin" ]] || [[ -d "/mnt/q" ]]
 }
 
 cc_proxy() {
