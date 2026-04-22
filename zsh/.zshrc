@@ -539,13 +539,21 @@ cc_sync() {
         "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/glow/glow.yml" \
         "$glow_config/glow.yml"
 
-    # 4c. Ghostty configs
-    echo "\n=== Ghostty Config ==="
+    # 4c. cmux terminal configs (cmux reads ghostty config for fonts/themes)
+    echo "\n=== cmux Terminal Config ==="
     local ghostty_config="$HOME/.config/ghostty"
     [[ -d "$ghostty_config" ]] && sudo chown -R "$(id -u):$(id -g)" "$ghostty_config"
     dl_with_backup \
         "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/ghostty/config" \
         "$ghostty_config/config"
+
+    # 4c2. cmux settings
+    echo "\n=== cmux Settings ==="
+    local cmux_config="$HOME/.config/cmux"
+    [[ -d "$cmux_config" ]] && sudo chown -R "$(id -u):$(id -g)" "$cmux_config"
+    dl_with_backup \
+        "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/cmux/settings.json" \
+        "$cmux_config/settings.json"
 
     # 4d. SearXNG config
     echo "\n=== SearXNG Config ==="
