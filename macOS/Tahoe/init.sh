@@ -107,11 +107,11 @@ rm -rf $HOME/.zsh/plugins/zsh-history-substring-search
 git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-history-substring-search $HOME/.zsh/plugins/zsh-history-substring-search
 
 # === Vim Config ===
-wget https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/24.04/vimrc -O $HOME/.vimrc
+wget https://raw.githubusercontent.com/dianshu/config/refs/heads/main/vimrc -O $HOME/.vimrc
 
 # === Sing-box ===
 mkdir -p $HOME/.sing-box
-curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/sing-box.config.json -o $HOME/.sing-box/config.json
+curl -fsSL https://raw.githubusercontent.com/dianshu/config/refs/heads/main/sing-box.config.json -o $HOME/.sing-box/config.json
 
 # === Azure CLI Config ===
 az config set extension.dynamic_install_allow_preview=true
