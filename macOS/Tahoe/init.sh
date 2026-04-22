@@ -23,7 +23,7 @@ defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
 defaults write com.apple.AppleMultitouchTrackpad TrackpadThreeFingerDrag -bool true
 
 # 跟踪速度（0~3，默认约1）
-defaults write NSGlobalDomain com.apple.trackpad.scaling -float 2.0
+defaults write NSGlobalDomain com.apple.trackpad.scaling -float 1.5
 
 # 自然滚动方向（true=自然，false=传统）
 defaults write NSGlobalDomain com.apple.swipescrolldirection -bool true
