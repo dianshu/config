@@ -72,7 +72,7 @@ brew install openjdk@21 sing-box zsh
 curl -fsSL https://bun.sh/install | bash
 
 # === GUI Applications ===
-brew install --cask google-chrome microsoft-edge visual-studio-code
+brew install --cask google-chrome visual-studio-code
 brew install --cask sublime-text obsidian docker
 brew tap manaflow-ai/cmux
 brew install --cask cmux
