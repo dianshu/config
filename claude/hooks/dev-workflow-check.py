@@ -37,7 +37,18 @@ EXCLUDED_PATH_PATTERNS = [
     "/.claude/agents/",
     "/.claude/skills/",
     "/config/claude/",
+    "/plugins/",
 ]
+
+# Non-code file extensions — edits to these never trigger the gate
+EXCLUDED_EXTENSIONS = {
+    ".md", ".txt", ".rst", ".adoc",
+    ".json", ".yml", ".yaml", ".toml", ".ini", ".cfg", ".conf",
+    ".env", ".env.example", ".env.local",
+    ".gitignore", ".gitattributes", ".editorconfig",
+    ".csv", ".tsv",
+    ".lock",
+}
 
 SKIP_PATTERN = re.compile(
     r"SKIP:\s*(simplify|codex-review|gemini-review|e2e-verify|verification-before-completion)"
@@ -47,7 +58,17 @@ SKIP_PATTERN = re.compile(
 
 
 def is_excluded_path(file_path):
-    return any(pat in file_path for pat in EXCLUDED_PATH_PATTERNS)
+    if any(pat in file_path for pat in EXCLUDED_PATH_PATTERNS):
+        return True
+    _, ext = os.path.splitext(file_path)
+    if ext.lower() in EXCLUDED_EXTENSIONS:
+        return True
+    basename = os.path.basename(file_path).upper()
+    return basename in {
+        "README", "CHANGELOG", "LICENSE",
+        "MAKEFILE", "DOCKERFILE",
+        "CLAUDE", "GEMINI", "AGENTS",
+    }
 
 
 def scan_transcript(transcript_path):

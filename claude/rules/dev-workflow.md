@@ -1,4 +1,12 @@
-Follow this workflow when writing code, implementing features, or fixing bugs:
+Follow this workflow when writing code, implementing features, or fixing bugs.
+
+**Scope exclusion:** This workflow (including the HARD-GATE) does NOT apply to non-code changes:
+- Documentation files (`.md`, `.txt`, `.rst`, README, CHANGELOG)
+- Configuration/rules files (`.json`, `.yml`, `.yaml`, `.toml`, settings, CLAUDE.md, rules/)
+- Skills, prompts, and other meta-files (`.claude/`, `skills/`, `plugins/`)
+- Pure content edits (copywriting, comments-only changes)
+
+For these changes, skip the entire post-implementation loop. Just make the change and report it.
 
 1. **Before implementation**: Use the /superpowers:test-driven-development skill. Always write tests first.
 
