@@ -90,6 +90,7 @@ brew install --cask google-chrome visual-studio-code
 brew install --cask sublime-text obsidian docker
 brew tap manaflow-ai/cmux
 brew install --cask cmux
+brew install --cask mos@beta
 
 # === VS Code Extensions ===
 code --install-extension github.copilot
