@@ -34,13 +34,13 @@ brew install mas
 
 # NOTE: mas requires an active App Store login. If not signed in,
 # run 'open /System/Applications/App\ Store.app' and sign in first.
-echo "Installing Xcode from App Store (this may take 10+ minutes)..."
-mas install 497799835  # Xcode
+# echo "Installing Xcode from App Store (this may take 10+ minutes)..."
+# mas install 497799835  # Xcode
 
-sudo xcodebuild -license accept
-xcode-select --switch /Applications/Xcode.app/Contents/Developer
-xcodebuild -runFirstLaunch
-xcodebuild -downloadPlatform iOS
+# sudo xcodebuild -license accept
+# xcode-select --switch /Applications/Xcode.app/Contents/Developer
+# xcodebuild -runFirstLaunch
+# xcodebuild -downloadPlatform iOS
 
 # iOS dev tools
 brew install cocoapods swiftlint swiftformat
