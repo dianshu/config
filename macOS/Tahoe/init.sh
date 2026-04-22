@@ -26,13 +26,10 @@ defaults write com.apple.AppleMultitouchTrackpad TrackpadThreeFingerDrag -bool t
 defaults write NSGlobalDomain com.apple.trackpad.scaling -float 2.0
 
 # 自然滚动方向（true=自然，false=传统）
-defaults write NSGlobalDomain com.apple.swipescrolldirection -bool false
+defaults write NSGlobalDomain com.apple.swipescrolldirection -bool true
 
 # 右键点击（双指点击）
 defaults write com.apple.AppleMultitouchTrackpad TrackpadRightClick -bool true
-
-# === Timezone ===
-sudo systemsetup -settimezone Asia/Shanghai
 
 # === Homebrew ===
 if command -v brew &>/dev/null; then
