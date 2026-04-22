@@ -17,6 +17,7 @@ ENTR_CMD="echo '$FILE_PATH' | $ENTR -c $GLOW /_"
 if [[ -n "$WSL_DISTRO_NAME" ]]; then
   wt.exe -w new --title "$TITLE" wsl.exe -d "$WSL_DISTRO_NAME" -- bash -c "$ENTR_CMD" &
 elif [[ "$OSTYPE" == darwin* ]]; then
-  ghostty -e bash -c "$ENTR_CMD" --title="$TITLE" &
+  cmux new-split down
+  cmux send "$ENTR_CMD\n"
 fi
 exit 0
