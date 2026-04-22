@@ -4,6 +4,7 @@ Follow this workflow when writing code, implementing features, or fixing bugs.
 - Documentation files (`.md`, `.txt`, `.rst`, README, CHANGELOG)
 - Configuration/rules files (`.json`, `.yml`, `.yaml`, `.toml`, settings, CLAUDE.md, rules/)
 - Skills, prompts, and other meta-files (`.claude/`, `skills/`, `plugins/`)
+- Office/document files (`.docx`, `.xlsx`, `.pptx`, `.pdf`, `.csv`)
 - Pure content edits (copywriting, comments-only changes)
 
 For these changes, skip the entire post-implementation loop. Just make the change and report it.

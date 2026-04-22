@@ -47,6 +47,7 @@ EXCLUDED_EXTENSIONS = {
     ".env", ".env.example", ".env.local",
     ".gitignore", ".gitattributes", ".editorconfig",
     ".csv", ".tsv",
+    ".docx", ".xlsx", ".pptx", ".pdf",
     ".lock",
 }
 
