@@ -31,6 +31,23 @@ defaults write NSGlobalDomain com.apple.swipescrolldirection -bool true
 # 右键点击（双指点击）
 defaults write com.apple.AppleMultitouchTrackpad TrackpadRightClick -bool true
 
+# === Dock ===
+# 开启放大效果
+defaults write com.apple.dock magnification -bool true
+
+# 放大比例（64~256）
+defaults write com.apple.dock largesize -float 128
+
+# 图标默认大小
+defaults write com.apple.dock tilesize -float 48
+
+# 最小化窗口动画效果（genie/scale/suck）
+defaults write com.apple.dock mineffect -string "genie"
+
+# 将窗口最小化至应用程序图标
+defaults write com.apple.dock minimize-to-application -bool true
+
+killall Dock
 # === Homebrew ===
 if command -v brew &>/dev/null; then
     echo "Homebrew already installed, updating..."
