@@ -15,6 +15,22 @@ fi
 read -p "Git User Name: " GitUserName
 read -p "Git User Email: " GitUserEmail
 
+# === TrackPad ===
+# 轻点替代点按（Tap to Click）
+defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
+
+# 拖移手势（三指拖移）
+defaults write com.apple.AppleMultitouchTrackpad TrackpadThreeFingerDrag -bool true
+
+# 跟踪速度（0~3，默认约1）
+defaults write NSGlobalDomain com.apple.trackpad.scaling -float 2.0
+
+# 自然滚动方向（true=自然，false=传统）
+defaults write NSGlobalDomain com.apple.swipescrolldirection -bool false
+
+# 右键点击（双指点击）
+defaults write com.apple.AppleMultitouchTrackpad TrackpadRightClick -bool true
+
 # === Timezone ===
 sudo systemsetup -settimezone Asia/Shanghai
 
