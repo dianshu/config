@@ -65,7 +65,7 @@ brew install cocoapods swiftlint swiftformat
 brew install azure-cli yq jq
 brew install git tree tmux trivy
 brew install uv node ruff git-delta
-brew install gh frpc glow 
+brew install gh frpc glow wget
 brew install openjdk@21 sing-box zsh
 
 # bun
