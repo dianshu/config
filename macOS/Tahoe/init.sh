@@ -34,6 +34,9 @@ defaults write com.apple.AppleMultitouchTrackpad TrackpadRightClick -bool true
 # 鼠标光标大小设置成 2
 defaults write "Apple Global Domain" cursorSize -float 2.0
 
+# 关闭 点按墙纸以显示桌面
+defaults write com.apple.WindowManager EnableStandardClickToShowDesktop -bool false
+
 # === Dock ===
 # 开启放大效果
 defaults write com.apple.dock magnification -bool true
