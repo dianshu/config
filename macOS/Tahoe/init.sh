@@ -94,8 +94,7 @@ curl -fsSL https://bun.sh/install | bash
 # === GUI Applications ===
 brew install --cask google-chrome visual-studio-code
 brew install --cask sublime-text obsidian docker
-brew tap manaflow-ai/cmux
-brew install --cask cmux
+brew install --cask iterm2
 brew install --cask mos@beta
 brew install --cask hiddenbar
 brew install --cask git-credential-manager
