@@ -31,6 +31,9 @@ defaults write NSGlobalDomain com.apple.swipescrolldirection -bool true
 # 右键点击（双指点击）
 defaults write com.apple.AppleMultitouchTrackpad TrackpadRightClick -bool true
 
+# 鼠标光标大小设置成 2
+defaults write "Apple Global Domain" cursorSize -float 2.0
+
 # === Dock ===
 # 开启放大效果
 defaults write com.apple.dock magnification -bool true
