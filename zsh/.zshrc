@@ -531,30 +531,6 @@ cc_sync() {
         claude plugin enable "$plugin" -s user 2>/dev/null
     done
 
-    # 4b. Glow configs
-    echo "\n=== Glow Config ==="
-    local glow_config="$HOME/.config/glow"
-    [[ -d "$glow_config" ]] && sudo chown -R "$(id -u):$(id -g)" "$glow_config"
-    dl_with_backup \
-        "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/glow/glow.yml" \
-        "$glow_config/glow.yml"
-
-    # 4c. cmux terminal configs (cmux reads ghostty config for fonts/themes)
-    echo "\n=== cmux Terminal Config ==="
-    local ghostty_config="$HOME/.config/ghostty"
-    [[ -d "$ghostty_config" ]] && sudo chown -R "$(id -u):$(id -g)" "$ghostty_config"
-    dl_with_backup \
-        "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/ghostty/config" \
-        "$ghostty_config/config"
-
-    # 4c2. cmux settings
-    echo "\n=== cmux Settings ==="
-    local cmux_config="$HOME/.config/cmux"
-    [[ -d "$cmux_config" ]] && sudo chown -R "$(id -u):$(id -g)" "$cmux_config"
-    dl_with_backup \
-        "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/cmux/settings.json" \
-        "$cmux_config/settings.json"
-
     # 4d. SearXNG config
     echo "\n=== SearXNG Config ==="
     local searxng_config="$HOME/.config/searxng"
