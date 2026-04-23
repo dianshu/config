@@ -3,8 +3,8 @@
   "schemaVersion": 1,
   "shortcuts": {
     "bindings": {
-      "splitDown": "cmd+shift+-",
-      "splitRight": "cmd+shift+="
+      "splitDown": "option+shift+-",
+      "splitRight": "option+shift+="
     }
   }
 }
