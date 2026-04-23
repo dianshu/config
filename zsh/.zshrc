@@ -612,7 +612,7 @@ cc_remote() {
 
 cc_remote_stop() {
     tmux kill-session -t cc_remote 2>/dev/null
-    fuser -k "${CC_REMOTE_PORT}/tcp" 2>/dev/null
+    lsof -ti tcp:"${CC_REMOTE_PORT}" | xargs kill -9 2>/dev/null || true
     echo "cc_remote stopped"
 }
 _zshrc_mark "functions"
