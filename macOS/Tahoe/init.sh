@@ -98,6 +98,7 @@ brew tap manaflow-ai/cmux
 brew install --cask cmux
 brew install --cask mos@beta
 brew install --cask hiddenbar
+brew install --cask git-credential-manager
 
 # === VS Code Extensions ===
 code --install-extension github.copilot
