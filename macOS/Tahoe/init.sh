@@ -101,6 +101,10 @@ brew install git tree tmux trivy
 brew install uv node ruff git-delta
 brew install gh glow wget entr
 brew install openjdk@21 sing-box zsh python@3.13
+brew install frpc
+# If frpc binary disappears (Microsoft Defender quarantines it as Misleading:MacOS/FRP.A!MTB):
+#   sudo mdatp exclusion folder add --path /opt/homebrew/Cellar/frpc/
+#   brew reinstall frpc
 
 # Override macOS system python3 (3.9.6) with Homebrew's
 ln -sf /opt/homebrew/bin/python3.13 /opt/homebrew/bin/python3
