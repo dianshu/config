@@ -100,7 +100,10 @@ brew install azure-cli yq jq
 brew install git tree tmux trivy
 brew install uv node ruff git-delta
 brew install gh glow wget entr
-brew install openjdk@21 sing-box zsh
+brew install openjdk@21 sing-box zsh python@3.13
+
+# Override macOS system python3 (3.9.6) with Homebrew's
+ln -sf /opt/homebrew/bin/python3.13 /opt/homebrew/bin/python3
 
 # bun
 curl -fsSL https://bun.sh/install | bash
