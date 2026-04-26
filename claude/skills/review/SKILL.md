@@ -14,6 +14,7 @@ Reviews uncommitted git changes or implementation plans using multi-lens adversa
 |--------|-------|--------|
 | PREFLIGHT_CMD | `codex --version 2>/dev/null` | `gemini --version 2>/dev/null` |
 | DISPATCH_CMD | `codex exec - --cd "$(pwd)" --ephemeral --full-auto` | `gemini -p '' --approval-mode yolo --output-format text` |
+| READONLY_DISPATCH_CMD | `codex exec - --cd "$(pwd)" --ephemeral -s read-only` | `gemini -p '' --approval-mode plan --output-format text` |
 | PLAN_DISPATCH_CMD | `codex exec - --skip-git-repo-check --ephemeral` | `gemini -p '' --approval-mode yolo --output-format text` |
 | MODE_LABEL | codex-adversarial | gemini-adversarial |
 | NOISE_FILTER | `grep -vE "^OpenAI Codex\|^----\|^workdir:\|^model:\|^provider:\|^approval:\|^sandbox:\|^reasoning\|^session id:\|^$"` | `grep -vE "^YOLO mode\|^$\|^\[STARTUP\]"` |
@@ -83,8 +84,8 @@ fi
 | Scale | Condition | Reviewers |
 |-------|-----------|-----------|
 | Light | < 50 lines | Challenger only |
-| Medium | 50–200 lines | Challenger + Architect + Devil's Advocate |
-| Heavy | 200+ lines OR 3+ dirs | Challenger + Architect + Subtractor + Devil's Advocate |
+| Medium | 50–199 lines | Challenger + Architect + Integration + Devil's Advocate |
+| Heavy | 200+ lines OR 3+ dirs | Challenger + Architect + Integration + Subtractor + Devil's Advocate |
 
 ### A2.5. Prepare Diff Content
 
@@ -262,6 +263,42 @@ Output format (one per finding, max 10):
 If nothing found, output: LGTM
 ```
 
+#### Integration Lens
+
+Input: prepared diff (`$TMPDIR/challenger_diff.txt`)
+
+Prompt:
+```
+You are the INTEGRATION reviewer. The diff may be correct in isolation — your job is to find where it breaks the surrounding system.
+
+Intent: {intent}
+
+You have READ-ONLY access to the codebase. Do NOT modify any files. You may read any file, grep, and trace references.
+
+For each changed function, class, or export in the diff:
+1. Find all callers and consumers (grep, read imports, trace references)
+2. Check if the change violates any assumptions those callers depend on
+3. Trace data flow through the change — does upstream input still produce correct downstream output?
+
+If the diff input is truncated or stat-only for some files, read the actual changed files from the codebase to identify changed symbols before tracing callers. For deleted or renamed files, use `git diff --name-status` to identify the old path and check callers of the removed/renamed exports.
+
+Checklist:
+- Behavioral changes that callers don't expect (same signature, different semantics)
+- Implicit contracts broken (ordering, nullability, error types, timing)
+- Configuration or environment assumptions that no longer hold
+- Middleware/pipeline/hook interactions that conflict with the change
+- State mutations that affect other components reading the same state
+- Missing updates to callers that need to adapt to the change
+
+Do NOT flag issues already visible in the diff itself — the Challenger handles those.
+Focus on what breaks OUTSIDE the changed files.
+
+Output format (one per finding, max 10):
+[!]/[~]/[.] `file:line` changed behavior → affected caller/consumer → impact
+
+If nothing found, output: LGTM
+```
+
 #### Devil's Advocate Lens
 
 Input: prepared diff (`$TMPDIR/challenger_diff.txt`)
@@ -326,6 +363,14 @@ PROMPT
 PROMPT
 } | ${DISPATCH_CMD} > "$TMPDIR/devils_advocate.txt" 2>&1 &
 
+# Integration (Medium/Heavy)
+{ cat "$TMPDIR/challenger_diff.txt"; cat <<'PROMPT'
+
+---
+{integration prompt with intent filled in}
+PROMPT
+} | ${READONLY_DISPATCH_CMD} > "$TMPDIR/integration.txt" 2>&1 &
+
 wait
 ```
 
@@ -334,7 +379,7 @@ wait
 ```bash
 FAIL_PATTERNS="Retry attempts exhausted|Error executing tool|NumericalClassifier"
 
-for LENS in challenger architect subtractor devils_advocate; do
+for LENS in challenger architect subtractor devils_advocate integration; do
     FILE="$TMPDIR/${LENS}.txt"
     [ ! -f "$FILE" ] && continue
     CONTENT=$(${NOISE_FILTER} "$FILE" | head -3)
@@ -353,6 +398,7 @@ When no external CLI is available, spawn independent Claude Agent sub-agents per
 - Gets its lens-specific prompt
 - Gets the prepared diff content directly in the prompt
 - Cannot see other agents' output (isolation is automatic with separate Agent calls)
+- Integration lens (Medium/Heavy only): additionally instructed to use Read and Bash tools to explore the codebase for callers and consumers
 
 Run agents in parallel by making multiple Agent tool calls in a single message. Use `subagent_type: "general-purpose"` for each.
 
@@ -378,7 +424,7 @@ Collect all findings from all lenses and the red-line scan. Produce a structured
 
 **Scale**: Light / Medium / Heavy
 **Mode**: ${MODE_LABEL} / single-model-multi-lens
-**Reviewers**: Challenger [+ Architect] [+ Devil's Advocate] [+ Subtractor]
+**Reviewers**: Challenger [+ Architect] [+ Integration] [+ Devil's Advocate] [+ Subtractor]
 **Filtered**: {EXCLUDED_COUNT} noise files excluded, {LARGE_FILE_COUNT} large files summarized, {BUDGET_TRUNCATED} lines budget-truncated
 
 ### Verdict: PASS / CONTESTED / REJECT
