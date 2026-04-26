@@ -94,6 +94,19 @@ brew install mas
 brew install cocoapods swiftlint swiftformat
 brew tap getsentry/xcodebuildmcp && brew install xcodebuildmcp
 gem install xcodeproj
+uv tool install --upgrade pymobiledevice3
+
+# pymobiledevice3 tunneld (iOS 17+ device screenshot/debug requires root tunnel)
+TUNNELD_PLIST="/Library/LaunchDaemons/com.pymobiledevice3.tunneld.plist"
+if [[ ! -f "$TUNNELD_PLIST" ]]; then
+    PMD3_BIN="$(which pymobiledevice3)"
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    sed "s|__PMD3_BIN__|${PMD3_BIN}|g" "$SCRIPT_DIR/com.pymobiledevice3.tunneld.plist" | sudo tee "$TUNNELD_PLIST" > /dev/null
+    sudo launchctl load "$TUNNELD_PLIST"
+    echo "pymobiledevice3 tunneld installed and started."
+else
+    echo "pymobiledevice3 tunneld already configured, skipping."
+fi
 
 # === CLI Packages ===
 brew install azure-cli yq jq
