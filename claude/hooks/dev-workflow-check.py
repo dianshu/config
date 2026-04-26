@@ -38,6 +38,7 @@ EXCLUDED_PATH_PATTERNS = [
     "/.claude/skills/",
     "/config/claude/",
     "/plugins/",
+    "/tmp/",
 ]
 
 # Non-code file extensions — edits to these never trigger the gate
@@ -49,6 +50,9 @@ EXCLUDED_EXTENSIONS = {
     ".csv", ".tsv",
     ".docx", ".xlsx", ".pptx", ".pdf",
     ".lock",
+    ".sh", ".bash", ".zsh", ".fish",
+    ".plist", ".entitlements", ".xcscheme", ".pbxproj",
+    ".xml", ".xib", ".storyboard",
 }
 
 SKIP_PATTERN = re.compile(
@@ -65,6 +69,9 @@ def is_excluded_path(file_path):
     if ext.lower() in EXCLUDED_EXTENSIONS:
         return True
     basename = os.path.basename(file_path).upper()
+    # dotfiles: splitext treats leading dot as name, not extension
+    if basename.startswith("."):
+        return True
     return basename in {
         "README", "CHANGELOG", "LICENSE",
         "MAKEFILE", "DOCKERFILE",
