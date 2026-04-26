@@ -101,7 +101,7 @@ brew install git tree tmux trivy
 brew install uv node ruff git-delta
 brew install gh glow wget entr
 brew install openjdk@21 sing-box zsh python@3.13
-brew install frpc
+brew install frpc libimobiledevice
 # If frpc binary disappears (Microsoft Defender quarantines it as Misleading:MacOS/FRP.A!MTB):
 #   sudo mdatp exclusion folder add --path /opt/homebrew/Cellar/frpc/
 #   brew reinstall frpc
