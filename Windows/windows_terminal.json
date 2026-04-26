@@ -1,0 +1,131 @@
+{
+    "$help": "https://aka.ms/terminal-documentation",
+    "$schema": "https://aka.ms/terminal-profiles-schema",
+    "actions": [],
+    "copyFormatting": "none",
+    "copyOnSelect": true,
+    "defaultInputScope": "alphanumericHalfWidth",
+    "defaultProfile": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+    "keybindings": 
+    [
+        {
+            "command": "paste",
+            "mouseButtons": "right"
+        },
+        {
+            "command": "paste",
+            "keys": "ctrl+v"
+        },
+        {
+            "command": 
+            {
+                "action": "copy",
+                "singleLine": false
+            },
+            "keys": "ctrl+c"
+        },
+        {
+            "command": "closePane",
+            "keys": "alt+shift+w"
+        },
+        {
+            "command": "unbound",
+            "keys": "enter"
+        },
+        {
+            "command": "unbound",
+            "keys": "ctrl+insert"
+        },
+        {
+            "command": "unbound",
+            "keys": "ctrl+shift+c"
+        },
+        {
+            "command": "unbound",
+            "keys": "ctrl+shift+w"
+        },
+        {
+            "command": "unbound",
+            "keys": "shift+insert"
+        },
+        {
+            "command": "unbound",
+            "keys": "ctrl+shift+v"
+        }
+    ],
+    "newTabMenu": 
+    [
+        {
+            "type": "remainingProfiles"
+        }
+    ],
+    "newTabPosition": "afterCurrentTab",
+    "window":
+    {
+        "useMica": false,
+        "useAcrylicInTabRow": true,
+        "showTabsInTitlebar": true,
+        "showTitleInTitlebar": false
+    },
+    "profiles": 
+    {
+        "defaults": 
+        {
+            "colorScheme": "One Half Dark",
+            "font": 
+            {
+                "face": "Consolas",
+                "size": 13
+            },
+            "opacity": 80
+        },
+        "list": 
+        [
+            {
+                "commandline": "C:\\Windows\\system32\\wsl.exe -d Ubuntu-24.04",
+                "guid": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+                "hidden": false,
+                "name": "Ubuntu-24.04",
+                "startingDirectory": "~/repos"
+            },
+            {
+                "commandline": "pwsh",
+                "guid": "{e72abb56-ab17-50cf-9780-9bbd9b2b850c}",
+                "hidden": false,
+                "name": "Pwsh"
+            },
+            {
+                "commandline": "C:\\Windows\\system32\\wsl.exe -d Ubuntu-24.04  -- ssh -p 22 neo4j@1.1.1.1",
+                "guid": "{6805683d-f6fa-4d83-a3c5-7f910f7eb659}",
+                "hidden": false,
+                "icon": "ms-appx:///ProfileIcons/pwsh.png",
+                "name": "Mem0-Neo4j-SoutheastAsia"
+            },
+            {
+                "commandline": "C:\\Windows\\system32\\wsl.exe -d Ubuntu-24.04  -- ssh -p 22 neo4j@2.2.2.2",
+                "guid": "{5a139e12-1ef0-4f0e-8ba9-bb8c20642d5e}",
+                "hidden": false,
+                "icon": "ms-appx:///ProfileIcons/pwsh.png",
+                "name": "Mem0-Neo4j-WestUS3"
+            },
+            {
+                "commandline": "%SystemRoot%\\System32\\cmd.exe",
+                "guid": "{0c63d969-ef2e-52d4-8736-68efbb78152d}",
+                "hidden": false,
+                "name": "Command Prompt"
+            },
+            {
+                "commandline": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                "guid": "{c993c0b6-0023-5562-a928-3ea11eb283ce}",
+                "hidden": true,
+                "name": "Windows PowerShell"
+            }
+        ]
+    },
+    "schemes": [],
+    "theme": "dark",
+    "themes": [],
+    "warning.confirmCloseAllTabs": false,
+    "confirmCloseAllTabs": false,
+    "windowingBehavior": "useNew"
+}

@@ -1,0 +1,17 @@
+confirm-close-surface = false
+quit-after-last-window-closed = true
+font-family = SF Mono
+font-size = 16
+working-directory = ~/repos
+
+keybind = opt+shift+minus=new_split:down
+keybind = opt+shift+equal=new_split:right
+keybind = opt+shift+w=close_surface
+keybind = opt+shift+up=resize_split:up,20
+keybind = opt+shift+down=resize_split:down,20
+keybind = opt+shift+left=resize_split:left,20
+keybind = opt+shift+right=resize_split:right,20
+
+background-opacity = 0.8
+
+theme = GitLab Dark

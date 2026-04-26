@@ -1,0 +1,17 @@
+# Codex CLI configuration
+
+model = "gpt-5.5"
+model_provider = "local-proxy"
+model_reasoning_effort = "high"
+
+[model_providers.local-proxy]
+name = "Local Proxy"
+base_url = "http://localhost:29427/v1"
+wire_api = "responses"
+env_key = "HOME"
+
+[projects."/home/fei/repos"]
+trust_level = "trusted"
+
+[projects."/Users/fei/repos"]
+trust_level = "trusted"

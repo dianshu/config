@@ -1,0 +1,184 @@
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://localhost:29427",
+    "ANTHROPIC_AUTH_TOKEN": "your-anthropic-auth-token",
+    "CLAUDE_CODE_SKIP_AUTH_LOGIN": "true",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_NO_FLICKER": "1",
+    "CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "1"
+  },
+  "permissions": {
+    "allow": [
+      "Bash",
+      "WebFetch",
+      "WebSearch",
+      "mcp__plugin_microsoft-docs_microsoft-learn",
+      "mcp__context7",
+      "mcp__searxng",
+      "mcp__chrome",
+      "mcp__mail",
+      "mcp__s360",
+      "mcp__xcodebuildmcp",
+      "Write(~/repos/**)",
+      "Write(/tmp/**)",
+      "Write(~/.claude/**)",
+      "Write(~/.codex/**)",
+      "Write(~/.gemini/**)",
+      "Skill(codex-review)",
+      "Skill(gemini-review)",
+      "Skill(review)"
+    ],
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git reset --hard:*)"
+    ],
+    "defaultMode": "default",
+    "additionalDirectories": [
+      "~/",
+      "/tmp/"
+    ]
+  },
+  "model": "claude-opus-4-6[1m]",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/session-context.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/session-deps-check.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/session-learnings.sh"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/notify.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/dev-workflow-gate.sh",
+            "statusMessage": "Checking dev-workflow compliance..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "mcp__chrome__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/chrome-ensure.sh",
+            "statusMessage": "Ensuring Chrome is running..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/dev-workflow-gate-precommit.sh",
+            "statusMessage": "Checking dev-workflow before commit..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/swift-build-check.sh",
+            "statusMessage": "Running xcodebuild warning check..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/ts-typecheck.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/py-syntaxcheck.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/py-ruff.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/swift-lint.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/open-spec-plan.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline.sh",
+    "padding": 0
+  },
+  "outputStyle": "explanatory",
+  "effortLevel": "high"
+}

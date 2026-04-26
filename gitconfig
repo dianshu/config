@@ -1,0 +1,36 @@
+[alias]
+        l = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %Cred[%cr] %C(bold blue)<%an>%Creset' --abbrev-commit
+[log]
+        date = format-local:%Y-%m-%d %H:%M:%S
+[core]
+        editor = vim
+        pager = delta
+[interactive]
+        diffFilter = delta --color-only
+[delta]
+        navigate = true
+        side-by-side = true
+[merge]
+        conflictstyle = zdiff3
+[diff]
+        colorMoved = default
+[push]
+        autoSetupRemote = true
+[credential "https://dev.azure.com"]
+        useHttpPath = true
+[pull]
+        rebase = false
+[init]
+        defaultBranch = main
+[includeIf "hasconfig:remote.*.url:https://github.com/**"]
+        path = ~/.gitconfig-github
+[includeIf "hasconfig:remote.*.url:git@github.com:*/**"]
+        path = ~/.gitconfig-github
+[includeIf "hasconfig:remote.*.url:https://dev.azure.com/**"]
+        path = ~/.gitconfig-ado
+[includeIf "hasconfig:remote.*.url:https://*@dev.azure.com/**"]
+        path = ~/.gitconfig-ado
+[includeIf "hasconfig:remote.*.url:git@ssh.dev.azure.com:*/**"]
+        path = ~/.gitconfig-ado
+[credential]
+        helper = manager
