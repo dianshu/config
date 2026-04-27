@@ -94,7 +94,23 @@ brew install mas
 brew install cocoapods swiftlint swiftformat
 brew tap getsentry/xcodebuildmcp && brew install xcodebuildmcp
 gem install xcodeproj
-uv tool install --upgrade pymobiledevice3
+# pymobiledevice3: check for updates, use sudo to fix permissions if needed
+PMD3_TOOL_DIR="$HOME/.local/share/uv/tools/pymobiledevice3"
+PMD3_INSTALLED=$(uv tool list 2>/dev/null | grep -oP 'pymobiledevice3 \K[0-9.]+' || echo "")
+if [[ -z "$PMD3_INSTALLED" ]]; then
+    echo "Installing pymobiledevice3..."
+    uv tool install pymobiledevice3
+elif ! pymobiledevice3 -h &>/dev/null; then
+    echo "pymobiledevice3 is broken, reinstalling..."
+    [[ -d "$PMD3_TOOL_DIR" ]] && sudo chown -R "$(whoami)" "$PMD3_TOOL_DIR"
+    uv tool install --force pymobiledevice3
+else
+    echo "Upgrading pymobiledevice3..."
+    if [[ -d "$PMD3_TOOL_DIR" ]] && ! uv tool install --upgrade pymobiledevice3 2>/dev/null; then
+        sudo chown -R "$(whoami)" "$PMD3_TOOL_DIR"
+        uv tool install --force pymobiledevice3
+    fi
+fi
 
 # pymobiledevice3 tunneld (iOS 17+ device screenshot/debug requires root tunnel)
 TUNNELD_PLIST="/Library/LaunchDaemons/com.pymobiledevice3.tunneld.plist"
