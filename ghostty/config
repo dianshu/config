@@ -3,6 +3,7 @@ quit-after-last-window-closed = true
 font-family = SF Mono
 font-size = 16
 working-directory = ~/repos
+split-inherit-working-directory = false
 
 keybind = opt+shift+minus=new_split:down
 keybind = opt+shift+equal=new_split:right
