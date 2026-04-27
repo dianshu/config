@@ -632,9 +632,7 @@ cc_remote() {
     cc_remote_stop
     npm install -g @dianshuv/hapi
 
-    # Determine flags based on OS
-    [[ "$(uname)" == "Darwin" ]] && ARGS="" || ARGS="--tunnel"
-    tmux new-session -d -s cc_remote "hapi hub $ARGS"
+    tmux new-session -d -s cc_remote "hapi hub --tunnel"
 
     echo "hapi hub started in tmux session 'cc_remote'"
     echo "  attach: tmux attach -t cc_remote"
