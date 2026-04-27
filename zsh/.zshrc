@@ -666,6 +666,25 @@ export PATH="$HARMONYOS_CLI_HOME/bin:$PATH"
 export PATH="$DEVECO_SDK_HOME/default/openharmony/toolchains:$PATH"
 # END HarmonyOS MANAGED BLOCK
 
+# Toggle MacBook built-in screen on/off (requires: brew install displayplacer)
+screen-builtin() {
+  local action="${1:-off}"
+  local builtin_id
+  builtin_id=$(displayplacer list 2>/dev/null | awk '
+    /^Persistent screen id:/ { id = $NF }
+    /Type:.*built.in/ { print id; exit }
+  ')
+  if [[ -z "$builtin_id" ]]; then
+    echo "内置屏幕未找到（可能已关闭）"
+    return 1
+  fi
+  case "$action" in
+    off) displayplacer "id:$builtin_id enabled:false" && echo "内置屏幕已关闭" ;;
+    on)  displayplacer "id:$builtin_id enabled:true"  && echo "内置屏幕已开启" ;;
+    *)   echo "用法: screen-builtin [off|on]" ;;
+  esac
+}
+
 # BEGIN Agency MANAGED BLOCK
 if [[ ":${PATH}:" != *":$HOME/.config/agency/CurrentVersion:"* ]]; then
     export PATH="$HOME/.config/agency/CurrentVersion:${PATH}"
