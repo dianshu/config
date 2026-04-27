@@ -112,7 +112,7 @@ brew tap getsentry/xcodebuildmcp 2>/dev/null || true && brew_install xcodebuildm
 gem install xcodeproj
 # pymobiledevice3: check for updates, use sudo to fix permissions if needed
 PMD3_TOOL_DIR="$HOME/.local/share/uv/tools/pymobiledevice3"
-PMD3_INSTALLED=$(uv tool list 2>/dev/null | grep -oP 'pymobiledevice3 \K[0-9.]+' || echo "")
+PMD3_INSTALLED=$(uv tool list 2>/dev/null | sed -n 's/^pymobiledevice3 \([0-9.]*\).*/\1/p')
 if [[ -z "$PMD3_INSTALLED" ]]; then
     echo "Installing pymobiledevice3..."
     uv tool install pymobiledevice3
