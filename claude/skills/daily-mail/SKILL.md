@@ -20,12 +20,14 @@ digraph daily_mail {
 
 ### Step 1: Fetch Unread Emails
 
-Use the Mail MCP to fetch recent unread emails:
+Use the Mail MCP to fetch all unread emails from the last 3 days. Calculate the date dynamically (today minus 3 days in ISO 8601 format).
 
 ```
 SearchMessagesQueryParameters:
-  queryParameters: "?$filter=isRead eq false&$top=30&$orderby=receivedDateTime desc&$select=id,subject,from,receivedDateTime,bodyPreview,importance,hasAttachments"
+  queryParameters: "?$filter=isRead eq false and receivedDateTime ge <3-days-ago>T00:00:00Z&$orderby=receivedDateTime desc&$select=id,subject,from,receivedDateTime,bodyPreview,importance,hasAttachments"
 ```
+
+**Pagination:** The API returns `hasMoreResults: true` with a `nextLink` when there are more results. Keep calling `SearchMessagesQueryParameters` with the `nextLink` until all results are fetched.
 
 ### Step 2: Categorize by Type
 
