@@ -77,8 +77,24 @@ fi
 eval "$(/opt/homebrew/bin/brew shellenv)"
 brew doctor
 
+# Install or upgrade a brew package
+brew_install() {
+    local cask=""
+    if [[ "$1" == "--cask" ]]; then
+        cask="--cask"
+        shift
+    fi
+    for pkg in "$@"; do
+        if brew ls --versions $cask "$pkg" &>/dev/null; then
+            brew upgrade $cask "$pkg"
+        else
+            brew install $cask "$pkg"
+        fi
+    done
+}
+
 # === Xcode & iOS Development Toolchain ===
-brew install mas
+brew_install mas
 
 # NOTE: mas requires an active App Store login. If not signed in,
 # run 'open /System/Applications/App\ Store.app' and sign in first.
@@ -91,8 +107,8 @@ brew install mas
 # xcodebuild -downloadPlatform iOS
 
 # iOS dev tools
-brew install cocoapods swiftlint swiftformat
-brew tap getsentry/xcodebuildmcp && brew install xcodebuildmcp
+brew_install cocoapods swiftlint swiftformat
+brew tap getsentry/xcodebuildmcp 2>/dev/null || true && brew_install xcodebuildmcp
 gem install xcodeproj
 # pymobiledevice3: check for updates, use sudo to fix permissions if needed
 PMD3_TOOL_DIR="$HOME/.local/share/uv/tools/pymobiledevice3"
@@ -125,16 +141,16 @@ else
 fi
 
 # === CLI Packages ===
-brew install azure-cli yq jq
-brew install git tree tmux trivy
-brew install uv node ruff git-delta
-brew install gh glow wget entr
-brew install openjdk@21 sing-box zsh python@3.13
-brew install frpc libimobiledevice
+brew_install azure-cli yq jq
+brew_install git tree tmux trivy
+brew_install uv node ruff git-delta
+brew_install gh glow wget entr
+brew_install openjdk@21 sing-box zsh python@3.13
+brew_install frpc libimobiledevice
 # If frpc binary disappears (Microsoft Defender quarantines it as Misleading:MacOS/FRP.A!MTB):
 #   sudo mdatp exclusion folder add --path /opt/homebrew/Cellar/frpc/
 #   brew reinstall frpc
-brew install displayplacer
+brew_install displayplacer
 
 # Override macOS system python3 (3.9.6) with Homebrew's
 ln -sf /opt/homebrew/bin/python3.13 /opt/homebrew/bin/python3
@@ -143,10 +159,10 @@ ln -sf /opt/homebrew/bin/python3.13 /opt/homebrew/bin/python3
 curl -fsSL https://bun.sh/install | bash
 
 # === GUI Applications ===
-brew install --cask google-chrome visual-studio-code
-brew install --cask sublime-text obsidian docker
-brew install --cask ghostty
-brew install --cask git-credential-manager
+brew_install --cask google-chrome visual-studio-code
+brew_install --cask sublime-text obsidian docker
+brew_install --cask ghostty
+brew_install --cask git-credential-manager
 
 # === VS Code Extensions ===
 code --install-extension github.copilot
