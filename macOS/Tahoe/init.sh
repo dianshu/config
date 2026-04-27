@@ -118,6 +118,7 @@ brew install frpc libimobiledevice
 # If frpc binary disappears (Microsoft Defender quarantines it as Misleading:MacOS/FRP.A!MTB):
 #   sudo mdatp exclusion folder add --path /opt/homebrew/Cellar/frpc/
 #   brew reinstall frpc
+brew install displayplacer
 
 # Override macOS system python3 (3.9.6) with Homebrew's
 ln -sf /opt/homebrew/bin/python3.13 /opt/homebrew/bin/python3
