@@ -2,6 +2,9 @@
 INPUT=$(cat)
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
 
+# disable
+exit 0
+
 [[ "$FILE_PATH" == */docs/superpowers/specs/*.md ]] || \
 [[ "$FILE_PATH" == */docs/superpowers/plans/*.md ]] || exit 0
 
