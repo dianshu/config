@@ -29,6 +29,12 @@ SKILL_TO_STEP = {
     "superpowers:verification-before-completion": "verification-before-completion",
 }
 
+# Steps that require an external CLI — auto-passed when the CLI is absent
+STEP_CLI = {
+    "codex-review": "codex",
+    "gemini-review": "gemini",
+}
+
 EXCLUDED_PATH_PATTERNS = [
     "/.claude/plans/",
     "/.claude/settings",
@@ -50,7 +56,7 @@ EXCLUDED_EXTENSIONS = {
     ".csv", ".tsv",
     ".docx", ".xlsx", ".pptx", ".pdf",
     ".lock",
-    ".sh", ".bash", ".zsh", ".fish",
+    ".sh", ".bash", ".zsh", ".fish", ".ps1", ".psm1", ".psd1", ".bat", ".cmd",
     ".plist", ".entitlements", ".xcscheme", ".pbxproj",
     ".xml", ".xib", ".storyboard",
 }
@@ -159,6 +165,8 @@ def _log_skips(skipped):
 
 
 def main():
+    import shutil as _shutil
+
     if len(sys.argv) < 2:
         sys.exit(0)
 
@@ -169,17 +177,36 @@ def main():
     if last_impl_line < 0:
         sys.exit(0)
 
+    # Determine which CLI-dependent steps are available
+    cli_available = {
+        step: _shutil.which(cli) is not None
+        for step, cli in STEP_CLI.items()
+    }
+
     # Check which steps are completed or skipped AFTER the last edit
     missing = []
     completed = []
     skipped = []
 
     for step in REQUIRED_STEPS:
+        # Auto-pass steps whose CLI is absent
+        if step in STEP_CLI and not cli_available[step]:
+            continue
+
         step_line = step_lines.get(step, -1)
         skip_info = skip_lines.get(step)
 
         after_edit_step = step_line > last_impl_line
         after_edit_skip = skip_info is not None and skip_info[0] > last_impl_line
+
+        # Reject "not installed" skips when the CLI is actually available
+        if (
+            after_edit_skip
+            and step in STEP_CLI
+            and cli_available[step]
+            and "not installed" in skip_info[1].lower()
+        ):
+            after_edit_skip = False
 
         if after_edit_step:
             completed.append(step)
