@@ -2,6 +2,9 @@
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
 
+# disable
+exit 0
+
 # Only trigger on git commit commands
 [[ "$COMMAND" =~ ^git\ commit ]] || exit 0
 
