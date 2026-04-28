@@ -83,7 +83,7 @@ $mcpServices = @(
     @{ Name = "word";       Service = "word";         Port = 30972 },
     @{ Name = "sharepoint"; Service = "sharepoint";   Port = 30973 },
     @{ Name = "workiq";     Service = "workiq";       Port = 30974 },
-    @{ Name = "ado";        Service = "ado";          Port = 30975; ExtraArgs = @("--organization", $env:ADO_ORGANIZATION) }
+    @{ Name = "ado";        Service = "ado";          Port = 30975; ExtraArgs = @("--organization", $env:ADO_ORGANIZATION, "--toolsets", "all") }
 )
 
 foreach ($svc in $mcpServices) {
