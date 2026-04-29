@@ -165,8 +165,6 @@ brew_install --cask ghostty
 brew_install --cask git-credential-manager
 
 # === VS Code Extensions ===
-code --install-extension github.copilot
-code --install-extension github.copilot-chat
 code --install-extension ms-python.python
 code --install-extension panxiaoan.themes-falcon-vscode
 
