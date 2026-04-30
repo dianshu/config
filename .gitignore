@@ -4,3 +4,5 @@
 docs/superpowers
 
 .codex
+
+__pycache__/
