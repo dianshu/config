@@ -54,4 +54,21 @@ HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/gate.sh <<<
 assert_exit "timeout missing" "$?" 2
 assert_stderr_contains "timeout missing msg" "$S" "timeout"
 
+# --- baseline.sh writes snapshot ---
+S=$(make_sandbox)
+git -C "$S/repo" init -q
+echo "a" > "$S/repo/a.py"; git -C "$S/repo" add a.py
+git -C "$S/repo" -c user.email=a@b -c user.name=a commit -q -m init
+echo "b" > "$S/repo/a.py"
+echo "x" > "$S/repo/new.py"
+INPUT=$(printf '{"session_id":"sess123","cwd":"%s"}' "$S/repo")
+HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/baseline.sh <<<"$INPUT"
+SNAP="$S/home/.claude/cache/gate-baseline/sess123.snapshot"
+[ -f "$SNAP" ] && { PASS=$((PASS+1)); echo "  PASS baseline file created"; } \
+                 || { FAIL=$((FAIL+1)); FAILED_NAMES+=("baseline file created"); echo "  FAIL baseline file"; }
+grep -q "a.py" "$SNAP" 2>/dev/null && { PASS=$((PASS+1)); echo "  PASS baseline contains modified file"; } \
+                       || { FAIL=$((FAIL+1)); FAILED_NAMES+=("baseline contains modified file"); echo "  FAIL"; }
+grep -q "new.py" "$SNAP" 2>/dev/null && { PASS=$((PASS+1)); echo "  PASS baseline contains untracked file"; } \
+                          || { FAIL=$((FAIL+1)); FAILED_NAMES+=("baseline contains untracked file"); echo "  FAIL"; }
+
 summary
