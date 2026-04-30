@@ -71,4 +71,28 @@ grep -q "a.py" "$SNAP" 2>/dev/null && { PASS=$((PASS+1)); echo "  PASS baseline 
 grep -q "new.py" "$SNAP" 2>/dev/null && { PASS=$((PASS+1)); echo "  PASS baseline contains untracked file"; } \
                           || { FAIL=$((FAIL+1)); FAILED_NAMES+=("baseline contains untracked file"); echo "  FAIL"; }
 
+# --- no diff vs baseline → pass ---
+S=$(make_sandbox); install_real_timeout "$S"; install_fake_codex "$S" '{"verdict":"block","reason":"should not be called"}'
+git -C "$S/repo" init -q
+echo "a" > "$S/repo/a.py"; git -C "$S/repo" add a.py
+git -C "$S/repo" -c user.email=a@b -c user.name=a commit -q -m init
+TRANSCRIPT="$S/repo/transcript.jsonl"; echo '' > "$TRANSCRIPT"
+HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/baseline.sh <<<"{\"session_id\":\"x\",\"cwd\":\"$S/repo\"}"
+INPUT=$(printf '{"session_id":"x","transcript_path":"%s","cwd":"%s"}' "$TRANSCRIPT" "$S/repo")
+HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/gate.sh <<<"$INPUT" 2>"$S/stderr.log"
+assert_exit "no diff vs baseline" "$?" 0
+
+# --- pre-existing dirty (baseline already dirty), no new edits → pass ---
+S=$(make_sandbox); install_real_timeout "$S"; install_fake_codex "$S" '{"verdict":"block","reason":"should not be called"}'
+git -C "$S/repo" init -q
+echo "a" > "$S/repo/a.py"; git -C "$S/repo" add a.py
+git -C "$S/repo" -c user.email=a@b -c user.name=a commit -q -m init
+echo "dirty" >> "$S/repo/a.py"
+echo "untracked" > "$S/repo/u.py"
+HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/baseline.sh <<<"{\"session_id\":\"y\",\"cwd\":\"$S/repo\"}"
+TRANSCRIPT="$S/repo/transcript.jsonl"; echo '' > "$TRANSCRIPT"
+INPUT=$(printf '{"session_id":"y","transcript_path":"%s","cwd":"%s"}' "$TRANSCRIPT" "$S/repo")
+HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/gate.sh <<<"$INPUT" 2>"$S/stderr.log"
+assert_exit "pre-existing dirty ignored" "$?" 0
+
 summary

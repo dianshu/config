@@ -32,16 +32,51 @@ fi
 INPUT=$(cat)
 TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null)
 CWD=$(echo "$INPUT" | jq -r '.cwd // empty' 2>/dev/null)
+SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null)
 
 if [ -z "$TRANSCRIPT_PATH" ] || [ -z "$CWD" ]; then
   echo "DEV-WORKFLOW GATE: failed to parse stdin (transcript_path/cwd missing)" >&2
   exit 2
 fi
 
-# 3. Non-git repo: exit 0
+# 5. Non-git repo: exit 0
 if ! git -C "$CWD" rev-parse --is-inside-work-tree &>/dev/null; then
   exit 0
 fi
+
+# 6. Compute "this-session" changes by comparing current state to baseline snapshot
+HASH_CMD=$(command -v shasum >/dev/null && echo "shasum -a 256" || echo "sha256sum")
+SNAP="$HOME/.claude/cache/gate-baseline/${SESSION_ID:-_unknown}.snapshot"
+
+current_state() {
+  echo "## status"
+  git -C "$CWD" status -s
+  echo "## tracked-diff"
+  git -C "$CWD" diff HEAD 2>/dev/null
+  echo "## cached-diff"
+  git -C "$CWD" diff --cached 2>/dev/null
+  echo "## untracked-hashes"
+  git -C "$CWD" ls-files --others --exclude-standard | while read -r f; do
+    HASH=$($HASH_CMD "$CWD/$f" 2>/dev/null | awk '{print $1}')
+    echo "$HASH  $f"
+  done
+}
+
+CURRENT_TMP=$(mktemp)
+current_state > "$CURRENT_TMP"
+
+if [ -f "$SNAP" ]; then
+  if diff -q "$SNAP" "$CURRENT_TMP" >/dev/null; then
+    rm -f "$CURRENT_TMP"
+    exit 0
+  fi
+else
+  if [ -z "$(git -C "$CWD" status --porcelain)" ]; then
+    rm -f "$CURRENT_TMP"
+    exit 0
+  fi
+fi
+rm -f "$CURRENT_TMP"
 
 # (more steps in later tasks)
 exit 0
