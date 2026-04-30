@@ -6,18 +6,18 @@ MISSING=()
 OS=$(uname)
 
 # Common tools (all platforms)
-for cmd in jq git python3 curl npx npm; do
+for cmd in jq git python3 curl npx npm codex; do
   command -v "$cmd" &>/dev/null || MISSING+=("$cmd")
 done
 
 # Optional tools (all platforms)
-for cmd in ruff glow entr; do
+for cmd in ruff glow entr gemini; do
   command -v "$cmd" &>/dev/null || MISSING+=("$cmd")
 done
 
 # macOS-only tools
 if [[ "$OS" == "Darwin" ]]; then
-  for cmd in swiftlint xcodebuild; do
+  for cmd in swiftlint xcodebuild gtimeout; do
     command -v "$cmd" &>/dev/null || MISSING+=("$cmd")
   done
 fi

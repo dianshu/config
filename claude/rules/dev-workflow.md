@@ -1,33 +1,23 @@
 Follow this workflow when writing code, implementing features, or fixing bugs.
 
-**Scope exclusion:** This workflow (including the HARD-GATE) does NOT apply to non-code changes:
-- Documentation files (`.md`, `.txt`, `.rst`, README, CHANGELOG)
-- Configuration/rules files (`.json`, `.yml`, `.yaml`, `.toml`, settings, CLAUDE.md, rules/)
-- Skills, prompts, and other meta-files (`.claude/`, `skills/`, `plugins/`)
-- Office/document files (`.docx`, `.xlsx`, `.pptx`, `.pdf`, `.csv`)
-- Pure content edits (copywriting, comments-only changes)
+**Scope exclusion:** Pure documentation/config changes (md/txt/yml/json/toml,
+CLAUDE.md, rules/, .claude/, settings) generally do not require the loop.
+The Codex-driven Stop gate makes the final call — it has final authority.
 
-For these changes, skip the entire post-implementation loop. Just make the change and report it.
-
-1. **Before implementation**: Use the /superpowers:test-driven-development skill. Always write tests first.
-
-<HARD-GATE>
-POST-IMPLEMENTATION LOOP — MANDATORY, NO EXCEPTIONS
-
-You MUST run the full loop below after EVERY implementation task, before reporting completion to the user. This applies regardless of which skill initiated the work (brainstorming, debugging, plan mode, direct request — all paths). Do NOT reply to the user with "done", "complete", "implemented", or any completion claim until every step below has executed in the current session. Skipping this loop is a workflow violation.
-</HARD-GATE>
+1. **Before implementation**: Use the /superpowers:test-driven-development skill.
+   Always write tests first.
 
 2. **After implementation**, loop until clean:
-   a. Use the /simplify skill (via the Skill tool, not the code-simplifier agent) to review changed code for reuse, quality, and efficiency.
-   b. Run /codex-review and /gemini-review in parallel for independent AI reviews. Cross-reference findings — issues flagged by both reviewers get priority attention.
-   c. Use the /e2e-verify skill for end-to-end verification.
-   d. Use the /superpowers:verification-before-completion skill. Run verification commands and confirm output before asserting work is done.
-   e. If any step found issues, fix them and repeat from (a). Stop when all steps find no issues.
+   a. /simplify
+   b. /codex-review and /gemini-review in parallel
+   c. /e2e-verify
+   d. /superpowers:verification-before-completion
+   e. If any step found issues, fix them and repeat from (a)
 
-3. **Explicit skip**: If a step genuinely cannot run (e.g., no runnable application for e2e-verify), declare it inline in your response:
-   ```
-   SKIP: <step-name> — reason: <explanation>
-   ```
-   Valid step names: `simplify`, `codex-review`, `gemini-review`, `e2e-verify`, `verification-before-completion`.
-   Each skip requires a genuine reason — do not skip to save time.
-   A Stop hook enforces this: you will be blocked from completing your turn if steps are missing and not explicitly skipped.
+3. **Stop gate**: A Codex-driven hook judges at Stop time whether the loop is
+   complete. Block reasons appear in stderr — read them, fix, re-run skipped
+   steps. There is no SKIP syntax; the gate decides exemptions itself based on
+   facts (e.g., gemini not installed → gemini-review auto-exempted).
+
+4. **Escape hatch**: `SKIP_GATE=1` env var bypasses the gate (for emergencies
+   or when the judge appears to be malfunctioning). Use sparingly.
