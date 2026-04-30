@@ -31,6 +31,7 @@ if (-not (Test-Path $claudeDir)) {
 
 $settingsJson = @'
 {
+  "model": "opus[1m]",
   "env": {
     "ANTHROPIC_BASE_URL": "http://localhost:29427",
     "ANTHROPIC_AUTH_TOKEN": "your-anthropic-auth-token",
@@ -48,7 +49,8 @@ $settingsJson = @'
       "mcp__word",
       "mcp__sharepoint",
       "mcp__workiq",
-      "mcp__ado"
+      "mcp__ado",
+      "mcp__playwright"
     ]
   }
 }
@@ -68,7 +70,8 @@ $mcpJson = @'
     "word": { "type": "http", "url": "http://localhost:30972" },
     "sharepoint": { "type": "http", "url": "http://localhost:30973" },
     "workiq": { "type": "http", "url": "http://localhost:30974" },
-    "ado": { "type": "http", "url": "http://localhost:30975" }
+    "ado": { "type": "http", "url": "http://localhost:30975" },
+    "playwright": { "type": "stdio", "command": "npx", "args": ["-y", "@playwright/mcp@latest", "--browser", "msedge"] }
   }
 }
 '@
