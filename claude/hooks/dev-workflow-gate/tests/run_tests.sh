@@ -95,4 +95,31 @@ INPUT=$(printf '{"session_id":"y","transcript_path":"%s","cwd":"%s"}' "$TRANSCRI
 HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/gate.sh <<<"$INPUT" 2>"$S/stderr.log"
 assert_exit "pre-existing dirty ignored" "$?" 0
 
+# --- timeline.py extracts events ---
+S=$(make_sandbox)
+TRANSCRIPT="$S/transcript.jsonl"
+cat > "$TRANSCRIPT" <<'TX'
+{"type":"user","message":{"content":"/simplify"}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Edit","input":{"file_path":"/x/foo.py"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"sed -i 's/a/b/' bar.py"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Skill","input":{"skill":"codex-review"}}]}}
+{"type":"assistant","message":{"content":[{"type":"text","text":"I checked, codex is not installed."}]}}
+TX
+OUT=$(python3 ~/.claude/hooks/dev-workflow-gate/timeline.py "$TRANSCRIPT")
+echo "$OUT" | jq -e '.events | length >= 4' >/dev/null \
+  && { PASS=$((PASS+1)); echo "  PASS timeline events count"; } \
+  || { FAIL=$((FAIL+1)); FAILED_NAMES+=("timeline events count"); echo "  FAIL: $OUT"; }
+echo "$OUT" | jq -e '.events[] | select(.type=="slash_command") | .target == "simplify"' >/dev/null \
+  && { PASS=$((PASS+1)); echo "  PASS timeline detects slash command"; } \
+  || { FAIL=$((FAIL+1)); FAILED_NAMES+=("timeline slash command"); echo "  FAIL"; }
+echo "$OUT" | jq -e '.events[] | select(.type=="bash_modify") | .target | contains("sed -i")' >/dev/null \
+  && { PASS=$((PASS+1)); echo "  PASS timeline detects bash modify"; } \
+  || { FAIL=$((FAIL+1)); FAILED_NAMES+=("timeline bash modify"); echo "  FAIL"; }
+echo "$OUT" | jq -e '.events[] | select(.type=="skill") | .target == "codex-review"' >/dev/null \
+  && { PASS=$((PASS+1)); echo "  PASS timeline detects skill tool_use"; } \
+  || { FAIL=$((FAIL+1)); FAILED_NAMES+=("timeline skill"); echo "  FAIL"; }
+echo "$OUT" | jq -e '.recent_text | length >= 1' >/dev/null \
+  && { PASS=$((PASS+1)); echo "  PASS timeline collects recent_text"; } \
+  || { FAIL=$((FAIL+1)); FAILED_NAMES+=("timeline recent_text"); echo "  FAIL"; }
+
 summary
