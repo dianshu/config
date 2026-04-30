@@ -30,6 +30,21 @@ BASH_MODIFY_RE = re.compile(
     r"(prettier|black|ruff)\s+(--write|format)|gofmt\s+-w|rustfmt\b)"
 )
 
+# Commands targeting only ephemeral paths (tmp, caches) are not implementation
+# modifications. Match if EVERY non-flag word is under such a path.
+EPHEMERAL_PATH_RE = re.compile(
+    r"^(/tmp/|/var/folders/|/private/var/folders/|/private/tmp/|"
+    r"~/\.cache/|~/Library/Caches/|/dev/null$|\.\./|\./)"
+)
+
+
+def is_ephemeral_only(cmd):
+    """True if all path-like args target ephemeral locations."""
+    paths = [tok for tok in cmd.split() if "/" in tok or tok == "/dev/null"]
+    if not paths:
+        return False
+    return all(EPHEMERAL_PATH_RE.match(p.lstrip("'\"")) for p in paths)
+
 _STEP_ALT = "|".join(re.escape(s) for s in REVIEW_STEPS)
 SLASH_RE = re.compile(r"^\s*/((?:superpowers:)?(" + _STEP_ALT + r"))\b")
 COMMAND_NAME_RE = re.compile(
@@ -119,7 +134,8 @@ def main():
                                                "target": tin.get("notebook_path", "")})
                             elif tname == "Bash":
                                 cmd = tin.get("command", "")
-                                if BASH_MODIFY_RE.search(cmd):
+                                if BASH_MODIFY_RE.search(cmd) and \
+                                        not is_ephemeral_only(cmd):
                                     events.append({
                                         "line": lineno,
                                         "type": "bash_modify",

@@ -122,6 +122,21 @@ echo "$OUT" | jq -e '.recent_text | length >= 1' >/dev/null \
   && { PASS=$((PASS+1)); echo "  PASS timeline collects recent_text"; } \
   || { FAIL=$((FAIL+1)); FAILED_NAMES+=("timeline recent_text"); echo "  FAIL"; }
 
+# --- timeline.py: ephemeral-only bash commands not flagged ---
+S=$(make_sandbox)
+TRANSCRIPT="$S/transcript-eph.jsonl"
+cat > "$TRANSCRIPT" <<'TX'
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"rm -rf /tmp/dbg-foo /var/folders/xx/yyy"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"rm /tmp/x.snapshot"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"echo hi > /tmp/foo"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"rm src/real.py"}}]}}
+TX
+OUT=$(python3 ~/.claude/hooks/dev-workflow-gate/timeline.py "$TRANSCRIPT")
+EPHEMERAL_COUNT=$(echo "$OUT" | jq -r '[.events[] | select(.type=="bash_modify")] | length')
+[ "$EPHEMERAL_COUNT" = "1" ] \
+  && { PASS=$((PASS+1)); echo "  PASS timeline excludes ephemeral bash"; } \
+  || { FAIL=$((FAIL+1)); FAILED_NAMES+=("timeline ephemeral filter"); echo "  FAIL: got $EPHEMERAL_COUNT bash_modify events, expected 1"; echo "$OUT" | jq .events; }
+
 # --- facts.sh outputs key=value ---
 S=$(make_sandbox); install_real_timeout "$S"; install_fake_codex "$S" '{}'
 git -C "$S/repo" init -q
