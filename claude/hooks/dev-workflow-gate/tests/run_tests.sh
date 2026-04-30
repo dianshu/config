@@ -122,4 +122,19 @@ echo "$OUT" | jq -e '.recent_text | length >= 1' >/dev/null \
   && { PASS=$((PASS+1)); echo "  PASS timeline collects recent_text"; } \
   || { FAIL=$((FAIL+1)); FAILED_NAMES+=("timeline recent_text"); echo "  FAIL"; }
 
+# --- facts.sh outputs key=value ---
+S=$(make_sandbox); install_real_timeout "$S"; install_fake_codex "$S" '{}'
+git -C "$S/repo" init -q
+echo "x" > "$S/repo/new.py"
+OUT=$(HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/facts.sh "$S/repo")
+echo "$OUT" | grep -q "^codex_path=" \
+  && { PASS=$((PASS+1)); echo "  PASS facts has codex_path"; } \
+  || { FAIL=$((FAIL+1)); FAILED_NAMES+=("facts codex_path"); echo "  FAIL: $OUT"; }
+echo "$OUT" | grep -q "^untracked_files=" \
+  && { PASS=$((PASS+1)); echo "  PASS facts has untracked_files"; } \
+  || { FAIL=$((FAIL+1)); FAILED_NAMES+=("facts untracked"); echo "  FAIL"; }
+echo "$OUT" | grep -q "new.py" \
+  && { PASS=$((PASS+1)); echo "  PASS facts lists untracked file"; } \
+  || { FAIL=$((FAIL+1)); FAILED_NAMES+=("facts lists untracked"); echo "  FAIL"; }
+
 summary
