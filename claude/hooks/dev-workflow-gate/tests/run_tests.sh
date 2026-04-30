@@ -220,4 +220,22 @@ HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/gate.sh <<<
 assert_exit "raw json no fence" "$?" 2
 assert_stderr_contains "raw json reason" "$S" "raw JSON no fence"
 
+# --- codex timeout ---
+S=$(make_sandbox); install_real_timeout "$S"
+cat > "$S/path/codex" <<'STUB'
+#!/bin/bash
+sleep 200
+STUB
+chmod +x "$S/path/codex"
+git -C "$S/repo" init -q
+echo "a" > "$S/repo/a.py"; git -C "$S/repo" add a.py
+git -C "$S/repo" -c user.email=a@b -c user.name=a commit -q -m init
+HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/baseline.sh <<<"{\"session_id\":\"to\",\"cwd\":\"$S/repo\"}"
+echo "x" >> "$S/repo/a.py"
+TRANSCRIPT="$S/transcript.jsonl"; echo '' > "$TRANSCRIPT"
+INPUT=$(printf '{"session_id":"to","transcript_path":"%s","cwd":"%s"}' "$TRANSCRIPT" "$S/repo")
+GATE_TIMEOUT=2 HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/gate.sh <<<"$INPUT" 2>"$S/stderr.log"
+assert_exit "codex timeout" "$?" 2
+assert_stderr_contains "timeout msg" "$S" "timeout"
+
 summary

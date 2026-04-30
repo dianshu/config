@@ -14,7 +14,7 @@ make_sandbox() {
   mkdir -p "$SANDBOX/home/.claude/cache/gate-baseline"
   mkdir -p "$SANDBOX/repo"
   mkdir -p "$SANDBOX/path"
-  for cmd in git jq bash sh head tail wc cat sed grep awk find sort uniq mktemp date dirname basename rm mv cp mkdir touch ln readlink python3 shasum sha256sum diff printf seq xargs tr; do
+  for cmd in git jq bash sh head tail wc cat sed grep awk find sort uniq mktemp date dirname basename rm mv cp mkdir touch ln readlink python3 shasum sha256sum diff printf seq xargs tr sleep; do
     src=$(command -v "$cmd" 2>/dev/null)
     [ -n "$src" ] && ln -sf "$src" "$SANDBOX/path/$cmd"
   done
