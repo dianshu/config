@@ -78,5 +78,89 @@ else
 fi
 rm -f "$CURRENT_TMP"
 
-# (more steps in later tasks)
-exit 0
+# 7. Build prompt parts
+HOOK_DIR="$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")"
+TIMELINE_JSON=$(python3 "$HOOK_DIR/timeline.py" "$TRANSCRIPT_PATH")
+FACTS=$(bash "$HOOK_DIR/facts.sh" "$CWD")
+DIFF=$(bash "$HOOK_DIR/diff.sh" "$CWD" | head -1500)
+PROMPT_TMPL=$(cat "$HOOK_DIR/prompt.md")
+
+PROMPT=$(cat <<EOF
+$PROMPT_TMPL
+
+<facts>
+$FACTS
+</facts>
+
+<timeline>
+$TIMELINE_JSON
+</timeline>
+
+<diff>
+$DIFF
+</diff>
+
+REMINDER: facts is ground truth. Output exactly one fenced \`\`\`json block.
+EOF
+)
+
+# 8. Invoke codex with retry on JSON parse failure
+parse_verdict() {
+  python3 -c '
+import re, sys
+raw = sys.stdin.read()
+m = re.search(r"```json\s*(\{[\s\S]*?\})\s*```", raw)
+if not m:
+    m = re.search(r"\{[\s\S]*\}\s*$", raw)
+print(m.group(1) if m and m.lastindex else (m.group(0) if m else ""))
+'
+}
+
+call_codex() {
+  local out=$1
+  echo "$PROMPT" | $TIMEOUT_CMD "${GATE_TIMEOUT:-120}" codex exec \
+    --skip-git-repo-check -s read-only --ephemeral \
+    --output-last-message "$out" - 2>/dev/null
+}
+
+CODEX_OUT=$(mktemp)
+call_codex "$CODEX_OUT"
+RC=$?
+if [ $RC -eq 124 ]; then
+  echo "DEV-WORKFLOW GATE: codex timeout after ${GATE_TIMEOUT:-120}s" >&2
+  rm -f "$CODEX_OUT"
+  exit 2
+fi
+
+VERDICT_JSON=$(parse_verdict < "$CODEX_OUT")
+
+if [ -z "$VERDICT_JSON" ]; then
+  call_codex "$CODEX_OUT"
+  VERDICT_JSON=$(parse_verdict < "$CODEX_OUT")
+fi
+
+if [ -z "$VERDICT_JSON" ] || ! echo "$VERDICT_JSON" | jq empty 2>/dev/null; then
+  echo "DEV-WORKFLOW GATE: failed to parse codex JSON output" >&2
+  echo "--- raw codex output ---" >&2
+  cat "$CODEX_OUT" >&2
+  rm -f "$CODEX_OUT"
+  exit 2
+fi
+rm -f "$CODEX_OUT"
+
+VERDICT=$(echo "$VERDICT_JSON" | jq -r '.verdict // "block"')
+REASON=$(echo "$VERDICT_JSON" | jq -r '.reason // ""')
+MISSING=$(echo "$VERDICT_JSON" | jq -r '.missing // [] | join(", ")')
+ISSUES=$(echo "$VERDICT_JSON" | jq -r '.issues // [] | map("  - " + .) | join("\n")')
+
+if [ "$VERDICT" = "pass" ]; then
+  exit 0
+fi
+
+{
+  echo "DEV-WORKFLOW GATE (Codex verdict): block"
+  echo "Reason: $REASON"
+  [ -n "$MISSING" ] && echo "Missing: $MISSING"
+  [ -n "$ISSUES" ] && { echo "Issues:"; printf "%s\n" "$ISSUES"; }
+} >&2
+exit 2

@@ -25,7 +25,7 @@ assert_stderr_contains "stdin error msg" "$S" "stdin"
 # --- non-git repo: exit 0 quietly ---
 S=$(make_sandbox); install_real_timeout "$S"
 install_fake_codex "$S" '{}'
-TRANSCRIPT="$S/repo/transcript.jsonl"; echo '' > "$TRANSCRIPT"
+TRANSCRIPT="$S/transcript.jsonl"; echo '' > "$TRANSCRIPT"
 INPUT=$(printf '{"transcript_path":"%s","cwd":"%s"}' "$TRANSCRIPT" "$S/repo")
 HOME="$S/home" PATH="$S/path" \
   bash ~/.claude/hooks/dev-workflow-gate/gate.sh <<<"$INPUT" 2>"$S/stderr.log"
@@ -33,7 +33,7 @@ assert_exit "non-git repo" "$?" 0
 
 # --- codex missing ---
 S=$(make_sandbox); install_real_timeout "$S"
-TRANSCRIPT="$S/repo/transcript.jsonl"; echo '' > "$TRANSCRIPT"
+TRANSCRIPT="$S/transcript.jsonl"; echo '' > "$TRANSCRIPT"
 git -C "$S/repo" init -q
 git -C "$S/repo" -c user.email=a@b -c user.name=a commit -q --allow-empty -m init
 echo "x" > "$S/repo/x.py"
@@ -45,7 +45,7 @@ assert_stderr_contains "codex missing msg" "$S" "codex CLI required"
 # --- timeout missing ---
 S=$(make_sandbox)
 install_fake_codex "$S" '{}'
-TRANSCRIPT="$S/repo/transcript.jsonl"; echo '' > "$TRANSCRIPT"
+TRANSCRIPT="$S/transcript.jsonl"; echo '' > "$TRANSCRIPT"
 git -C "$S/repo" init -q
 git -C "$S/repo" -c user.email=a@b -c user.name=a commit -q --allow-empty -m init
 echo "x" > "$S/repo/x.py"
@@ -76,7 +76,7 @@ S=$(make_sandbox); install_real_timeout "$S"; install_fake_codex "$S" '{"verdict
 git -C "$S/repo" init -q
 echo "a" > "$S/repo/a.py"; git -C "$S/repo" add a.py
 git -C "$S/repo" -c user.email=a@b -c user.name=a commit -q -m init
-TRANSCRIPT="$S/repo/transcript.jsonl"; echo '' > "$TRANSCRIPT"
+TRANSCRIPT="$S/transcript.jsonl"; echo '' > "$TRANSCRIPT"
 HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/baseline.sh <<<"{\"session_id\":\"x\",\"cwd\":\"$S/repo\"}"
 INPUT=$(printf '{"session_id":"x","transcript_path":"%s","cwd":"%s"}' "$TRANSCRIPT" "$S/repo")
 HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/gate.sh <<<"$INPUT" 2>"$S/stderr.log"
@@ -90,7 +90,7 @@ git -C "$S/repo" -c user.email=a@b -c user.name=a commit -q -m init
 echo "dirty" >> "$S/repo/a.py"
 echo "untracked" > "$S/repo/u.py"
 HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/baseline.sh <<<"{\"session_id\":\"y\",\"cwd\":\"$S/repo\"}"
-TRANSCRIPT="$S/repo/transcript.jsonl"; echo '' > "$TRANSCRIPT"
+TRANSCRIPT="$S/transcript.jsonl"; echo '' > "$TRANSCRIPT"
 INPUT=$(printf '{"session_id":"y","transcript_path":"%s","cwd":"%s"}' "$TRANSCRIPT" "$S/repo")
 HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/gate.sh <<<"$INPUT" 2>"$S/stderr.log"
 assert_exit "pre-existing dirty ignored" "$?" 0
@@ -156,5 +156,68 @@ LINES=$(echo "$OUT" | wc -l)
 [ "$LINES" -le 1600 ] \
   && { PASS=$((PASS+1)); echo "  PASS diff under budget ($LINES lines)"; } \
   || { FAIL=$((FAIL+1)); FAILED_NAMES+=("diff budget"); echo "  FAIL: $LINES lines"; }
+
+# --- full review pass (codex returns pass JSON) ---
+S=$(make_sandbox); install_real_timeout "$S"
+install_fake_codex "$S" '```json
+{"verdict":"pass","needs_review":true,"completed":["simplify","codex-review","gemini-review","e2e-verify","verification-before-completion"],"missing":[],"issues":[],"reason":"all steps completed"}
+```'
+git -C "$S/repo" init -q
+echo "a" > "$S/repo/a.py"; git -C "$S/repo" add a.py
+git -C "$S/repo" -c user.email=a@b -c user.name=a commit -q -m init
+HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/baseline.sh <<<"{\"session_id\":\"f\",\"cwd\":\"$S/repo\"}"
+echo "c" >> "$S/repo/a.py"
+TRANSCRIPT="$S/transcript.jsonl"
+cat > "$TRANSCRIPT" <<'TX'
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Edit","input":{"file_path":"a.py"}}]}}
+{"type":"user","message":{"content":"/simplify"}}
+TX
+INPUT=$(printf '{"session_id":"f","transcript_path":"%s","cwd":"%s"}' "$TRANSCRIPT" "$S/repo")
+HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/gate.sh <<<"$INPUT" 2>"$S/stderr.log"
+assert_exit "full review pass" "$?" 0
+
+# --- block returned by codex ---
+S=$(make_sandbox); install_real_timeout "$S"
+install_fake_codex "$S" '```json
+{"verdict":"block","needs_review":true,"completed":[],"missing":["simplify"],"issues":["simplify not run"],"reason":"missing simplify"}
+```'
+git -C "$S/repo" init -q
+echo "a" > "$S/repo/a.py"; git -C "$S/repo" add a.py
+git -C "$S/repo" -c user.email=a@b -c user.name=a commit -q -m init
+HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/baseline.sh <<<"{\"session_id\":\"g\",\"cwd\":\"$S/repo\"}"
+echo "x" >> "$S/repo/a.py"
+TRANSCRIPT="$S/transcript.jsonl"; echo '' > "$TRANSCRIPT"
+INPUT=$(printf '{"session_id":"g","transcript_path":"%s","cwd":"%s"}' "$TRANSCRIPT" "$S/repo")
+HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/gate.sh <<<"$INPUT" 2>"$S/stderr.log"
+assert_exit "codex block" "$?" 2
+assert_stderr_contains "block reason in stderr" "$S" "missing simplify"
+
+# --- JSON parse failure ---
+S=$(make_sandbox); install_real_timeout "$S"
+install_fake_codex "$S" 'totally not JSON'
+git -C "$S/repo" init -q
+echo "a" > "$S/repo/a.py"; git -C "$S/repo" add a.py
+git -C "$S/repo" -c user.email=a@b -c user.name=a commit -q -m init
+HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/baseline.sh <<<"{\"session_id\":\"h\",\"cwd\":\"$S/repo\"}"
+echo "x" >> "$S/repo/a.py"
+TRANSCRIPT="$S/transcript.jsonl"; echo '' > "$TRANSCRIPT"
+INPUT=$(printf '{"session_id":"h","transcript_path":"%s","cwd":"%s"}' "$TRANSCRIPT" "$S/repo")
+HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/gate.sh <<<"$INPUT" 2>"$S/stderr.log"
+assert_exit "json parse fail" "$?" 2
+assert_stderr_contains "parse error msg" "$S" "parse"
+
+# --- raw JSON without code fence (production observed bug) ---
+S=$(make_sandbox); install_real_timeout "$S"
+install_fake_codex "$S" '{"verdict":"block","needs_review":true,"completed":[],"missing":["simplify"],"issues":[],"reason":"raw JSON no fence"}'
+git -C "$S/repo" init -q
+echo "a" > "$S/repo/a.py"; git -C "$S/repo" add a.py
+git -C "$S/repo" -c user.email=a@b -c user.name=a commit -q -m init
+HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/baseline.sh <<<"{\"session_id\":\"r\",\"cwd\":\"$S/repo\"}"
+echo "x" >> "$S/repo/a.py"
+TRANSCRIPT="$S/transcript.jsonl"; echo '' > "$TRANSCRIPT"
+INPUT=$(printf '{"session_id":"r","transcript_path":"%s","cwd":"%s"}' "$TRANSCRIPT" "$S/repo")
+HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/gate.sh <<<"$INPUT" 2>"$S/stderr.log"
+assert_exit "raw json no fence" "$?" 2
+assert_stderr_contains "raw json reason" "$S" "raw JSON no fence"
 
 summary
