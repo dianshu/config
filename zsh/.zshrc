@@ -340,10 +340,10 @@ EOF
 
     # Start Agency MCP servers in separate tmux sessions (HTTP transport)
     if is_work; then
-        for svc_port in "mail:30970" "s360-breeze:30971" "word:30972" "sharepoint:30973" "workiq:30974" "ado:30975"; do
+        for svc_port in "mail:30970" "s360-breeze:30971"; do
             local svc="${svc_port%%:*}"
             local p="${svc_port##*:}"
-            local name="${svc%%-*}"  # mail, s360, word, sharepoint, workiq, ado
+            local name="${svc%%-*}"  # mail, s360
             lsof -ti :"$p" | xargs kill -9 2>/dev/null
             tmux kill-session -t "cc_$name" 2>/dev/null
             tmux new-session -d -s "cc_$name" "agency mcp $svc --transport http --port $p"
@@ -576,20 +576,10 @@ cc_sync() {
     fi
     claude mcp remove mail -s user 2>/dev/null
     claude mcp remove s360 -s user 2>/dev/null
-    claude mcp remove word -s user 2>/dev/null
-    claude mcp remove sharepoint -s user 2>/dev/null
-    claude mcp remove workiq -s user 2>/dev/null
-    claude mcp remove ado -s user 2>/dev/null
-    claude mcp remove playwright -s user 2>/dev/null
     if is_work; then
         claude mcp add mail -s user --transport http http://localhost:30970
         claude mcp add s360 -s user --transport http http://localhost:30971
-        claude mcp add word -s user --transport http http://localhost:30972
-        claude mcp add sharepoint -s user --transport http http://localhost:30973
-        claude mcp add workiq -s user --transport http http://localhost:30974
-        claude mcp add ado -s user --transport http http://localhost:30975
-        claude mcp add playwright -s user -- npx @playwright/mcp@latest
-        echo "  MCP servers 'mail', 's360', 'word', 'sharepoint', 'workiq', 'ado' (http), 'playwright' (stdio) configured"
+        echo "  MCP servers 'mail', 's360' (http) configured"
     else
         echo "  Skipping Agency MCP servers (no work account available)"
     fi
