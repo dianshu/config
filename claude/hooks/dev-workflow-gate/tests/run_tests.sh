@@ -137,4 +137,24 @@ echo "$OUT" | grep -q "new.py" \
   && { PASS=$((PASS+1)); echo "  PASS facts lists untracked file"; } \
   || { FAIL=$((FAIL+1)); FAILED_NAMES+=("facts lists untracked"); echo "  FAIL"; }
 
+# --- diff.sh outputs stat + capped hunks ---
+S=$(make_sandbox); install_real_timeout "$S"
+git -C "$S/repo" init -q
+seq 1 500 > "$S/repo/big.py"
+git -C "$S/repo" add big.py
+git -C "$S/repo" -c user.email=a@b -c user.name=a commit -q -m init
+seq 100 600 > "$S/repo/big.py"
+echo "new" > "$S/repo/new.py"
+OUT=$(HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/diff.sh "$S/repo" | head -1500)
+echo "$OUT" | grep -q "^## stat" \
+  && { PASS=$((PASS+1)); echo "  PASS diff has stat"; } \
+  || { FAIL=$((FAIL+1)); FAILED_NAMES+=("diff stat"); echo "  FAIL"; }
+echo "$OUT" | grep -q "^## untracked-preview" \
+  && { PASS=$((PASS+1)); echo "  PASS diff has untracked-preview"; } \
+  || { FAIL=$((FAIL+1)); FAILED_NAMES+=("diff untracked"); echo "  FAIL"; }
+LINES=$(echo "$OUT" | wc -l)
+[ "$LINES" -le 1600 ] \
+  && { PASS=$((PASS+1)); echo "  PASS diff under budget ($LINES lines)"; } \
+  || { FAIL=$((FAIL+1)); FAILED_NAMES+=("diff budget"); echo "  FAIL: $LINES lines"; }
+
 summary
