@@ -3,6 +3,9 @@ set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
 source "$HERE/lib.sh"
 
+# Disable PATH augmentation so sandbox PATH is honored
+export GATE_NO_AUGMENT_PATH=1
+
 # --- SKIP_GATE escape hatch ---
 S=$(make_sandbox)
 SKIP_GATE=1 HOME="$S/home" PATH="$S/path:$PATH" \
@@ -27,5 +30,28 @@ INPUT=$(printf '{"transcript_path":"%s","cwd":"%s"}' "$TRANSCRIPT" "$S/repo")
 HOME="$S/home" PATH="$S/path" \
   bash ~/.claude/hooks/dev-workflow-gate/gate.sh <<<"$INPUT" 2>"$S/stderr.log"
 assert_exit "non-git repo" "$?" 0
+
+# --- codex missing ---
+S=$(make_sandbox); install_real_timeout "$S"
+TRANSCRIPT="$S/repo/transcript.jsonl"; echo '' > "$TRANSCRIPT"
+git -C "$S/repo" init -q
+git -C "$S/repo" -c user.email=a@b -c user.name=a commit -q --allow-empty -m init
+echo "x" > "$S/repo/x.py"
+INPUT=$(printf '{"transcript_path":"%s","cwd":"%s"}' "$TRANSCRIPT" "$S/repo")
+HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/gate.sh <<<"$INPUT" 2>"$S/stderr.log"
+assert_exit "codex missing" "$?" 2
+assert_stderr_contains "codex missing msg" "$S" "codex CLI required"
+
+# --- timeout missing ---
+S=$(make_sandbox)
+install_fake_codex "$S" '{}'
+TRANSCRIPT="$S/repo/transcript.jsonl"; echo '' > "$TRANSCRIPT"
+git -C "$S/repo" init -q
+git -C "$S/repo" -c user.email=a@b -c user.name=a commit -q --allow-empty -m init
+echo "x" > "$S/repo/x.py"
+INPUT=$(printf '{"transcript_path":"%s","cwd":"%s"}' "$TRANSCRIPT" "$S/repo")
+HOME="$S/home" PATH="$S/path" bash ~/.claude/hooks/dev-workflow-gate/gate.sh <<<"$INPUT" 2>"$S/stderr.log"
+assert_exit "timeout missing" "$?" 2
+assert_stderr_contains "timeout missing msg" "$S" "timeout"
 
 summary
