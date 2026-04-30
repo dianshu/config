@@ -18,6 +18,8 @@
         autoSetupRemote = true
 [credential "https://dev.azure.com"]
         useHttpPath = true
+[credential]
+        azreposCredentialType = oauth
 [pull]
         rebase = false
 [init]
