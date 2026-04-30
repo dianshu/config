@@ -7,12 +7,27 @@ FAIL=0
 FAILED_NAMES=()
 
 # Each test creates an isolated tmp dir with: a fake $HOME, a tmp git repo, a stub PATH
+# Symlinks common host tools (git/jq/etc) into sandbox PATH; deliberately omits
+# timeout/gtimeout so individual tests opt-in via install_real_timeout.
 make_sandbox() {
   SANDBOX=$(mktemp -d /tmp/gate-test-XXXXXX)
   mkdir -p "$SANDBOX/home/.claude/cache/gate-baseline"
   mkdir -p "$SANDBOX/repo"
   mkdir -p "$SANDBOX/path"
+  for cmd in git jq bash sh head tail wc cat sed grep awk find sort uniq mktemp date dirname basename rm mv cp mkdir touch ln readlink python3 shasum sha256sum diff printf seq xargs tr; do
+    src=$(command -v "$cmd" 2>/dev/null)
+    [ -n "$src" ] && ln -sf "$src" "$SANDBOX/path/$cmd"
+  done
   echo "$SANDBOX"
+}
+
+# Symlink real timeout/gtimeout into sandbox PATH (opt-in per test)
+install_real_timeout() {
+  local sandbox=$1
+  for cand in $(command -v timeout 2>/dev/null) $(command -v gtimeout 2>/dev/null) /usr/bin/timeout /opt/homebrew/bin/gtimeout; do
+    [ -x "$cand" ] && { ln -sf "$cand" "$sandbox/path/$(basename "$cand")"; return 0; }
+  done
+  echo "WARN: no timeout binary on host; some tests will be skipped" >&2
 }
 
 # Install fake codex stub at $1, returning $2 from --output-last-message file
