@@ -501,7 +501,6 @@ cc_sync() {
     echo "\n=== Marketplaces ==="
     local mp_json="$HOME/.claude/plugins/known_marketplaces.json"
     typeset -A marketplaces=(
-        [superpowers-marketplace]="obra/superpowers-marketplace"
         [microsoft-docs-marketplace]="microsoftdocs/mcp"
         [anthropic-agent-skills]="anthropics/skills"
         [claude-plugins-official]="anthropics/claude-plugins-official"
@@ -521,7 +520,6 @@ cc_sync() {
     echo "\n=== Plugins ==="
     local plugins_json="$HOME/.claude/plugins/installed_plugins.json"
     local -a plugins=(
-        "superpowers@superpowers-marketplace"
         "microsoft-docs@microsoft-docs-marketplace"
         "document-skills@anthropic-agent-skills"
         "playground@claude-plugins-official"
@@ -543,6 +541,18 @@ cc_sync() {
         # Ensure plugin is enabled (install doesn't auto-enable)
         claude plugin enable "$plugin" -s user 2>/dev/null
     done
+
+    # 4c. Skills (clone and install)
+    echo "\n=== Skills ==="
+    local skills_dir
+    skills_dir="$(mktemp -d /tmp/skills.XXXXXX)"
+    if git clone --depth 1 https://github.com/dianshu/skills.git "$skills_dir"; then
+        bash "$skills_dir/install.sh"
+        rm -rf "$skills_dir"
+    else
+        echo "  FAILED: Could not clone skills repo"
+        rm -rf "$skills_dir"
+    fi
 
     # 4d. SearXNG config
     echo "\n=== SearXNG Config ==="
