@@ -1,6 +1,6 @@
 ---
-name: review
-description: Multi-lens adversarial code review using external AI CLIs (Codex or Gemini). Use when the user says "review", "review changes", "review plan", or wants a second opinion on code or plans. Supports both code review (working-tree diffs) and plan review (markdown files). Not for reviewing already-committed code — this reviews working-tree diffs or plan files.
+name: review-with-agent
+description: Multi-lens adversarial code review using external AI CLIs (Codex or Gemini). Shared backend logic invoked by /codex-review and /gemini-review. Supports both code review (working-tree diffs) and plan review (markdown files). Not for reviewing already-committed code.
 allowed-tools: Bash, Read, Grep, Glob, Agent
 ---
 
@@ -26,7 +26,7 @@ Reviews uncommitted git changes or implementation plans using multi-lens adversa
 
 - If invoked via `/codex-review` → use **Codex** column
 - If invoked via `/gemini-review` → use **Gemini** column
-- If invoked via `/review` or user just said "review" → check availability of both CLIs, prefer Codex if both available
+- If invoked via `/review-with-agent` or user just said "review" → check availability of both CLIs, prefer Codex if both available
 - If selected backend is unavailable → try the other backend
 - If neither CLI available → Single-model-multi-lens fallback (Agent tool dispatches reviewers)
 

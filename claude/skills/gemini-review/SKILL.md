@@ -6,4 +6,4 @@ allowed-tools: Bash, Read, Grep, Glob, Agent
 
 # Gemini Review
 
-Read `~/.claude/skills/review/SKILL.md` and execute the full workflow using the **Gemini** column from the backend configuration table.
+Read `~/.claude/skills/review-with-agent/SKILL.md` and execute the full workflow using the **Gemini** column from the backend configuration table.

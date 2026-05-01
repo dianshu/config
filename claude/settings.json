@@ -26,7 +26,11 @@
       "Write(~/.gemini/**)",
       "Skill(codex-review)",
       "Skill(gemini-review)",
-      "Skill(review)"
+      "Skill(review-with-agent)",
+      "Skill(review-loop)",
+      "Skill(prd-review-loop)",
+      "Skill(simplify)",
+      "Skill(e2e-verify)"
     ],
     "deny": [
       "Bash(git push --force:*)",
@@ -58,15 +62,6 @@
             "command": "bash ~/.claude/hooks/session-deps-check.sh"
           }
         ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/hooks/dev-workflow-gate/baseline.sh"
-          }
-        ]
       }
     ],
     "UserPromptSubmit": [
@@ -87,18 +82,6 @@
           {
             "type": "command",
             "command": "bash ~/.claude/hooks/notify.sh"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/hooks/dev-workflow-gate/gate.sh",
-            "statusMessage": "Checking dev-workflow compliance..."
           }
         ]
       }
