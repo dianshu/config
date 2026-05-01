@@ -21,26 +21,48 @@ SKILL_TO_STEP = {
 BASH_MODIFY_RE = re.compile(
     r"\b(sed\s+-i|awk\s+-i|perl\s+-i|tee\b|>\s*[^&\s|]|>>|"
     r"\bmv\b|\bcp\b|\brm\b|\bapply_patch\b|"
-    r"git\s+(apply|checkout|restore)\b|"
+    r"git\s+apply\b|"
     r"(npm|pnpm|bun|yarn)\s+(install|add|remove|update)\b|"
     r"pip\s+install\b|cargo\s+(add|install)\b|"
     r"(prettier|black|ruff)\s+(--write|format)|gofmt\s+-w|rustfmt\b)"
 )
 
-# Commands targeting only ephemeral paths (tmp, caches) are not implementation
-# modifications. Match if EVERY non-flag word is under such a path.
+# Paths considered ephemeral — writes/edits here don't count as implementation
+# modifications.
 EPHEMERAL_PATH_RE = re.compile(
     r"^(/tmp/|/var/folders/|/private/var/folders/|/private/tmp/|"
-    r"~/\.cache/|~/Library/Caches/|/dev/null$|\.\./|\./)"
+    r"~/\.cache/|~/Library/Caches/|/dev/null$)"
 )
+
+# Capture the destination path for write-like operations:
+#   - shell redirects:           > path,  >> path,  | tee [-a] path
+#   - cp / mv:                   last positional argument
+# We extract destinations and call a command "ephemeral" iff EVERY captured
+# destination is under an ephemeral path. Source paths are ignored — reading
+# from /Users/... and writing to /tmp/... is not an implementation change.
+REDIRECT_DEST_RE = re.compile(r"(?:>>?|\|\s*tee(?:\s+-a)?)\s+([^\s|&;]+)")
+CP_MV_RE = re.compile(r"\b(?:cp|mv)\b((?:\s+-[A-Za-z]+)*)((?:\s+\S+)+)")
+RM_RE = re.compile(r"\brm\b((?:\s+-[A-Za-z]+)*)((?:\s+\S+)+)")
+
+
+def _extract_write_destinations(cmd):
+    dests = []
+    dests.extend(REDIRECT_DEST_RE.findall(cmd))
+    for m in CP_MV_RE.finditer(cmd):
+        args = [a for a in m.group(2).split() if not a.startswith("-")]
+        if args:
+            dests.append(args[-1])
+    for m in RM_RE.finditer(cmd):
+        dests.extend(a for a in m.group(2).split() if not a.startswith("-"))
+    return [d.lstrip("'\"") for d in dests]
 
 
 def is_ephemeral_only(cmd):
-    """True if all path-like args target ephemeral locations."""
-    paths = [tok for tok in cmd.split() if "/" in tok or tok == "/dev/null"]
-    if not paths:
+    """True iff every write destination is an ephemeral path."""
+    dests = _extract_write_destinations(cmd)
+    if not dests:
         return False
-    return all(EPHEMERAL_PATH_RE.match(p.lstrip("'\"")) for p in paths)
+    return all(EPHEMERAL_PATH_RE.match(d) for d in dests)
 
 _STEP_ALT = "|".join(re.escape(s) for s in REVIEW_STEPS)
 SLASH_RE = re.compile(r"^\s*/(" + _STEP_ALT + r")\b")
