@@ -70,7 +70,13 @@ _zshrc_mark "abbr definitions"
 
 # 启用路径自动补全
 autoload -Uz compinit
-compinit
+_zcompdump_fresh=( "${ZDOTDIR:-$HOME}"/.zcompdump(Nmh-24) )
+if (( $#_zcompdump_fresh )); then
+  compinit -C
+else
+  compinit
+fi
+unset _zcompdump_fresh
 _zshrc_mark "compinit"
 
 # 保存命令历史记录
