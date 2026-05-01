@@ -35,7 +35,7 @@ defaults write com.apple.WindowManager EnableStandardClickToShowDesktop -bool fa
 
 # === Keyboard ===
 # 按键重复速率（越小越快，默认 6）
-defaults write NSGlobalDomain KeyRepeat -int 3
+defaults write NSGlobalDomain KeyRepeat -int 2
 
 # 重复前延迟（越小越快，默认 25）
 defaults write NSGlobalDomain InitialKeyRepeat -int 10
