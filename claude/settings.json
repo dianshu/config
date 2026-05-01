@@ -51,6 +51,10 @@
           {
             "type": "command",
             "command": "bash ~/.claude/hooks/session-deps-check.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/load-project-rules.sh"
           }
         ]
       }
