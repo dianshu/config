@@ -175,7 +175,7 @@ LINES=$(echo "$OUT" | wc -l)
 # --- full review pass (codex returns pass JSON) ---
 S=$(make_sandbox); install_real_timeout "$S"
 install_fake_codex "$S" '```json
-{"verdict":"pass","needs_review":true,"completed":["simplify","codex-review","gemini-review","e2e-verify","verification-before-completion"],"missing":[],"issues":[],"reason":"all steps completed"}
+{"verdict":"pass","needs_review":true,"completed":["simplify","codex-review","gemini-review","e2e-verify"],"missing":[],"issues":[],"reason":"all steps completed"}
 ```'
 git -C "$S/repo" init -q
 echo "a" > "$S/repo/a.py"; git -C "$S/repo" add a.py

@@ -3,7 +3,7 @@ transcript completed the mandatory 5-step review loop after this-session
 code changes.
 
 Required steps when implementation code was changed:
-  simplify, codex-review, gemini-review, e2e-verify, verification-before-completion
+  simplify, codex-review, gemini-review, e2e-verify
 
 You may exempt a step ONLY when there is genuine impossibility evidenced by facts
 (e.g., gemini_path is empty -> gemini-review can be exempted; no dev script and

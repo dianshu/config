@@ -4,15 +4,13 @@ Follow this workflow when writing code, implementing features, or fixing bugs.
 CLAUDE.md, rules/, .claude/, settings) generally do not require the loop.
 The Codex-driven Stop gate makes the final call — it has final authority.
 
-1. **Before implementation**: Use the /superpowers:test-driven-development skill.
-   Always write tests first.
+1. **Before implementation**: Use the /tdd skill. Always write tests first.
 
 2. **After implementation**, loop until clean:
    a. /simplify
    b. /codex-review and /gemini-review in parallel
    c. /e2e-verify
-   d. /superpowers:verification-before-completion
-   e. If any step found issues, fix them and repeat from (a)
+   d. If any step found issues, fix them and repeat from (a)
 
 3. **Stop gate**: A Codex-driven hook judges at Stop time whether the loop is
    complete. Block reasons appear in stderr — read them, fix, re-run skipped

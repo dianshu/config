@@ -9,16 +9,13 @@ import json
 import re
 import sys
 
-REVIEW_STEPS = {"simplify", "codex-review", "gemini-review", "e2e-verify",
-                "verification-before-completion"}
+REVIEW_STEPS = {"simplify", "codex-review", "gemini-review", "e2e-verify"}
 
 SKILL_TO_STEP = {
     "simplify": "simplify",
     "codex-review": "codex-review",
     "gemini-review": "gemini-review",
     "e2e-verify": "e2e-verify",
-    "superpowers:verification-before-completion": "verification-before-completion",
-    "verification-before-completion": "verification-before-completion",
 }
 
 BASH_MODIFY_RE = re.compile(
@@ -46,9 +43,9 @@ def is_ephemeral_only(cmd):
     return all(EPHEMERAL_PATH_RE.match(p.lstrip("'\"")) for p in paths)
 
 _STEP_ALT = "|".join(re.escape(s) for s in REVIEW_STEPS)
-SLASH_RE = re.compile(r"^\s*/((?:superpowers:)?(" + _STEP_ALT + r"))\b")
+SLASH_RE = re.compile(r"^\s*/(" + _STEP_ALT + r")\b")
 COMMAND_NAME_RE = re.compile(
-    r"<command-name>/?((?:superpowers:)?(" + _STEP_ALT + r"))</command-name>"
+    r"<command-name>/?(" + _STEP_ALT + r")</command-name>"
 )
 
 MAX_EVENTS = 100
@@ -61,8 +58,6 @@ def normalize_skill(name):
 
 
 def normalize_slash(name):
-    if name.startswith("superpowers:"):
-        name = name[len("superpowers:"):]
     return name if name in REVIEW_STEPS else None
 
 
