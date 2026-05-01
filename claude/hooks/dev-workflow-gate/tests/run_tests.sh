@@ -137,6 +137,27 @@ EPHEMERAL_COUNT=$(echo "$OUT" | jq -r '[.events[] | select(.type=="bash_modify")
   && { PASS=$((PASS+1)); echo "  PASS timeline excludes ephemeral bash"; } \
   || { FAIL=$((FAIL+1)); FAILED_NAMES+=("timeline ephemeral filter"); echo "  FAIL: got $EPHEMERAL_COUNT bash_modify events, expected 1"; echo "$OUT" | jq .events; }
 
+# --- timeline.py: bash codex/gemini invocations count as review skills ---
+S=$(make_sandbox)
+TRANSCRIPT="$S/transcript-bashrev.jsonl"
+cat > "$TRANSCRIPT" <<'TX'
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"codex exec \"review this diff\""}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"gemini -p \"review this\""}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"codex --version"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"gemini --help"}}]}}
+TX
+OUT=$(python3 ~/.claude/hooks/dev-workflow-gate/timeline.py "$TRANSCRIPT")
+echo "$OUT" | jq -e 'any(.events[]; .type=="skill" and .target=="codex-review")' >/dev/null \
+  && { PASS=$((PASS+1)); echo "  PASS timeline detects bash codex exec"; } \
+  || { FAIL=$((FAIL+1)); FAILED_NAMES+=("timeline bash codex exec"); echo "  FAIL: $OUT"; }
+echo "$OUT" | jq -e 'any(.events[]; .type=="skill" and .target=="gemini-review")' >/dev/null \
+  && { PASS=$((PASS+1)); echo "  PASS timeline detects bash gemini -p"; } \
+  || { FAIL=$((FAIL+1)); FAILED_NAMES+=("timeline bash gemini -p"); echo "  FAIL: $OUT"; }
+SKILL_COUNT=$(echo "$OUT" | jq -r '[.events[] | select(.type=="skill")] | length')
+[ "$SKILL_COUNT" = "2" ] \
+  && { PASS=$((PASS+1)); echo "  PASS timeline ignores non-review codex/gemini calls"; } \
+  || { FAIL=$((FAIL+1)); FAILED_NAMES+=("timeline bash review false positives"); echo "  FAIL: got $SKILL_COUNT skill events, expected 2"; echo "$OUT" | jq .events; }
+
 # --- facts.sh outputs key=value ---
 S=$(make_sandbox); install_real_timeout "$S"; install_fake_codex "$S" '{}'
 git -C "$S/repo" init -q

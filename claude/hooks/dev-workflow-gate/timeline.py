@@ -18,6 +18,9 @@ SKILL_TO_STEP = {
     "e2e-verify": "e2e-verify",
 }
 
+CODEX_REVIEW_RE = re.compile(r"\bcodex\s+exec\b")
+GEMINI_REVIEW_RE = re.compile(r"\bgemini\b[^|;&]*\s(?:-p\b|--prompt\b)")
+
 BASH_MODIFY_RE = re.compile(
     r"\b(sed\s+-i|awk\s+-i|perl\s+-i|tee\b|>\s*[^&\s|]|>>|"
     r"\bmv\b|\bcp\b|\brm\b|\bapply_patch\b|"
@@ -151,7 +154,13 @@ def main():
                                                "target": tin.get("notebook_path", "")})
                             elif tname == "Bash":
                                 cmd = tin.get("command", "")
-                                if BASH_MODIFY_RE.search(cmd) and \
+                                if CODEX_REVIEW_RE.search(cmd):
+                                    events.append({"line": lineno, "type": "skill",
+                                                   "target": "codex-review"})
+                                elif GEMINI_REVIEW_RE.search(cmd):
+                                    events.append({"line": lineno, "type": "skill",
+                                                   "target": "gemini-review"})
+                                elif BASH_MODIFY_RE.search(cmd) and \
                                         not is_ephemeral_only(cmd):
                                     events.append({
                                         "line": lineno,
