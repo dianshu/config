@@ -1,6 +1,8 @@
-## Auto-Fetch URLs
+## Web Fetching
 
-When you encounter a URL that contains information relevant to the task, do NOT tell the user to open it manually. Fetch it yourself using available tools:
+Always use the SearXNG MCP web search tool (`mcp__searxng__searxng_web_search`) instead of the built-in WebSearch tool for all web searches.
+
+When you encounter a URL that contains information relevant to the task, do NOT tell the user to open it manually. Fetch it yourself:
 
 1. Try `mcp__searxng__web_url_read` first
 2. If that fails or returns a login/auth wall, open the URL directly in Chrome (`mcp__chrome__new_page`) and take a snapshot (`mcp__chrome__take_snapshot`)

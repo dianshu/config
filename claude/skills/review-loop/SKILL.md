@@ -24,7 +24,6 @@ Orchestrates the full post-implementation review cycle. Pure orchestration — e
 
 ## Rules
 
-- **Manual only.** Never invoke this skill automatically.
 - **Parent does the fixing.** This skill never edits code. It only orchestrates other skills and surfaces their output.
 - **Parallel reviews.** `/codex-review` and `/gemini-review` MUST be dispatched in a single message containing two Skill tool calls, not sequentially.
 - **Won't-fix list is ephemeral.** Lives only in the parent's working memory for this loop invocation. Not written to disk. Not sent to reviewers (no point — they don't remember between calls).

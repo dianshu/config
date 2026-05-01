@@ -1,1 +1,1 @@
-Always use Context7 MCP when I need library/API documentation, code generation, setup or configuration steps without me having to explicitly ask.
+For library/API documentation, prefer Context7 MCP over web search.

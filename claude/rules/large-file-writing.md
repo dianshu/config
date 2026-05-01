@@ -9,5 +9,3 @@ When writing files with large content (roughly >500 lines or >15KB), the Write t
 3. **Verify** — grep for remaining placeholders (`grep -c "PLACEHOLDER" <file>`) to confirm all sections were filled, then Read the file to spot-check.
 
 **Recovery:** If a Write call fails with missing parameter errors on large content, do not retry the same call. Switch to the skeleton + Edit approach above.
-
-**Signs you need this approach:** the file will contain repeated structural patterns (HTML sections, test cases, config blocks), translations of existing large files, or any generated content where you can estimate >300 lines.
