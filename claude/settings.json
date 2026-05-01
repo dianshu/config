@@ -50,15 +50,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/session-context.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
             "command": "bash ~/.claude/hooks/session-deps-check.sh"
           }
         ]
