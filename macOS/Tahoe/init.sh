@@ -142,7 +142,7 @@ fi
 
 # === CLI Packages ===
 brew_install azure-cli yq jq
-brew_install git tree tmux trivy
+brew_install git tree tmux trivy coreutils
 brew_install uv node ruff git-delta
 brew_install gh glow wget entr
 brew_install openjdk@21 sing-box zsh python@3.13
