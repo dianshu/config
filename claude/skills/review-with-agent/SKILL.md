@@ -126,15 +126,21 @@ This is read-only — never edit files based on output. Each reviewer gets: inte
 
 #### Lenses
 
-**Challenger** — input `challenger_diff.txt`. "Assume this code has bugs — prove it." Checklist: crash-inducing inputs, swallowed errors, race conditions, boundary/off-by-one, off-happy-path, resource leaks. Output: `[!]/[~]/[.] file:line trigger → impact → fix`.
+All lenses tag findings with one of: `Blocking` (must fix before merge — bug, security, red-line), `Required` (should fix — design flaw, broken contract), `Suggestion` (style, minor cleanup, taste).
 
-**Architect** — input file list + key file signatures. "Examine design decisions, not bugs." Checklist: coupling, responsibility boundary violations, scale assumptions, data flow gaps, API surface bloat. Output: `[!]/[~]/[.] file:line current design → risk → alternative`.
+**Challenger** — input `challenger_diff.txt`. "Assume this code has bugs — prove it." Checklist: crash-inducing inputs, swallowed errors, race conditions, boundary/off-by-one, off-happy-path, resource leaks. Output: `<Sev> file:line trigger → impact → fix`.
 
-**Subtractor** — input `subtractor_diff.txt` + new-file list. "Question every line's necessity." Checklist: deletable code, premature abstractions (used once), "just in case" code, over-configuration, dead branches. Output: `[!]/[~]/[.] file:line deletable → impact if removed → simplification`.
+**Architect** — input file list + key file signatures. "Examine design decisions, not bugs." Checklist: coupling, responsibility boundary violations, scale assumptions, data flow gaps, API surface bloat. Output: `<Sev> file:line current design → risk → alternative`.
 
-**Integration** — input `challenger_diff.txt`, READ-ONLY codebase access. For each changed function/class/export: find callers via grep, check broken assumptions, trace data flow. May read truncated/stat-only files from disk. Use `git diff --name-status` for renamed/deleted paths. Checklist: behavioral changes callers don't expect, broken implicit contracts, env/config assumptions, middleware/pipeline conflicts, shared-state mutations, missing caller updates. Do NOT flag in-diff issues — Challenger handles those. Output: `[!]/[~]/[.] file:line changed behavior → affected caller → impact`.
+**Subtractor** — input `subtractor_diff.txt` + new-file list. "Question every line's necessity." Checklist: deletable code, premature abstractions (used once), "just in case" code, over-configuration, dead branches. Output: `<Sev> file:line deletable → impact if removed → simplification`.
 
-**Devil's Advocate** — input `challenger_diff.txt`. "Question the premise: is this the right solution?" Checklist: simpler/standard alternative, implicit assumptions, real-world failure modes (scale/concurrency/changing requirements), silent tradeoffs, accidental complexity, "why not just…" challenges. Output: `[!]/[~]/[.] file:line current approach → assumption/risk → alternative`.
+**Integration** — input `challenger_diff.txt`, READ-ONLY codebase access. For each changed function/class/export: find callers via grep, check broken assumptions, trace data flow. May read truncated/stat-only files from disk. Use `git diff --name-status` for renamed/deleted paths. Checklist: behavioral changes callers don't expect, broken implicit contracts, env/config assumptions, middleware/pipeline conflicts, shared-state mutations, missing caller updates. Do NOT flag in-diff issues — Challenger handles those. Output: `<Sev> file:line changed behavior → affected caller → impact`.
+
+**Devil's Advocate** — input `challenger_diff.txt`. "Question the premise *and* the craft: is this the right solution, and is it written with care?" Checklist:
+- *Premise:* simpler/standard alternative, implicit assumptions, real-world failure modes (scale/concurrency/changing requirements), silent tradeoffs, accidental complexity, "why not just…" challenges
+- *Slop detector (code smell / taste):* lazy naming (`data`, `tmp`, `result`, `df2`, `x`); obvious comments restating the code; copy-paste blocks instead of abstraction; cargo-cult patterns (e.g. `useEffect` with wrong deps, `async` wrapping sync code, `.apply()` where vectorization works); dead code / commented-out blocks / unused imports; premature OR missing abstraction; junk-drawer files
+
+Output: `<Sev> file:line current approach or smell → assumption/risk → alternative`.
 
 #### Dispatch (external CLI)
 
@@ -166,7 +172,7 @@ Scan the filtered diff for constraint violations:
 1. **Project constraints** — read `CLAUDE.md`, `AGENTS.md`, `.ai/constraints.json` if they exist; check the diff against their rules
 2. **Universal red-lines** — `eval()` / `innerHTML` with user input; hardcoded secrets; unvalidated `process.env` in security contexts; `dangerouslySetInnerHTML` with unsanitized content
 
-Violations → additional `[!]` findings prefixed `[Red-Line]`.
+Violations → additional `Blocking` findings prefixed `[Red-Line]`.
 
 ### A7. Aggregate + verdict report
 
@@ -182,18 +188,18 @@ Violations → additional `[!]` findings prefixed `[Red-Line]`.
 
 | # | Sev | Lens | Issue | Decision |
 |---|-----|------|-------|----------|
-| 1 | [!] | Ch | `file:line` description | Accept — rationale |
+| 1 | Blocking | Ch | `file:line` description | Accept — rationale |
 
 ### Summary
 {One paragraph: conclusion + next steps}
 ```
 
-**Severity:** `[!]` High (likely bug/security/constraint), `[~]` Medium (design concern), `[.]` Low (style/minor).
+**Severity:** `Blocking` (likely bug, security, or red-line violation — must fix before merge), `Required` (design flaw, broken contract, real correctness concern — should fix), `Suggestion` (style, taste, minor cleanup).
 
 **Verdict:**
-- **PASS** — no `[!]`
-- **CONTESTED** — `[!]` exists but lenses disagree
-- **REJECT** — multiple lenses agree on `[!]`, or red-line violations
+- **PASS** — no `Blocking`
+- **CONTESTED** — `Blocking` exists but lenses disagree
+- **REJECT** — multiple lenses agree on `Blocking`, or red-line violations
 
 **Decision:** Claude marks each finding `Accept` (valid) or `Dismiss` (false positive / acceptable trade-off). ≤5 findings → rationale inline; 6+ → rationale in separate section below the table.
 
@@ -230,7 +236,7 @@ Also: missing verification after impl steps, missing test-first (TDD),
 incomplete code snippets, missing commit steps between logical units.
 
 Output each finding as:
-[!]/[~]/[.] [Category] description
+Blocking|Required|Suggestion [Category] description
 PROMPT
 } | ${PLAN_DISPATCH_CMD}
 ```
@@ -250,7 +256,7 @@ Fallback: single Agent sub-agent with same prompt.
 
 | # | Sev | Category | Issue | Decision |
 |---|-----|----------|-------|----------|
-| 1 | [~] | Completeness | Missing verification after DB migration | Accept |
+| 1 | Required | Completeness | Missing verification after DB migration | Accept |
 
 ### Summary
 {One paragraph}
