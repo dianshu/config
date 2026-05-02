@@ -169,7 +169,7 @@ code --install-extension ms-python.python
 code --install-extension panxiaoan.themes-falcon-vscode
 
 # === Git Config ===
-curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/gitconfig -o $HOME/.gitconfig
+curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/git/config -o $HOME/.gitconfig
 
 setup_git_identity() {
     local file="$1"
