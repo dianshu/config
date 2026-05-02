@@ -135,6 +135,7 @@ export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
 export PATH="$HOME/bin:$PATH"
+export PATH="$HOME/.zsh_scripts:$PATH"
 
 # 引入 Claude Code 环境变量
 if [[ -f ~/.claude/user.env ]]; then
@@ -608,6 +609,26 @@ update_zshrc() {
     dl_with_backup \
         "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/zsh/.zshrc" \
         "$HOME/.zshrc"
+
+    echo "\n=== Syncing zsh/scripts/ ==="
+    local raw_base="https://raw.githubusercontent.com/dianshu/config/main"
+    local tree_json
+    tree_json="$(wget -qO- "https://api.github.com/repos/dianshu/config/git/trees/main?recursive=1")"
+    if [[ -z "$tree_json" ]]; then
+        echo "  ERROR: Failed to fetch repo tree from GitHub API"
+    else
+        local files
+        files="$(echo "$tree_json" | jq -r '.tree[] | select((.path | startswith("zsh/scripts/")) and .type == "blob") | .path')"
+        mkdir -p "$HOME/.zsh_scripts"
+        local rel_path
+        while IFS= read -r file_path; do
+            [[ -z "$file_path" ]] && continue
+            rel_path="${file_path#zsh/scripts/}"
+            dl_with_backup "$raw_base/$file_path" "$HOME/.zsh_scripts/$rel_path"
+            chmod +x "$HOME/.zsh_scripts/$rel_path"
+        done <<< "$files"
+    fi
+
     echo "\n=== update_zshrc complete ==="
     echo "Run 'source ~/.zshrc' to reload."
 }
