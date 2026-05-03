@@ -102,6 +102,10 @@ while true; do
       log "no active app (locked?); retry in ${INTERVAL}s"
       sleep "$INTERVAL"; continue
     fi
+    if [[ "$BID" == "com.apple.springboard" ]]; then
+      log "active app is SpringBoard; using com.apple.Preferences instead"
+      BID="com.apple.Preferences"
+    fi
     SID=$(curl -fsS --max-time 5 -X POST "$WDA/session" \
       -H 'Content-Type: application/json' \
       -d "{\"capabilities\":{\"alwaysMatch\":{\"bundleId\":\"$BID\"}}}" \
