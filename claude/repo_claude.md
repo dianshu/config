@@ -19,6 +19,8 @@ The @config repo mirrors dotfiles and tool configs from the home directory. When
 | `~/.config/git/ignore` | `~/repos/config/git/ignore` |
 | `~/repos/CLAUDE.md` | `~/repos/config/claude/repo_claude.md` |
 
+Skills under `~/.claude/skills/` that are managed in the `~/repos/skills` git repo (currently: diagnose, grill, improve-codebase-architecture, issues, prd, tdd, triage, zoom-out) sync to `~/repos/skills/<name>/` instead of the config repo. Commit and push changes there.
+
 This directory (`~/repos`) is a normal directory, not a git repo. Do not run git commands directly in this directory.
 
 ## Dependency Tracking
