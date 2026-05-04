@@ -31,6 +31,8 @@ az config set extension.use_dynamic_install=yes_without_prompt
 
 # git
 wget https://raw.githubusercontent.com/dianshu/config/main/git/config -O $HOME/.gitconfig
+mkdir -p $HOME/.config/git
+wget https://raw.githubusercontent.com/dianshu/config/main/git/ignore -O $HOME/.config/git/ignore
 
 setup_git_identity() {
     local file="$1"

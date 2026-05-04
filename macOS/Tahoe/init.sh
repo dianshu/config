@@ -170,6 +170,8 @@ code --install-extension panxiaoan.themes-falcon-vscode
 
 # === Git Config ===
 curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/git/config -o $HOME/.gitconfig
+mkdir -p $HOME/.config/git
+curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/git/ignore -o $HOME/.config/git/ignore
 
 setup_git_identity() {
     local file="$1"
