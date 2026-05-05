@@ -8,8 +8,6 @@ RUNNER_BUNDLE="com.facebook.WebDriverAgentRunner.xctrunner"
 PORT=8100
 WDA="http://localhost:$PORT"
 INTERVAL=120
-TAP_X=200
-TAP_Y=1
 
 XCUITEST_PID=""
 FORWARD_PID=""
@@ -83,7 +81,6 @@ done
 
 # 5. keepalive loop (foreground)
 log "keepalive every ${INTERVAL}s — Ctrl+C to stop"
-SID=""
 while true; do
   if ! kill -0 "$XCUITEST_PID" 2>/dev/null; then
     log "xcuitest runner died — exiting"; exit 1
@@ -91,41 +88,14 @@ while true; do
   if ! kill -0 "$FORWARD_PID" 2>/dev/null; then
     log "usbmux forward died — exiting"; exit 1
   fi
-  if ! curl -fsS --max-time 3 "$WDA/status" >/dev/null 2>&1; then
-    log "WDA dropped — exiting"; exit 1
-  fi
-
-  if [[ -z "$SID" ]]; then
-    BID=$(curl -fsS --max-time 3 "$WDA/wda/activeAppInfo" \
-      | python3 -c 'import sys,json;print(json.load(sys.stdin)["value"]["bundleId"])' 2>/dev/null || true)
-    if [[ -z "$BID" ]]; then
-      log "no active app (locked?); retry in ${INTERVAL}s"
-      sleep "$INTERVAL"; continue
-    fi
-    if [[ "$BID" == "com.apple.springboard" ]]; then
-      log "active app is SpringBoard; using com.apple.Preferences instead"
-      BID="com.apple.Preferences"
-    fi
-    SID=$(curl -fsS --max-time 5 -X POST "$WDA/session" \
-      -H 'Content-Type: application/json' \
-      -d "{\"capabilities\":{\"alwaysMatch\":{\"bundleId\":\"$BID\"}}}" \
-      | python3 -c 'import sys,json;print(json.load(sys.stdin)["value"]["sessionId"])' 2>/dev/null || true)
-    if [[ -z "$SID" ]]; then
-      log "session create failed against $BID; retry in ${INTERVAL}s"
-      sleep "$INTERVAL"; continue
-    fi
-    log "session=$SID (bundle=$BID)"
-  fi
 
   code=$(curl -fsS -o /dev/null -w '%{http_code}' --max-time 5 \
-    -X POST "$WDA/session/$SID/wda/tap" \
-    -H 'Content-Type: application/json' \
-    -d "{\"x\":$TAP_X,\"y\":$TAP_Y}" 2>/dev/null || echo 000)
+    "$WDA/wda/healthcheck" 2>/dev/null || echo 000)
   if [[ "$code" == "200" ]]; then
-    log "tap ok"
+    log "healthcheck ok"
   else
-    log "tap http=$code — recreating session"
-    SID=""
+    log "healthcheck http=$code — exiting"
+    exit 1
   fi
 
   sleep "$INTERVAL"
