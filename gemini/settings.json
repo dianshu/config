@@ -6,5 +6,13 @@
     "checkpointing": {
       "enabled": false
     }
+  },
+  "security": {
+    "auth": {
+      "selectedAuthType": "gemini-api-key"
+    },
+    "folderTrust": {
+      "enabled": false
+    }
   }
 }
