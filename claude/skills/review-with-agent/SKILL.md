@@ -8,30 +8,25 @@ allowed-tools: Bash, Read, Grep, Glob, Agent
 
 Reviews uncommitted git changes or implementation plans using independent lens-specific reviewers. Each reviewer runs in isolation — they must NOT see each other's output.
 
-## Backend Configuration
+## Backend Inputs
 
-| Config | Codex | Gemini |
-|--------|-------|--------|
-| PREFLIGHT_CMD | `codex --version 2>/dev/null` | `gemini --version 2>/dev/null` |
-| DISPATCH_CMD | `codex exec - --cd "$(pwd)" --ephemeral -s read-only` | `gemini -p '' --approval-mode plan --output-format text` |
-| READONLY_DISPATCH_CMD | `codex exec - --cd "$(pwd)" --ephemeral -s read-only` | `gemini -p '' --approval-mode plan --output-format text` |
-| PLAN_DISPATCH_CMD | `codex exec - --skip-git-repo-check --ephemeral -s read-only` | `gemini -p '' --approval-mode plan --output-format text` |
-| MODE_LABEL | codex-adversarial | gemini-adversarial |
-| NOISE_FILTER | `grep -vE "^OpenAI Codex\|^----\|^workdir:\|^model:\|^provider:\|^approval:\|^sandbox:\|^reasoning\|^session id:\|^$"` | `grep -vE "^Ripgrep is not available\|^YOLO mode\|^Loaded cached credentials\|^$\|^\[STARTUP\]"` |
-| TMPDIR_PREFIX | codex-review | gemini-review |
+This skill is invoked by a backend skill (`/codex-review`, `/gemini-review`) that defines these shell variables before calling the workflow:
 
-Never override the user's model setting (no `--model` for Codex, no `-m` for Gemini). Gemini requires `--output-format text` to run non-interactively in background. Use `--approval-mode plan` (read-only) for all reviewer dispatches — reviewers must not modify the workspace.
+- `PREFLIGHT_CMD` — version check; non-zero exit means abort
+- `DISPATCH_CMD` — read-only dispatch for in-diff lenses (Challenger, Architect, Subtractor, Devil's Advocate)
+- `READONLY_DISPATCH_CMD` — read-only dispatch with codebase access for the Integration lens
+- `PLAN_DISPATCH_CMD` — read-only dispatch for plan review (no git repo required)
+- `MODE_LABEL` — string for the verdict header (e.g. `codex-adversarial`)
+- `NOISE_FILTER` — `grep -vE` command for trimming CLI banner output
+- `TMPDIR_PREFIX` — prefix for the per-run temp directory
+
+All dispatches must be read-only. Never override the user's model setting.
 
 ## Workflow
 
-### 1. Select Backend
+### 1. Preflight
 
-- `/codex-review` → Codex column; `/gemini-review` → Gemini column
-- `/review-with-agent` or "review" → check both, prefer Codex
-- Selected unavailable → try the other
-- Neither available → Agent-tool fallback (single-model multi-lens)
-
-Run PREFLIGHT_CMD to confirm. Record mode for the verdict header.
+Run `PREFLIGHT_CMD`. If it fails, abort with an error explaining the backend CLI is not installed — do NOT silently fall back. Record `MODE_LABEL` for the verdict header.
 
 ### 2. Determine Mode
 
@@ -43,15 +38,9 @@ Run PREFLIGHT_CMD to confirm. Record mode for the verdict header.
 
 ## Section A: Code Review Mode
 
-### A1. Verify changes exist
+### A1. Define exclusions and detect scale
 
-```bash
-git diff --stat && git diff --cached --stat
-```
-
-If both empty, stop and tell the user.
-
-### A2. Define exclusions and detect scale
+First confirm `git diff --stat && git diff --cached --stat` is non-empty; otherwise stop and tell the user.
 
 ```bash
 EXCLUDE_PATHS=':(exclude)**/package-lock.json :(exclude)**/yarn.lock :(exclude)**/pnpm-lock.yaml :(exclude)**/Cargo.lock :(exclude)**/go.sum :(exclude)**/composer.lock :(exclude)**/Gemfile.lock :(exclude)**/poetry.lock :(exclude)**/Pipfile.lock :(exclude)**/*.min.js :(exclude)**/*.min.css :(exclude)**/*.bundle.js :(exclude)**/*.map :(exclude)**/dist/** :(exclude)**/vendor/** :(exclude)**/node_modules/** :(exclude)**/__pycache__/**'
@@ -74,7 +63,7 @@ else                                                  SCALE="Light"; fi
 | Medium | 50–199 lines | Challenger + Architect + Integration + Devil's Advocate |
 | Heavy | 200+ lines OR 3+ dirs | Above + Subtractor |
 
-### A3. Prepare diff content
+### A2. Prepare diff content
 
 Context flag by scale: Light=`-U3`, Medium=`-U2`, Heavy=`-U1`. Per-file cap: 300 lines (replace overflow with `git diff --stat` + truncation note). Overall budget: 2000 lines per reviewer (tail-truncate with notice).
 
@@ -116,17 +105,15 @@ LARGE_FILE_COUNT=$(echo "${CH_META%|*}" | wc -w)
 BUDGET_TRUNCATED=${CH_META#*|}
 ```
 
-### A4. Extract intent
+### A3. Extract intent
 
 Read the diff and write a 1–2 sentence intent statement describing what the change is trying to accomplish. Each reviewer prompt embeds this.
 
-### A5. Dispatch lens-specific reviewers
+### A4. Dispatch lens-specific reviewers
 
-This is read-only — never edit files based on output. Each reviewer gets: intent (1–2 sentences), lens-specific checklist + output format, appropriate diff slice. Constraint: ≤10 findings, ≤3 lines each, "LGTM" if nothing.
+Each reviewer gets: intent (1–2 sentences), lens-specific checklist + output format, appropriate diff slice. Constraint: ≤10 findings, ≤3 lines each, "LGTM" if nothing. Tag every finding with a severity from the scale defined in A6.
 
 #### Lenses
-
-All lenses tag findings with one of: `Blocking` (must fix before merge — bug, security, red-line), `Required` (should fix — design flaw, broken contract), `Suggestion` (style, minor cleanup, taste).
 
 **Challenger** — input `challenger_diff.txt`. "Assume this code has bugs — prove it." Checklist: crash-inducing inputs, swallowed errors, race conditions, boundary/off-by-one, off-happy-path, resource leaks. Output: `<Sev> file:line trigger → impact → fix`.
 
@@ -162,11 +149,7 @@ wait
 
 **Retry once** for failures. A reviewer failed if its output (after NOISE_FILTER) is empty or matches `Retry attempts exhausted|Error executing tool|NumericalClassifier`. After retry, mark persistent failures as `[FAILED]` in the verdict — never silently omit.
 
-#### Dispatch (Agent fallback)
-
-When no external CLI: spawn one `general-purpose` Agent per lens in a single message (parallel). Each gets its prompt + diff inline. Integration agent additionally gets Read+Bash for codebase exploration.
-
-### A6. Red-line scan
+### A5. Red-line scan
 
 Scan the filtered diff for constraint violations:
 1. **Project constraints** — read `CLAUDE.md`, `AGENTS.md`, `.ai/constraints.json` if they exist; check the diff against their rules
@@ -174,13 +157,13 @@ Scan the filtered diff for constraint violations:
 
 Violations → additional `Blocking` findings prefixed `[Red-Line]`.
 
-### A7. Aggregate + verdict report
+### A6. Aggregate + verdict report
 
 ```markdown
 ## Code Review — {short description}
 
 **Scale**: Light / Medium / Heavy
-**Mode**: ${MODE_LABEL} / single-model-multi-lens
+**Mode**: ${MODE_LABEL}
 **Reviewers**: Challenger [+ Architect] [+ Integration] [+ Devil's Advocate] [+ Subtractor]
 **Filtered**: {EXCLUDED_COUNT} noise files excluded, {LARGE_FILE_COUNT} large files summarized, {BUDGET_TRUNCATED} lines budget-truncated
 
@@ -241,16 +224,14 @@ PROMPT
 } | ${PLAN_DISPATCH_CMD}
 ```
 
-Codex plan flags: `--skip-git-repo-check`, `--ephemeral`. Do NOT use `--uncommitted` (mutually exclusive with custom prompt; only for code diffs).
-
-Fallback: single Agent sub-agent with same prompt.
-
 ### B3. Verdict + cleanup
+
+Same severity / verdict / decision semantics as A6. Header uses **Category** instead of **Lens**:
 
 ```markdown
 ## Plan Review — {plan title}
 
-**Mode**: ${MODE_LABEL} / single-model-multi-lens
+**Mode**: ${MODE_LABEL}
 
 ### Verdict: PASS / CONTESTED / REJECT
 
