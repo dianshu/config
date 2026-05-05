@@ -13,14 +13,14 @@ Reviews uncommitted git changes or implementation plans using independent lens-s
 | Config | Codex | Gemini |
 |--------|-------|--------|
 | PREFLIGHT_CMD | `codex --version 2>/dev/null` | `gemini --version 2>/dev/null` |
-| DISPATCH_CMD | `codex exec - --cd "$(pwd)" --ephemeral --full-auto` | `gemini -p '' --approval-mode yolo --output-format text` |
+| DISPATCH_CMD | `codex exec - --cd "$(pwd)" --ephemeral -s read-only` | `gemini -p '' --approval-mode plan --output-format text` |
 | READONLY_DISPATCH_CMD | `codex exec - --cd "$(pwd)" --ephemeral -s read-only` | `gemini -p '' --approval-mode plan --output-format text` |
-| PLAN_DISPATCH_CMD | `codex exec - --skip-git-repo-check --ephemeral` | `gemini -p '' --approval-mode yolo --output-format text` |
+| PLAN_DISPATCH_CMD | `codex exec - --skip-git-repo-check --ephemeral -s read-only` | `gemini -p '' --approval-mode plan --output-format text` |
 | MODE_LABEL | codex-adversarial | gemini-adversarial |
-| NOISE_FILTER | `grep -vE "^OpenAI Codex\|^----\|^workdir:\|^model:\|^provider:\|^approval:\|^sandbox:\|^reasoning\|^session id:\|^$"` | `grep -vE "^YOLO mode\|^$\|^\[STARTUP\]"` |
+| NOISE_FILTER | `grep -vE "^OpenAI Codex\|^----\|^workdir:\|^model:\|^provider:\|^approval:\|^sandbox:\|^reasoning\|^session id:\|^$"` | `grep -vE "^Ripgrep is not available\|^YOLO mode\|^Loaded cached credentials\|^$\|^\[STARTUP\]"` |
 | TMPDIR_PREFIX | codex-review | gemini-review |
 
-Never override the user's model setting (no `--model` for Codex, no `-m` for Gemini). Gemini requires `--output-format text` and `--approval-mode yolo` to run non-interactively in background.
+Never override the user's model setting (no `--model` for Codex, no `-m` for Gemini). Gemini requires `--output-format text` to run non-interactively in background. Use `--approval-mode plan` (read-only) for all reviewer dispatches — reviewers must not modify the workspace.
 
 ## Workflow
 
