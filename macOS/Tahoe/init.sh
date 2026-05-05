@@ -57,13 +57,9 @@ defaults write com.apple.dock mineffect -string "genie"
 defaults write com.apple.dock minimize-to-application -bool true
 
 # === Hot Corners ===
-# 左上：Launchpad
-defaults write com.apple.dock wvous-tl-corner -int 11
-defaults write com.apple.dock wvous-tl-modifier -int 0
-
-# 右上：锁定屏幕
-defaults write com.apple.dock wvous-tr-corner -int 13
-defaults write com.apple.dock wvous-tr-modifier -int 0
+# 左下：锁定屏幕
+defaults write com.apple.dock wvous-bl-corner -int 13
+defaults write com.apple.dock wvous-bl-modifier -int 0
 
 killall Dock
 # === Homebrew ===
