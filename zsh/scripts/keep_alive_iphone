@@ -1,0 +1,163 @@
+#!/usr/bin/env bash
+# wda — start WDA + keep iPhone awake, all foreground.
+# Survives device unplug/replug: tears down the session and waits for the
+# device to come back, then restarts xcuitest + forward.
+# Ctrl+C stops everything. Run from one terminal at a time; a second
+# invocation will error on port 8100.
+set -uo pipefail
+
+RUNNER_BUNDLE="com.facebook.WebDriverAgentRunner.xctrunner"
+PORT=8100
+WDA="http://localhost:$PORT"
+INTERVAL=120
+DEVICE_WAIT_INTERVAL=5
+
+XCUITEST_PID=""
+FORWARD_PID=""
+
+log() { echo "[$(date +%H:%M:%S)] $*" >&2; }
+
+stop_session() {
+  [[ -n "$FORWARD_PID"  ]] && kill "$FORWARD_PID"  2>/dev/null || true
+  [[ -n "$XCUITEST_PID" ]] && kill "$XCUITEST_PID" 2>/dev/null || true
+  FORWARD_PID=""
+  XCUITEST_PID=""
+  wait 2>/dev/null || true
+  if [[ -n "${UDID:-}" ]]; then
+    pkill -f "pymobiledevice3 usbmux forward $PORT $PORT --udid $UDID" 2>/dev/null || true
+    pkill -f "pymobiledevice3 developer dvt xcuitest --tunnel $UDID" 2>/dev/null || true
+  fi
+}
+
+cleanup() {
+  local rc=$?
+  trap - INT TERM HUP EXIT
+  log "stopping"
+  stop_session
+  exit "$rc"
+}
+trap cleanup INT TERM HUP EXIT
+
+require_tunneld() {
+  curl -fsS --max-time 2 http://127.0.0.1:49151/ >/dev/null 2>&1 \
+    || { log "ERROR: tunneld not on :49151"; return 1; }
+}
+
+ensure_port_free() {
+  lsof -iTCP:$PORT -sTCP:LISTEN >/dev/null 2>&1 || return 0
+  local occupant_cmd occupant_pid
+  occupant_cmd=$(lsof -iTCP:$PORT -sTCP:LISTEN -F c 2>/dev/null | awk '/^c/{print substr($0,2); exit}')
+  occupant_pid=$(lsof -iTCP:$PORT -sTCP:LISTEN -F p 2>/dev/null | awk '/^p/{print substr($0,2); exit}')
+  if [[ "$occupant_cmd" == python3* ]] || [[ "$occupant_cmd" == pymobiledevice* ]]; then
+    log "stale pymobiledevice3 holding :$PORT (pid=$occupant_pid) — killing"
+    kill "$occupant_pid" 2>/dev/null || true
+    sleep 1
+    if lsof -iTCP:$PORT -sTCP:LISTEN >/dev/null 2>&1; then
+      log "ERROR: :$PORT still in use after kill"; return 2
+    fi
+  else
+    # Foreign owner: fatal — refuse to loop and clobber it.
+    log "FATAL: :$PORT held by '$occupant_cmd' (pid=$occupant_pid) — not ours, refusing to kill"
+    return 2
+  fi
+}
+
+wait_for_device() {
+  local udid=""
+  while true; do
+    udid=$(idevice_id -l 2>/dev/null | head -n1 || true)
+    if [[ -n "$udid" ]]; then
+      echo "$udid"
+      return 0
+    fi
+    log "waiting for device... (plug in & unlock)"
+    sleep "$DEVICE_WAIT_INTERVAL"
+  done
+}
+
+start_session() {
+  local udid="$1" rc
+
+  ensure_port_free
+  rc=$?
+  if (( rc == 2 )); then return 2; fi
+  if (( rc != 0 )); then return 1; fi
+
+  log "starting xcuitest runner..."
+  pymobiledevice3 developer dvt xcuitest --tunnel "$udid" "$RUNNER_BUNDLE" \
+    >/tmp/wda-xcuitest.log 2>&1 &
+  XCUITEST_PID=$!
+
+  sleep 3
+  log "starting usbmux forward $PORT..."
+  pymobiledevice3 usbmux forward "$PORT" "$PORT" --udid "$udid" \
+    >/tmp/wda-forward.log 2>&1 &
+  FORWARD_PID=$!
+
+  for i in $(seq 1 30); do
+    if curl -fsS --max-time 2 "$WDA/status" >/dev/null 2>&1; then
+      log "WDA ready (${i}s)"
+      return 0
+    fi
+    # If a child already died during ramp-up, bail early.
+    if ! kill -0 "$XCUITEST_PID" 2>/dev/null || ! kill -0 "$FORWARD_PID" 2>/dev/null; then
+      log "child process died during startup — see /tmp/wda-xcuitest.log"
+      return 1
+    fi
+    sleep 1
+  done
+  log "ERROR: WDA didn't become ready in 30s. Check /tmp/wda-xcuitest.log"
+  return 1
+}
+
+run_session() {
+  # Returns 0 only on Ctrl+C (handled via trap); returns non-zero when the
+  # session has died and the outer loop should reconnect.
+  log "keepalive every ${INTERVAL}s — Ctrl+C to stop"
+  while true; do
+    if ! kill -0 "$XCUITEST_PID" 2>/dev/null; then
+      log "xcuitest runner died"; return 1
+    fi
+    if ! kill -0 "$FORWARD_PID" 2>/dev/null; then
+      log "usbmux forward died"; return 1
+    fi
+
+    local code
+    code=$(curl -sS -o /dev/null --max-time 5 -w '%{http_code}' \
+      "$WDA/wda/healthcheck" 2>/dev/null) || code="000"
+    if [[ "$code" == "200" ]]; then
+      log "healthcheck ok"
+    else
+      log "healthcheck http=$code"
+      return 1
+    fi
+
+    sleep "$INTERVAL"
+  done
+}
+
+while true; do
+  require_tunneld || exit 1
+
+  UDID=$(wait_for_device)
+  log "device $UDID"
+
+  stop_session
+  start_session "$UDID"
+  rc=$?
+  if (( rc == 2 )); then
+    log "fatal precondition failure — exiting"
+    exit 1
+  fi
+  if (( rc != 0 )); then
+    log "session failed to start — retrying"
+    stop_session
+    sleep "$DEVICE_WAIT_INTERVAL"
+    continue
+  fi
+
+  run_session || true
+  log "session lost — tearing down and waiting for device"
+  stop_session
+  sleep "$DEVICE_WAIT_INTERVAL"
+done
