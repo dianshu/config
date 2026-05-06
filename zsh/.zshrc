@@ -253,9 +253,7 @@ is_work() {
 }
 
 cc_proxy() {
-    local port="${1:-29427}"
-    local settings_file="$HOME/.claude/settings.json"
-    local settings_dir="$HOME/.claude"
+    local port=29427
 
     # Kill any process occupying the port (idempotent)
     if lsof -i :"$port" > /dev/null 2>&1; then
@@ -263,50 +261,6 @@ cc_proxy() {
         lsof -ti :"$port" | xargs kill -9 2>/dev/null
         sleep 2
     fi
-
-    # Create directory if it doesn't exist
-    [[ -d "$settings_dir" ]] || mkdir -p "$settings_dir"
-
-    # Update or create settings.json with the new port
-    local tmp_file=$(mktemp)
-    if [[ -f "$settings_file" ]]; then
-        jq --arg port "$port" '.env.ANTHROPIC_BASE_URL = "http://localhost:\($port)" | .env.ANTHROPIC_AUTH_TOKEN = "your-anthropic-auth-token" | .env.CLAUDE_CODE_SKIP_AUTH_LOGIN = "true" | .env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1" | .env.CLAUDE_CODE_NO_FLICKER = "1"' "$settings_file" > "$tmp_file" && mv "$tmp_file" "$settings_file"
-    else
-        echo "{\"env\":{\"ANTHROPIC_BASE_URL\":\"http://localhost:$port\",\"ANTHROPIC_AUTH_TOKEN\":\"your-anthropic-auth-token\",\"CLAUDE_CODE_SKIP_AUTH_LOGIN\":\"true\",\"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\":\"1\",\"CLAUDE_CODE_NO_FLICKER\":\"1\"}}" | jq . > "$settings_file"
-    fi
-    echo "Updated $settings_file with port $port"
-
-    # Update Codex config.toml with the new port
-    local codex_config="$HOME/.codex/config.toml"
-    if [[ -f "$codex_config" ]]; then
-        local tmp=$(mktemp)
-        sed "s|base_url = \"http://localhost:[0-9]*/v1\"|base_url = \"http://localhost:$port/v1\"|" "$codex_config" > "$tmp" && mv "$tmp" "$codex_config"
-    else
-        mkdir -p "$(dirname "$codex_config")"
-        cat > "$codex_config" <<EOF
-# Codex CLI configuration
-
-model = "gpt-5.5"
-model_provider = "local-proxy"
-model_reasoning_effort = "high"
-
-[model_providers.local-proxy]
-name = "Local Proxy"
-base_url = "http://localhost:$port/v1"
-wire_api = "responses"
-env_key = "HOME"
-EOF
-    fi
-    echo "Updated $codex_config with port $port"
-
-    # Update Gemini CLI .env with the new port
-    local gemini_env="$HOME/.gemini/.env"
-    mkdir -p "$HOME/.gemini"
-    cat > "$gemini_env" <<EOF
-GOOGLE_GEMINI_BASE_URL=http://localhost:$port
-GEMINI_API_KEY=dummy
-EOF
-    echo "Updated $gemini_env with port $port"
 
     # Start SearXNG container for web search
     local searxng_port=30963
@@ -488,6 +442,7 @@ cc_sync() {
     # 2c. Gemini CLI config file
     echo "\n=== Gemini Config ==="
     dl_with_backup "$raw_base/gemini/settings.json" "$HOME/.gemini/settings.json"
+    dl_with_backup "$raw_base/gemini/.env.template" "$HOME/.gemini/.env"
 
     # 2d. Ghostty config file
     echo "\n=== Ghostty Config ==="
