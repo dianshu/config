@@ -21,7 +21,7 @@ SCHEME="Earbud"
 # Run incremental build and extract warnings (exclude Pods)
 WARNINGS=$(xcodebuild -workspace "$WORKSPACE" -scheme "$SCHEME" \
   -destination 'generic/platform=iOS' build 2>&1 \
-  | grep "warning:" | grep -v "/Pods/" | head -30)
+  | grep "warning:" | grep -v "/Pods/" | grep -v "appintentsmetadataprocessor" | head -30)
 
 if [[ -n "$WARNINGS" ]]; then
   echo "xcodebuild warnings found:" >&2
