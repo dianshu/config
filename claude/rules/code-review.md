@@ -1,1 +1,1 @@
-After completing a code change (feature implementation or bug fix you judge as done), invoke `/review-loop`. Skip for pure discussion, exploration, reading, or doc/config-only edits.
+When you judge a code change (feature implementation or bug fix) as finished and ready for review, immediately invoke `/review-loop` without asking for confirmation. If something is wrong, I'll interrupt manually. Skip for pure discussion, exploration, reading, or doc/config-only edits.
