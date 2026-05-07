@@ -43,6 +43,19 @@ require_tunneld() {
     || { log "ERROR: tunneld not on :49151"; return 1; }
 }
 
+ensure_ddi_mounted() {
+  # xcuitest needs DeveloperDiskImage mounted; it gets lost on reboot/replug.
+  if pymobiledevice3 mounter list 2>/dev/null | grep -q Developer; then
+    return 0
+  fi
+  log "DeveloperDiskImage not mounted — auto-mounting"
+  if ! pymobiledevice3 mounter auto-mount >/tmp/wda-mounter.log 2>&1; then
+    log "ERROR: auto-mount failed — see /tmp/wda-mounter.log"
+    return 1
+  fi
+  log "DeveloperDiskImage mounted"
+}
+
 ensure_port_free() {
   lsof -iTCP:$PORT -sTCP:LISTEN >/dev/null 2>&1 || return 0
   local occupant_cmd occupant_pid
@@ -141,6 +154,8 @@ while true; do
 
   UDID=$(wait_for_device)
   log "device $UDID"
+
+  ensure_ddi_mounted || { sleep "$DEVICE_WAIT_INTERVAL"; continue; }
 
   stop_session
   start_session "$UDID"
