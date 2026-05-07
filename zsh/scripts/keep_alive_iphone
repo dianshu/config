@@ -9,7 +9,7 @@ set -uo pipefail
 RUNNER_BUNDLE="com.facebook.WebDriverAgentRunner.xctrunner"
 PORT=8100
 WDA="http://localhost:$PORT"
-INTERVAL=120
+INTERVAL=280
 DEVICE_WAIT_INTERVAL=5
 
 XCUITEST_PID=""
