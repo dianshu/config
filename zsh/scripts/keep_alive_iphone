@@ -14,6 +14,7 @@ DEVICE_WAIT_INTERVAL=5
 
 XCUITEST_PID=""
 FORWARD_PID=""
+SID=""
 
 log() { echo "[$(date +%H:%M:%S)] $*" >&2; }
 
@@ -22,6 +23,7 @@ stop_session() {
   [[ -n "$XCUITEST_PID" ]] && kill "$XCUITEST_PID" 2>/dev/null || true
   FORWARD_PID=""
   XCUITEST_PID=""
+  SID=""
   wait 2>/dev/null || true
   if [[ -n "${UDID:-}" ]]; then
     pkill -f "pymobiledevice3 usbmux forward $PORT $PORT --udid $UDID" 2>/dev/null || true
@@ -88,6 +90,31 @@ wait_for_device() {
   done
 }
 
+ensure_session() {
+  # Create a WDA session WITHOUT bundleId so no app is launched/foregrounded.
+  # Reused for keepalive 1px swipes that reset iOS idle timer without
+  # changing the foreground app.
+  if [[ -n "$SID" ]] && curl -fsS --max-time 3 "$WDA/session/$SID" >/dev/null 2>&1; then
+    return 0
+  fi
+  local resp
+  resp=$(curl -sS --max-time 5 -X POST "$WDA/session" \
+    -H 'Content-Type: application/json' \
+    -d '{"capabilities":{"alwaysMatch":{}}}' 2>/dev/null) || return 1
+  SID=$(printf '%s' "$resp" | sed -n 's/.*"sessionId"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)
+  [[ -n "$SID" ]] || return 1
+  log "WDA session $SID"
+}
+
+keepalive_swipe() {
+  local code
+  code=$(curl -sS --max-time 5 -o /dev/null -w '%{http_code}' \
+    -X POST "$WDA/session/$SID/wda/dragfromtoforduration" \
+    -H 'Content-Type: application/json' \
+    -d '{"fromX":0,"fromY":0,"toX":1,"toY":0,"duration":0.05}' 2>/dev/null) || code="000"
+  [[ "$code" == "200" ]]
+}
+
 start_session() {
   local udid="$1" rc
 
@@ -110,6 +137,7 @@ start_session() {
   for i in $(seq 1 30); do
     if curl -fsS --max-time 2 "$WDA/status" >/dev/null 2>&1; then
       log "WDA ready (${i}s)"
+      ensure_session || { log "ERROR: failed to create WDA session"; return 1; }
       return 0
     fi
     # If a child already died during ramp-up, bail early.
@@ -137,13 +165,19 @@ run_session() {
 
     local code
     code=$(curl -sS -o /dev/null --max-time 5 -w '%{http_code}' \
-      "$WDA/screenshot" 2>/dev/null) || code="000"
-    if [[ "$code" == "200" ]]; then
-      log "healthcheck ok"
-    else
+      "$WDA/status" 2>/dev/null) || code="000"
+    if [[ "$code" != "200" ]]; then
       log "healthcheck http=$code"
       return 1
     fi
+
+    if ! keepalive_swipe; then
+      log "keepalive swipe failed — re-creating session"
+      SID=""
+      ensure_session || { log "session re-create failed"; return 1; }
+      keepalive_swipe || { log "keepalive swipe still failing"; return 1; }
+    fi
+    log "status ok + keepalive swipe sent"
 
     sleep "$INTERVAL"
   done
