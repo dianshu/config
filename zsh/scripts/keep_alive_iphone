@@ -137,7 +137,7 @@ run_session() {
 
     local code
     code=$(curl -sS -o /dev/null --max-time 5 -w '%{http_code}' \
-      "$WDA/screenshot" 2>/dev/null) || code="000"
+      "$WDA/wda/healthcheck" 2>/dev/null) || code="000"
     if [[ "$code" == "200" ]]; then
       log "healthcheck ok"
     else
