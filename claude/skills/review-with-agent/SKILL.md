@@ -111,23 +111,27 @@ Read the diff and write a 1–2 sentence intent statement describing what the ch
 
 ### A4. Dispatch lens-specific reviewers
 
-Each reviewer gets: intent (1–2 sentences), lens-specific checklist + output format, appropriate diff slice. Constraint: ≤10 findings, ≤3 lines each, "LGTM" if nothing. Tag every finding with a severity from the scale defined in A6.
+Each reviewer gets: intent (1–2 sentences), lens-specific checklist + output format, appropriate diff slice. Constraint: ≤10 findings, ≤3 lines each, "LGTM" if nothing. `[New]` findings take priority — only include `[Pre-existing]` if the cap allows. Tag every finding with:
+- a **severity** from the scale defined in A6, AND
+- an **origin** tag — `[New]` (introduced by this diff) or `[Pre-existing]` (issue lives in surrounding code, not introduced by this diff).
+
+Each lens Output line below is given as `<Sev> file:line ...`; reviewers must extend it to `<Sev> [New|Pre-existing] file:line ...`.
 
 #### Lenses
 
-**Challenger** — input `challenger_diff.txt`. "Assume this code has bugs — prove it." Checklist: crash-inducing inputs, swallowed errors, race conditions, boundary/off-by-one, off-happy-path, resource leaks. Output: `<Sev> file:line trigger → impact → fix`.
+**Challenger** — input `challenger_diff.txt`. "Assume this code has bugs — prove it." Checklist: crash-inducing inputs, swallowed errors, race conditions, boundary/off-by-one, off-happy-path, resource leaks. Output: `<Sev> [New|Pre-existing] file:line trigger → impact → fix`.
 
-**Architect** — input file list + key file signatures. "Examine design decisions, not bugs." Checklist: coupling, responsibility boundary violations, scale assumptions, data flow gaps, API surface bloat. Output: `<Sev> file:line current design → risk → alternative`.
+**Architect** — input file list + key file signatures + `challenger_diff.txt` (for origin classification). "Examine design decisions, not bugs." Checklist: coupling, responsibility boundary violations, scale assumptions, data flow gaps, API surface bloat. Output: `<Sev> [New|Pre-existing] file:line current design → risk → alternative`.
 
-**Subtractor** — input `subtractor_diff.txt` + new-file list. "Question every line's necessity." Checklist: deletable code, premature abstractions (used once), "just in case" code, over-configuration, dead branches. Output: `<Sev> file:line deletable → impact if removed → simplification`.
+**Subtractor** — input `subtractor_diff.txt` + new-file list. "Question every line's necessity." Checklist: deletable code, premature abstractions (used once), "just in case" code, over-configuration, dead branches. Output: `<Sev> [New|Pre-existing] file:line deletable → impact if removed → simplification`.
 
-**Integration** — input `challenger_diff.txt`, READ-ONLY codebase access. For each changed function/class/export: find callers via grep, check broken assumptions, trace data flow. May read truncated/stat-only files from disk. Use `git diff --name-status` for renamed/deleted paths. Checklist: behavioral changes callers don't expect, broken implicit contracts, env/config assumptions, middleware/pipeline conflicts, shared-state mutations, missing caller updates. Do NOT flag in-diff issues — Challenger handles those. Output: `<Sev> file:line changed behavior → affected caller → impact`.
+**Integration** — input `challenger_diff.txt`, READ-ONLY codebase access. For each changed function/class/export: find callers via grep, check broken assumptions, trace data flow. May read truncated/stat-only files from disk. Use `git diff --name-status` for renamed/deleted paths. Checklist: behavioral changes callers don't expect, broken implicit contracts, env/config assumptions, middleware/pipeline conflicts, shared-state mutations, missing caller updates. Do NOT flag in-diff issues — Challenger handles those. Output: `<Sev> [New|Pre-existing] file:line changed behavior → affected caller → impact`.
 
 **Devil's Advocate** — input `challenger_diff.txt`. "Question the premise *and* the craft: is this the right solution, and is it written with care?" Checklist:
 - *Premise:* simpler/standard alternative, implicit assumptions, real-world failure modes (scale/concurrency/changing requirements), silent tradeoffs, accidental complexity, "why not just…" challenges
 - *Slop detector (code smell / taste):* lazy naming (`data`, `tmp`, `result`, `df2`, `x`); obvious comments restating the code; copy-paste blocks instead of abstraction; cargo-cult patterns (e.g. `useEffect` with wrong deps, `async` wrapping sync code, `.apply()` where vectorization works); dead code / commented-out blocks / unused imports; premature OR missing abstraction; junk-drawer files
 
-Output: `<Sev> file:line current approach or smell → assumption/risk → alternative`.
+Output: `<Sev> [New|Pre-existing] file:line current approach or smell → assumption/risk → alternative`.
 
 #### Dispatch (external CLI)
 
@@ -169,9 +173,9 @@ Violations → additional `Blocking` findings prefixed `[Red-Line]`.
 
 ### Verdict: PASS / CONTESTED / REJECT
 
-| # | Sev | Lens | Issue | Decision |
-|---|-----|------|-------|----------|
-| 1 | Blocking | Ch | `file:line` description | Accept — rationale |
+| # | Sev | Origin | Lens | Issue | Decision |
+|---|-----|--------|------|-------|----------|
+| 1 | Blocking | New | Ch | `file:line` description | Accept — rationale |
 
 ### Summary
 {One paragraph: conclusion + next steps}
@@ -179,12 +183,14 @@ Violations → additional `Blocking` findings prefixed `[Red-Line]`.
 
 **Severity:** `Blocking` (likely bug, security, or red-line violation — must fix before merge), `Required` (design flaw, broken contract, real correctness concern — should fix), `Suggestion` (style, taste, minor cleanup).
 
-**Verdict:**
-- **PASS** — no `Blocking`
-- **CONTESTED** — `Blocking` exists but lenses disagree
-- **REJECT** — multiple lenses agree on `Blocking`, or red-line violations
+**Origin:** `New` (introduced by this diff) or `Pre-existing` (lived in surrounding code before this change). `[Red-Line]` findings from A5 are always `New` (they're triggered by the diff).
 
-**Decision:** Claude marks each finding `Accept` (valid) or `Dismiss` (false positive / acceptable trade-off). ≤5 findings → rationale inline; 6+ → rationale in separate section below the table.
+**Verdict (computed from `[New]` findings only — `[Pre-existing]` are bonus signal, never affect verdict):**
+- **PASS** — no `New` `Blocking`
+- **CONTESTED** — `New` `Blocking` exists but lenses disagree
+- **REJECT** — multiple lenses agree on a `New` `Blocking`, or any `New` red-line violation
+
+**Decision:** Claude marks each finding `Accept` (valid) or `Dismiss` (false positive / acceptable trade-off). For every `New` finding at `Required` or `Blocking`, Claude **must verify against the actual code before writing the Decision** using whichever source fits the path: `Read`/`Grep` on the worktree (modified or untracked), `git show :<path>` for staged content, `git show HEAD:<path>` or `git diff` for deleted/renamed paths. Never judge from diff context alone. ≤5 findings → rationale inline; 6+ → rationale in separate section below the table.
 
 Cleanup: `rm -rf "$TMPDIR"`.
 
@@ -226,7 +232,7 @@ PROMPT
 
 ### B3. Verdict + cleanup
 
-Same severity / verdict / decision semantics as A6. Header uses **Category** instead of **Lens**:
+Same severity / decision semantics as A6, but **without origin** — Plan Review has no diff, so all findings are treated uniformly and the `New`-conditioned verification rule does not apply (decisions are plain `Accept`/`Dismiss`). Verdict computation: PASS when no `Blocking`, REJECT when ≥2 `Blocking` agree, otherwise CONTESTED. Header uses **Category** instead of **Lens**:
 
 ```markdown
 ## Plan Review — {plan title}
