@@ -9,8 +9,9 @@ set -uo pipefail
 RUNNER_BUNDLE="com.facebook.WebDriverAgentRunner.xctrunner"
 PORT=8100
 WDA="http://localhost:$PORT"
-INTERVAL=280
+INTERVAL=60
 DEVICE_WAIT_INTERVAL=5
+SKIP_BUNDLE="${CC_KEEP_ALIVE_BUNDLE_ID:-}"
 
 XCUITEST_PID=""
 FORWARD_PID=""
@@ -136,6 +137,17 @@ run_session() {
     fi
 
     local code
+    if [[ -n "$SKIP_BUNDLE" ]]; then
+      local active
+      active=$(curl -fsS --max-time 3 "$WDA/wda/activeAppInfo" \
+        | python3 -c 'import sys,json;print(json.load(sys.stdin)["value"]["bundleId"])' 2>/dev/null || echo "")
+      if [[ "$active" == "$SKIP_BUNDLE" ]]; then
+        log "active=$active — skipping healthcheck"
+        sleep "$INTERVAL"
+        continue
+      fi
+    fi
+
     code=$(curl -sS -o /dev/null --max-time 5 -w '%{http_code}' \
       "$WDA/wda/healthcheck" 2>/dev/null) || code="000"
     if [[ "$code" == "200" ]]; then
