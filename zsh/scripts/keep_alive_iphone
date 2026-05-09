@@ -16,7 +16,38 @@ SKIP_BUNDLE="${CC_KEEP_ALIVE_BUNDLE_ID:-}"
 XCUITEST_PID=""
 FORWARD_PID=""
 
+LOCK_FILE="/tmp/keep_alive_iphone.pid"
+
 log() { echo "[$(date +%H:%M:%S)] $*" >&2; }
+
+acquire_lock() {
+  # Single-instance guard. Two instances would fight: each ensure_port_free
+  # would kill the other's pymobiledevice3 forward (matched by command line),
+  # causing reconnect storms and WDA session churn.
+  if [[ -f "$LOCK_FILE" ]]; then
+    local holder
+    holder=$(cat "$LOCK_FILE" 2>/dev/null || true)
+    if [[ -n "$holder" ]] && kill -0 "$holder" 2>/dev/null; then
+      log "ERROR: another keep_alive_iphone is running (pid=$holder, lock=$LOCK_FILE) — exiting"
+      log "       to take over, stop it first:"
+      log "         launchctl bootout gui/\$(id -u)/com.user.keep-alive-iphone   # if started by LaunchAgent"
+      log "         kill $holder                                                  # if started manually"
+      # Skip cleanup() trap — we don't own the session, must not tear it down.
+      trap - INT TERM HUP EXIT
+      exit 1
+    fi
+    log "stale lock from pid=$holder — reclaiming"
+  fi
+  echo "$$" > "$LOCK_FILE"
+  log "acquired lock $LOCK_FILE (pid=$$)"
+}
+
+release_lock() {
+  # Only remove if we still own it (paranoid: another instance might have stolen).
+  if [[ -f "$LOCK_FILE" ]] && [[ "$(cat "$LOCK_FILE" 2>/dev/null)" == "$$" ]]; then
+    rm -f "$LOCK_FILE"
+  fi
+}
 
 stop_session() {
   [[ -n "$FORWARD_PID"  ]] && kill "$FORWARD_PID"  2>/dev/null || true
@@ -35,9 +66,12 @@ cleanup() {
   trap - INT TERM HUP EXIT
   log "stopping"
   stop_session
+  release_lock
   exit "$rc"
 }
 trap cleanup INT TERM HUP EXIT
+
+acquire_lock
 
 require_tunneld() {
   curl -fsS --max-time 2 http://127.0.0.1:49151/ >/dev/null 2>&1 \

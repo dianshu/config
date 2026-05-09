@@ -136,6 +136,35 @@ else
     echo "pymobiledevice3 tunneld already configured, skipping."
 fi
 
+# keep_alive_iphone LaunchAgent (depends on tunneld + ~/.zsh_scripts/keep_alive_iphone synced via .zshrc)
+KEEP_ALIVE_PLIST="$HOME/Library/LaunchAgents/com.user.keep-alive-iphone.plist"
+KEEP_ALIVE_SCRIPT="$HOME/.zsh_scripts/keep_alive_iphone"
+KEEP_ALIVE_LOG_DIR="$HOME/Library/Logs"
+mkdir -p "$(dirname "$KEEP_ALIVE_PLIST")" "$KEEP_ALIVE_LOG_DIR" "$(dirname "$KEEP_ALIVE_SCRIPT")"
+# Bootstrap the script directly so the LaunchAgent has something to run before
+# the first interactive zsh session syncs ~/.zsh_scripts/.
+curl -fsSL "https://raw.githubusercontent.com/dianshu/config/HEAD/zsh/scripts/keep_alive_iphone" \
+    -o "$KEEP_ALIVE_SCRIPT"
+chmod +x "$KEEP_ALIVE_SCRIPT"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Render plist with current PATH so launchd's clean env can find brew/uv tools.
+KEEP_ALIVE_PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+NEW_PLIST_CONTENT="$(sed \
+    -e "s|__SCRIPT_PATH__|${KEEP_ALIVE_SCRIPT}|g" \
+    -e "s|__PATH__|${KEEP_ALIVE_PATH}|g" \
+    -e "s|__LOG_DIR__|${KEEP_ALIVE_LOG_DIR}|g" \
+    "$SCRIPT_DIR/com.user.keep-alive-iphone.plist")"
+if [[ ! -f "$KEEP_ALIVE_PLIST" ]] || ! diff -q <(echo "$NEW_PLIST_CONTENT") "$KEEP_ALIVE_PLIST" &>/dev/null; then
+    echo "$NEW_PLIST_CONTENT" > "$KEEP_ALIVE_PLIST"
+    launchctl bootout "gui/$(id -u)/com.user.keep-alive-iphone" 2>/dev/null || true
+    launchctl bootstrap "gui/$(id -u)" "$KEEP_ALIVE_PLIST"
+    echo "keep-alive-iphone LaunchAgent installed/updated."
+else
+    launchctl print "gui/$(id -u)/com.user.keep-alive-iphone" &>/dev/null \
+        || launchctl bootstrap "gui/$(id -u)" "$KEEP_ALIVE_PLIST"
+    echo "keep-alive-iphone LaunchAgent already configured."
+fi
+
 # === CLI Packages ===
 brew_install azure-cli yq jq
 brew_install git tree tmux trivy coreutils
