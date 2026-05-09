@@ -11,6 +11,17 @@ if [[ "$(uname -m)" != "arm64" ]]; then
     exit 1
 fi
 
+# === Asset loader (supports both local invocation and `bash <(curl ...)`) ===
+RAW_BASE_URL="https://raw.githubusercontent.com/dianshu/config/HEAD/macOS/Tahoe"
+get_asset() {
+    local name="$1"
+    if [[ "${BASH_SOURCE[0]}" == /dev/fd/* ]]; then
+        curl -fsSL "$RAW_BASE_URL/$name"
+    else
+        cat "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$name"
+    fi
+}
+
 # === TrackPad ===
 # 轻点替代点按（Tap to Click）
 defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
@@ -128,8 +139,7 @@ fi
 TUNNELD_PLIST="/Library/LaunchDaemons/com.pymobiledevice3.tunneld.plist"
 if [[ ! -f "$TUNNELD_PLIST" ]]; then
     PMD3_BIN="$(which pymobiledevice3)"
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    sed "s|__PMD3_BIN__|${PMD3_BIN}|g" "$SCRIPT_DIR/com.pymobiledevice3.tunneld.plist" | sudo tee "$TUNNELD_PLIST" > /dev/null
+    get_asset "com.pymobiledevice3.tunneld.plist" | sed "s|__PMD3_BIN__|${PMD3_BIN}|g" | sudo tee "$TUNNELD_PLIST" > /dev/null
     sudo launchctl load "$TUNNELD_PLIST"
     echo "pymobiledevice3 tunneld installed and started."
 else
@@ -146,14 +156,12 @@ mkdir -p "$(dirname "$KEEP_ALIVE_PLIST")" "$KEEP_ALIVE_LOG_DIR" "$(dirname "$KEE
 curl -fsSL "https://raw.githubusercontent.com/dianshu/config/HEAD/zsh/scripts/keep_alive_iphone" \
     -o "$KEEP_ALIVE_SCRIPT"
 chmod +x "$KEEP_ALIVE_SCRIPT"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Render plist with current PATH so launchd's clean env can find brew/uv tools.
 KEEP_ALIVE_PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-NEW_PLIST_CONTENT="$(sed \
+NEW_PLIST_CONTENT="$(get_asset "com.user.keep-alive-iphone.plist" | sed \
     -e "s|__SCRIPT_PATH__|${KEEP_ALIVE_SCRIPT}|g" \
     -e "s|__PATH__|${KEEP_ALIVE_PATH}|g" \
-    -e "s|__LOG_DIR__|${KEEP_ALIVE_LOG_DIR}|g" \
-    "$SCRIPT_DIR/com.user.keep-alive-iphone.plist")"
+    -e "s|__LOG_DIR__|${KEEP_ALIVE_LOG_DIR}|g")"
 if [[ ! -f "$KEEP_ALIVE_PLIST" ]] || ! diff -q <(echo "$NEW_PLIST_CONTENT") "$KEEP_ALIVE_PLIST" &>/dev/null; then
     echo "$NEW_PLIST_CONTENT" > "$KEEP_ALIVE_PLIST"
     launchctl bootout "gui/$(id -u)/com.user.keep-alive-iphone" 2>/dev/null || true
