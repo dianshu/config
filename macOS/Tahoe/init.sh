@@ -206,6 +206,11 @@ curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/git/config -o $
 mkdir -p $HOME/.config/git
 curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/git/ignore -o $HOME/.config/git/ignore
 
+# Silent credential refresh: GitHub via gh keyring, Azure DevOps via macOS Platform SSO broker.
+gh auth status >/dev/null 2>&1 || gh auth login --hostname github.com --git-protocol https --web
+gh auth setup-git
+git config --global credential.msauthUseBroker true
+
 setup_git_identity() {
     local file="$1"
     local label="$2"
