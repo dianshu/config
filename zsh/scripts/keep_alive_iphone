@@ -6,6 +6,9 @@
 # invocation will error on port 8100.
 set -uo pipefail
 
+# LaunchAgent doesn't source shell rc files; load secrets explicitly.
+[[ -f "$HOME/.claude/user.env" ]] && source "$HOME/.claude/user.env"
+
 RUNNER_BUNDLE="com.facebook.WebDriverAgentRunner.xctrunner"
 PORT=8100
 WDA="http://localhost:$PORT"
