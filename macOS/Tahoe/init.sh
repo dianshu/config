@@ -261,6 +261,16 @@ curl -fsSL https://raw.githubusercontent.com/dianshu/config/refs/heads/main/sing
 az config set extension.dynamic_install_allow_preview=true
 az config set extension.use_dynamic_install=yes_without_prompt
 
+# === Touch ID for sudo ===
+# Enable Touch ID authentication for sudo via /etc/pam.d/sudo_local
+# (survives macOS updates, unlike editing /etc/pam.d/sudo directly).
+if [[ ! -f /etc/pam.d/sudo_local ]] || ! grep -q '^auth.*pam_tid.so' /etc/pam.d/sudo_local; then
+    echo "auth       sufficient     pam_tid.so" | sudo tee /etc/pam.d/sudo_local > /dev/null
+    echo "Touch ID for sudo enabled."
+else
+    echo "Touch ID for sudo already enabled."
+fi
+
 # === Xcode Developer Mode ===
 if DevToolsSecurity -status 2>&1 | grep -q "disabled"; then
   sudo DevToolsSecurity -enable
