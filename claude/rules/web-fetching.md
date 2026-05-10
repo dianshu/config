@@ -1,6 +1,8 @@
 ## Web Fetching
 
-Always use the SearXNG MCP web search tool (`mcp__searxng__searxng_web_search`) instead of the built-in WebSearch tool for all web searches.
+**When you're about to call `WebSearch`** — stop and use `mcp__searxng__searxng_web_search` instead. Never use the built-in `WebSearch` tool.
+
+**When you're about to call `WebFetch`** — stop and use the fallback chain below instead. Never use the built-in `WebFetch` tool. For GitHub URLs (`github.com/...`), prefer `gh` CLI (`gh repo view`, `gh pr view`, `gh issue view`, `gh api`) over fetching the HTML page.
 
 When you encounter a URL that contains information relevant to the task, do NOT tell the user to open it manually. Fetch it yourself:
 
