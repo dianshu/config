@@ -135,6 +135,21 @@ else
     fi
 fi
 
+# Passwordless sudo for pymobiledevice3 (required by wda-up.sh and any flow
+# that runs `pymobiledevice3 developer dvt …` non-interactively). sudoers
+# matches the resolved binary path, so resolve the symlink before writing.
+PMD3_REAL="$(readlink -f "$(command -v pymobiledevice3)")"
+PMD3_SUDOERS="/etc/sudoers.d/pymobiledevice3"
+PMD3_SUDOERS_LINE="$(whoami) ALL=(root) NOPASSWD: ${PMD3_REAL}"
+if ! sudo test -f "$PMD3_SUDOERS" || ! sudo grep -qxF "$PMD3_SUDOERS_LINE" "$PMD3_SUDOERS"; then
+    echo "$PMD3_SUDOERS_LINE" | sudo tee "$PMD3_SUDOERS" > /dev/null
+    sudo chmod 440 "$PMD3_SUDOERS"
+    sudo visudo -c -f "$PMD3_SUDOERS" >/dev/null
+    echo "Passwordless sudo for pymobiledevice3 configured."
+else
+    echo "Passwordless sudo for pymobiledevice3 already configured."
+fi
+
 # pymobiledevice3 tunneld (iOS 17+ device screenshot/debug requires root tunnel)
 TUNNELD_PLIST="/Library/LaunchDaemons/com.pymobiledevice3.tunneld.plist"
 if [[ ! -f "$TUNNELD_PLIST" ]]; then
