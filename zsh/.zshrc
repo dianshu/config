@@ -41,7 +41,7 @@ _zshrc_mark "colors"
 setopt prompt_subst
 
 # 设置提示符
-PROMPT='❰%{$reset_color%}%{$fg[red]%}[$(TZ="Asia/Shanghai" date +%H:%M)]%{$reset_color%}%F{#41C4C2}%n%{$reset_color%}|%{$fg[yellow]%}%1~%{$reset_color%}%F{#5DC441}$(git branch --show-current 2&> /dev/null | xargs -I branch echo "(branch)")%{$reset_color%}❱
+PROMPT='❰%{$reset_color%}%{$fg[red]%}[$(TZ="Asia/Shanghai" date +%H:%M)]%{$reset_color%}%F{#41C4C2}%n%{$reset_color%}|%{$fg[yellow]%}%2~%{$reset_color%}%F{#5DC441}$(git branch --show-current 2&> /dev/null | xargs -I branch echo "(branch)")%{$reset_color%}❱
 %F{#FC7E00}%#%{$reset_color%} '
 
 # Direct session abbreviation loading — bypasses abbr command overhead.
