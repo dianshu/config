@@ -137,10 +137,13 @@ fi
 
 # Passwordless sudo for pymobiledevice3 (required by wda-up.sh and any flow
 # that runs `pymobiledevice3 developer dvt …` non-interactively). sudoers
-# matches the resolved binary path, so resolve the symlink before writing.
-PMD3_REAL="$(readlink -f "$(command -v pymobiledevice3)")"
+# matches the resolved binary path AND must also list the symlink, since
+# callers usually invoke `sudo -n pymobiledevice3` via PATH which resolves
+# to the symlink — sudo does not chase symlinks when matching rules.
+PMD3_LINK="$(command -v pymobiledevice3)"
+PMD3_REAL="$(readlink -f "$PMD3_LINK")"
 PMD3_SUDOERS="/etc/sudoers.d/pymobiledevice3"
-PMD3_SUDOERS_LINE="$(whoami) ALL=(root) NOPASSWD: ${PMD3_REAL}"
+PMD3_SUDOERS_LINE="$(whoami) ALL=(root) NOPASSWD: ${PMD3_REAL}, ${PMD3_LINK}"
 if ! sudo test -f "$PMD3_SUDOERS" || ! sudo grep -qxF "$PMD3_SUDOERS_LINE" "$PMD3_SUDOERS"; then
     echo "$PMD3_SUDOERS_LINE" | sudo tee "$PMD3_SUDOERS" > /dev/null
     sudo chmod 440 "$PMD3_SUDOERS"
@@ -148,6 +151,22 @@ if ! sudo test -f "$PMD3_SUDOERS" || ! sudo grep -qxF "$PMD3_SUDOERS_LINE" "$PMD
     echo "Passwordless sudo for pymobiledevice3 configured."
 else
     echo "Passwordless sudo for pymobiledevice3 already configured."
+fi
+
+# Passwordless sudo for /usr/bin/true. Xcode's `devicectl diagnose` (triggered
+# by `xcodebuild test` when collecting failure diagnostics) probes sudo cache
+# with `sudo true` and pops Touch ID if it can't run silently. `true` is a
+# no-op, so granting NOPASSWD on it has zero security cost and silences every
+# tool that uses the same probe pattern.
+TRUE_SUDOERS="/etc/sudoers.d/sudo-true-probe"
+TRUE_SUDOERS_LINE="$(whoami) ALL=(root) NOPASSWD: /usr/bin/true"
+if ! sudo test -f "$TRUE_SUDOERS" || ! sudo grep -qxF "$TRUE_SUDOERS_LINE" "$TRUE_SUDOERS"; then
+    echo "$TRUE_SUDOERS_LINE" | sudo tee "$TRUE_SUDOERS" > /dev/null
+    sudo chmod 440 "$TRUE_SUDOERS"
+    sudo visudo -c -f "$TRUE_SUDOERS" >/dev/null
+    echo "Passwordless sudo for /usr/bin/true probe configured."
+else
+    echo "Passwordless sudo for /usr/bin/true probe already configured."
 fi
 
 # pymobiledevice3 tunneld (iOS 17+ device screenshot/debug requires root tunnel)
