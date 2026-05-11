@@ -275,6 +275,12 @@ setup_git_identity "$HOME/.gitconfig-ado" "Azure DevOps"
 # === Zsh Plugins & Config ===
 curl -fsSL "https://raw.githubusercontent.com/dianshu/config/HEAD/zsh/.zshrc?${RANDOM}" -o $HOME/.zshrc
 
+# 同步 zsh/*.zsh（顶层）到 ~/.zsh/
+mkdir -p $HOME/.zsh
+for f in prompt; do
+    curl -fsSL "https://raw.githubusercontent.com/dianshu/config/HEAD/zsh/${f}.zsh?${RANDOM}" -o "$HOME/.zsh/${f}.zsh"
+done
+
 mkdir -p $HOME/.zsh/plugins
 
 rm -rf $HOME/.zsh/plugins/zsh-abbr

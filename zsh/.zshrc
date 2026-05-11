@@ -37,12 +37,9 @@ bindkey '^[[B' history-substring-search-down
 autoload -U colors && colors
 _zshrc_mark "colors"
 
-# 每次刷新提示符
-setopt prompt_subst
-
-# 设置提示符
-PROMPT='❰%{$reset_color%}%{$fg[red]%}[$(TZ="Asia/Shanghai" date +%H:%M)]%{$reset_color%}%F{#41C4C2}%n%{$reset_color%}|%{$fg[yellow]%}%2~%{$reset_color%}%F{#5DC441}$(git branch --show-current 2&> /dev/null | xargs -I branch echo "(branch)")%{$reset_color%}❱
-%F{#FC7E00}%#%{$reset_color%} '
+# 提示符配置（详见独立文件）
+source ~/.zsh/prompt.zsh
+_zshrc_mark "prompt"
 
 # Direct session abbreviation loading — bypasses abbr command overhead.
 # Coupled to zsh-abbr v6.4.0 internals: keys/values use ${(qqq)...} quoting
@@ -583,6 +580,16 @@ update_zshrc() {
             chmod +x "$HOME/.zsh_scripts/$rel_path"
         done <<< "$files"
     fi
+
+    echo "\n=== Syncing zsh/*.zsh ==="
+    mkdir -p "$HOME/.zsh"
+    local zsh_files
+    zsh_files="$(echo "$tree_json" | jq -r '.tree[] | select((.path | test("^zsh/[^/]+\\.zsh$")) and .type == "blob") | .path')"
+    while IFS= read -r file_path; do
+        [[ -z "$file_path" ]] && continue
+        rel_path="${file_path#zsh/}"
+        dl_with_backup "$raw_base/$file_path" "$HOME/.zsh/$rel_path"
+    done <<< "$zsh_files"
 
     echo "\n=== update_zshrc complete ==="
     echo "Run 'source ~/.zshrc' to reload."
