@@ -18,12 +18,19 @@ autoload -Uz vcs_info
 zstyle ':vcs_info:*' enable git
 zstyle ':vcs_info:git:*' formats '(%b)'
 
-# precmd：每次回车前刷新时间和 git 信息
+# precmd：每次回车前刷新时间、git、退出码颜色
+# 必须先抓 $?——后续 date/vcs_info 会覆盖它
 _prompt_precmd() {
+    local last=$?
+    if (( last == 0 )); then
+        _prompt_arrow_color='%F{#00D787}'
+    else
+        _prompt_arrow_color='%B%F{#FF1744}'
+    fi
     _prompt_time=$(TZ="Asia/Shanghai" date +%H:%M)
     vcs_info
 }
 precmd_functions+=(_prompt_precmd)
 
 PROMPT='❰%{$reset_color%}%F{red}[${_prompt_time}]%{$reset_color%}%F{#41C4C2}%n%{$reset_color%}|%F{yellow}%(4~|.../%2~|%~)%{$reset_color%}%F{#5DC441}${vcs_info_msg_0_}%{$reset_color%}❱
-%(?.%F{#FC7E00}.%F{red})❯%{$reset_color%} '
+${_prompt_arrow_color}❯%b%{$reset_color%} '
