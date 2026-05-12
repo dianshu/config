@@ -40,17 +40,38 @@ Run `PREFLIGHT_CMD`. If it fails, abort with an error explaining the backend CLI
 
 ### A1. Define exclusions and detect scale
 
-First confirm `git diff --stat && git diff --cached --stat` is non-empty; otherwise stop and tell the user.
+First confirm `git diff --stat && git diff --cached --stat && git ls-files --others --exclude-standard` is non-empty; otherwise stop and tell the user.
 
 ```bash
 EXCLUDE_PATHS=':(exclude)**/package-lock.json :(exclude)**/yarn.lock :(exclude)**/pnpm-lock.yaml :(exclude)**/Cargo.lock :(exclude)**/go.sum :(exclude)**/composer.lock :(exclude)**/Gemfile.lock :(exclude)**/poetry.lock :(exclude)**/Pipfile.lock :(exclude)**/*.min.js :(exclude)**/*.min.css :(exclude)**/*.bundle.js :(exclude)**/*.map :(exclude)**/dist/** :(exclude)**/vendor/** :(exclude)**/node_modules/** :(exclude)**/__pycache__/**'
 
-TOTAL_FILES=$( (git diff --name-only && git diff --cached --name-only) | sort -u | wc -l)
-FILTERED_FILES=$( (git diff --name-only -- . $EXCLUDE_PATHS && git diff --cached --name-only -- . $EXCLUDE_PATHS) | sort -u | wc -l)
+# Helper: list all candidate files (tracked-modified + staged + untracked, .gitignore-respecting).
+# $1 = optional filter for tracked diff (e.g. "--diff-filter=AM" or empty); untracked are always included since they are effectively "Added".
+list_files() {
+  local FILTER="$1"
+  ( git diff --name-only $FILTER -- . $EXCLUDE_PATHS
+    git diff --cached --name-only $FILTER -- . $EXCLUDE_PATHS
+    git ls-files --others --exclude-standard -- . $EXCLUDE_PATHS
+  ) | sort -u
+}
+
+# Snapshot the untracked set once, so prepare_diff can classify by membership
+# (not by `git ls-files --error-unmatch`, which mis-classifies staged deletions).
+UNTRACKED_SET=$(git ls-files --others --exclude-standard -- . $EXCLUDE_PATHS)
+is_untracked() { printf '%s\n' "$UNTRACKED_SET" | grep -Fxq -- "$1"; }
+
+TOTAL_FILES=$( ( git diff --name-only; git diff --cached --name-only; git ls-files --others --exclude-standard ) | sort -u | wc -l)
+FILTERED_FILES=$(list_files "" | wc -l)
 EXCLUDED_COUNT=$(( TOTAL_FILES - FILTERED_FILES ))
 
-LINES=$(( $(git diff --stat -- . $EXCLUDE_PATHS | tail -1 | grep -oP '\d+ insertion' | grep -oP '\d+' || echo 0) + $(git diff --stat -- . $EXCLUDE_PATHS | tail -1 | grep -oP '\d+ deletion' | grep -oP '\d+' || echo 0) + $(git diff --cached --stat -- . $EXCLUDE_PATHS | tail -1 | grep -oP '\d+ insertion' | grep -oP '\d+' || echo 0) + $(git diff --cached --stat -- . $EXCLUDE_PATHS | tail -1 | grep -oP '\d+ deletion' | grep -oP '\d+' || echo 0) ))
-DIRS=$( (git diff --name-only -- . $EXCLUDE_PATHS; git diff --cached --name-only -- . $EXCLUDE_PATHS) | xargs -I{} dirname {} | sort -u | wc -l)
+# Abort if exclusions left us with nothing reviewable (preflight may pass on excluded-only files).
+[ "$FILTERED_FILES" -eq 0 ] && { echo "review-with-agent: no eligible files after exclusions"; exit 0; }
+
+UNTRACKED_LINES=$(printf '%s\n' "$UNTRACKED_SET" | while read -r F; do
+  [ -n "$F" ] && [ -f "$F" ] && wc -l < "$F"
+done | awk '{s+=$1} END {print s+0}')
+LINES=$(( $(git diff --stat -- . $EXCLUDE_PATHS | tail -1 | grep -oP '\d+ insertion' | grep -oP '\d+' || echo 0) + $(git diff --stat -- . $EXCLUDE_PATHS | tail -1 | grep -oP '\d+ deletion' | grep -oP '\d+' || echo 0) + $(git diff --cached --stat -- . $EXCLUDE_PATHS | tail -1 | grep -oP '\d+ insertion' | grep -oP '\d+' || echo 0) + $(git diff --cached --stat -- . $EXCLUDE_PATHS | tail -1 | grep -oP '\d+ deletion' | grep -oP '\d+' || echo 0) + UNTRACKED_LINES ))
+DIRS=$(list_files "" | xargs -I{} dirname {} | sort -u | wc -l)
 
 if   [ "$LINES" -ge 200 ] || [ "$DIRS" -ge 3 ]; then SCALE="Heavy"
 elif [ "$LINES" -ge 50 ];                       then SCALE="Medium"
@@ -67,7 +88,7 @@ else                                                  SCALE="Light"; fi
 
 ```bash
 TEST_PATTERN='(^|/)(tests?|__tests__|spec|specs|e2e|androidTest|unitTest|E2ETests?)/|(\.|_)(test|spec)\.[^/]+$|_test\.go$|Tests?\.(swift|kt|java|cs|m|mm)$|Spec\.swift$|(^|/)test_[^/]+\.py$'
-TEST_FILES=$( (git diff --name-only -- . $EXCLUDE_PATHS; git diff --cached --name-only -- . $EXCLUDE_PATHS) | sort -u | grep -E "$TEST_PATTERN" || true)
+TEST_FILES=$(list_files "" | grep -E "$TEST_PATTERN" || true)
 ```
 
 ### A2. Prepare diff content
@@ -82,12 +103,22 @@ BUDGET=2000
 
 prepare_diff() {  # $1 = extra git filter (e.g. "--diff-filter=AM" or empty), $2 = output file
   local FILTER="$1" OUT="$2" PREPARED="" LARGE_FILES="" BUDGET_TRUNCATED=0
-  for FILE in $( (git diff --name-only $FILTER -- . $EXCLUDE_PATHS; git diff --cached --name-only $FILTER -- . $EXCLUDE_PATHS) | sort -u); do
-    FILE_DIFF=$( (git diff $CONTEXT_FLAG -- "$FILE" && git diff --cached $CONTEXT_FLAG -- "$FILE") )
+  for FILE in $(list_files "$FILTER"); do
+    if is_untracked "$FILE"; then
+      # Untracked: render as full-file addition diff. `git diff --no-index` exits 1 on diff (expected); abort on >1.
+      FILE_DIFF=$(git diff --no-index $CONTEXT_FLAG -- /dev/null "$FILE"); RC=$?
+      [ "$RC" -gt 1 ] && { echo "review-with-agent: git diff --no-index failed for $FILE (rc=$RC)" >&2; return 1; }
+    else
+      FILE_DIFF=$( (git diff $CONTEXT_FLAG -- "$FILE" && git diff --cached $CONTEXT_FLAG -- "$FILE") )
+    fi
     FILE_LINES=$(echo "$FILE_DIFF" | wc -l)
     if [ "$FILE_LINES" -gt "$MAX_FILE_LINES" ]; then
       LARGE_FILES="$LARGE_FILES $FILE"
-      STAT=$( (git diff --stat -- "$FILE" && git diff --cached --stat -- "$FILE") )
+      if is_untracked "$FILE"; then
+        STAT="$(wc -l < "$FILE") lines (untracked, new file)"
+      else
+        STAT=$( (git diff --stat -- "$FILE" && git diff --cached --stat -- "$FILE") )
+      fi
       FILE_DIFF="--- $FILE [TRUNCATED: $FILE_LINES lines, stat only] ---
 $STAT
 --- End truncated ---"
@@ -106,8 +137,8 @@ $FILE_DIFF"
   echo "$LARGE_FILES|$BUDGET_TRUNCATED"
 }
 
-CH_META=$(prepare_diff "" "$TMPDIR/challenger_diff.txt")
-SUB_META=$(prepare_diff "--diff-filter=AM" "$TMPDIR/subtractor_diff.txt")
+CH_META=$(prepare_diff "" "$TMPDIR/challenger_diff.txt") || exit 1
+SUB_META=$(prepare_diff "--diff-filter=AM" "$TMPDIR/subtractor_diff.txt") || exit 1
 LARGE_FILE_COUNT=$(echo "${CH_META%|*}" | wc -w)
 BUDGET_TRUNCATED=${CH_META#*|}
 ```
