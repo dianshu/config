@@ -230,6 +230,7 @@ brew_install --cask google-chrome visual-studio-code
 brew_install --cask sublime-text obsidian docker
 brew_install --cask ghostty
 brew_install --cask git-credential-manager
+brew_install --cask monitorcontrol  # 外接屏亮度/音量控制 (F1/F2)
 
 # === VS Code Extensions ===
 code --install-extension ms-python.python
