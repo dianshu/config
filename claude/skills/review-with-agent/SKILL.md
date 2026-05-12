@@ -63,6 +63,13 @@ else                                                  SCALE="Light"; fi
 | Medium | 50–199 lines | Challenger + Architect + Integration + Devil's Advocate |
 | Heavy | 200+ lines OR 3+ dirs | Above + Subtractor |
 
+**Test Hygiene trigger** (independent of scale): if the diff touches any test file, also dispatch the Test Hygiene lens.
+
+```bash
+TEST_PATTERN='(^|/)(tests?|__tests__|spec|specs|e2e|androidTest|unitTest|E2ETests?)/|(\.|_)(test|spec)\.[^/]+$|_test\.go$|Tests?\.(swift|kt|java|cs|m|mm)$|Spec\.swift$|(^|/)test_[^/]+\.py$'
+TEST_FILES=$( (git diff --name-only -- . $EXCLUDE_PATHS; git diff --cached --name-only -- . $EXCLUDE_PATHS) | sort -u | grep -E "$TEST_PATTERN" || true)
+```
+
 ### A2. Prepare diff content
 
 Context flag by scale: Light=`-U3`, Medium=`-U2`, Heavy=`-U1`. Per-file cap: 300 lines (replace overflow with `git diff --stat` + truncation note). Overall budget: 2000 lines per reviewer (tail-truncate with notice).
@@ -133,6 +140,30 @@ Each lens Output line below is given as `<Sev> file:line ...`; reviewers must ex
 
 Output: `<Sev> [New|Pre-existing] file:line current approach or smell → assumption/risk → alternative`.
 
+**Test Hygiene** (only when `TEST_FILES` is non-empty) — input `challenger_diff.txt` (full diff; lens must compare test changes against production-code changes to judge whether assertions were weakened to follow a bug). Focus is on test files, but production-code edits are in scope when they exist solely to make tests pass.
+
+Checklist (12 items, three groups):
+
+*Group 1 — Test weakened to make it pass (default Blocking unless noted):*
+- (a, **Blocking**) Assertion weakened (`assertEqual` → `assertNotNil`, concrete value → `XCTAssert(true)`, removed)
+- (b, **Required**) Test skipped / disabled / `xit` / commented-out without justification
+- (c, **Blocking**) Expected value rewritten to match buggy actual output
+- (d, **Required**) Test method deleted
+
+*Group 2 — Mock scope (testing.md rule 2: mock external APIs and time-related logic; prefer real dependencies elsewhere):*
+- (e, **Suggestion**) Mocks an internal collaborator (own service layer, own DB model)
+- (f, **Suggestion**) Real external dependency not mocked (real HTTP, real third-party SDK)
+- (g, **Suggestion**) Time-related logic not mocked / no injectable clock
+
+*Group 3 — Production code polluted to satisfy tests (default Blocking unless noted):*
+- (k, **Blocking**) Production code branches on test-environment detection (`if isTesting`, `XCTestConfigurationFilePath` env var, `#if DEBUG` wrapping real logic)
+- (l, **Required**) Production code exposes a test-only writable hook (e.g. `var _testOverride: Foo?`); injectable default args like `func foo(now: Date = Date())` are fine
+- (m, **Required**) Production code branches commented "for tests" / "test only"
+- (n, **Blocking**) Test introduces a parallel implementation (Fake replaces the subject under test, then asserts on the Fake)
+- (o, **Required**) Visibility widened (private → public/internal) solely to enable assertions
+
+Output: `<Sev> [New|Pre-existing] file:line which item (a–o) → evidence → fix`. Severity defaults are above; lens may adjust up/down with explicit reasoning.
+
 #### Dispatch (external CLI)
 
 Run reviewers in parallel as background processes. Use `cat | DISPATCH_CMD` (heredoc), never `$()` — avoids shell argument length limits. Integration uses `READONLY_DISPATCH_CMD`.
@@ -147,6 +178,7 @@ PROMPT
 
 # Architect (Medium/Heavy), Subtractor (Heavy), Devil's Advocate (Medium/Heavy): same shape.
 # Integration (Medium/Heavy): use ${READONLY_DISPATCH_CMD}.
+# Test Hygiene (when TEST_FILES non-empty, any scale): same shape using ${DISPATCH_CMD}.
 
 wait
 ```
@@ -168,7 +200,7 @@ Violations → additional `Blocking` findings prefixed `[Red-Line]`.
 
 **Scale**: Light / Medium / Heavy
 **Mode**: ${MODE_LABEL}
-**Reviewers**: Challenger [+ Architect] [+ Integration] [+ Devil's Advocate] [+ Subtractor]
+**Reviewers**: Challenger [+ Architect] [+ Integration] [+ Devil's Advocate] [+ Subtractor] [+ Test Hygiene]
 **Filtered**: {EXCLUDED_COUNT} noise files excluded, {LARGE_FILE_COUNT} large files summarized, {BUDGET_TRUNCATED} lines budget-truncated
 
 ### Verdict: PASS / CONTESTED / REJECT
