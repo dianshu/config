@@ -93,6 +93,16 @@ git push -u origin HEAD
 
 #### 7e. Create PR
 
+**Draft PR description before invoking `az`:**
+
+- Read the full branch diff (`git diff origin/<base>...HEAD`), not just the latest commit.
+- Description body: 1-3 sentences explaining **what changed and why it matters**. No headings needed for short PRs. Ground claims in the actual diff — name specific files/functions/flags when it aids understanding, but don't restate the file list (the PR's Files Changed tab covers that).
+- For large or multi-area PRs only, add a `## Changes` section with bullets grouped by area to serve as a reading guide.
+- Title: concise, imperative; match the repo's existing PR title style (Conventional Commits if used).
+- Do NOT include "Generated with Claude Code" or similar attribution.
+
+Then invoke:
+
 ```bash
 az repos pr create --detect --draft --auto-complete false --title "<title>" --description "<description>" --output json
 ```
@@ -102,10 +112,6 @@ The `--detect` flag auto-detects org/project/repo from the git remote.
 Parse the JSON output to construct the PR web URL:
 - Extract `repository.webUrl` and `pullRequestId`
 - URL format: `{webUrl}/pullrequest/{pullRequestId}`
-
-Prepare for the PR:
-- **PR title**: concise summary of the change
-- **PR description**: 1-3 bullet points explaining what and why. Do NOT include "Generated with Claude Code" or similar.
 
 #### 7f. Open PR in browser
 
@@ -134,3 +140,4 @@ Prepare for the PR:
 | Unstaging files to split commits | Use `git commit <paths>` instead — unstaging breaks the rollback path (see step 4) |
 | Setting auto-complete on PR | Always pass `--auto-complete false` to prevent PRs from auto-completing |
 | Stopping when nothing is staged | Auto-stage files changed in this session — but never stage pre-existing dirty files (see step 2) |
+| Vague PR description ("improved X", "fixed bug") | Read full `git diff origin/<base>...HEAD` and explain what changed and why |
