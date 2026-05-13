@@ -93,6 +93,9 @@ sudo chsh -s `command -v zsh` ${USER}
 # vim related work
 wget https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/24.04/vimrc -O $HOME/.vimrc
 
+# tmux related work
+wget "https://raw.githubusercontent.com/dianshu/config/HEAD/tmux/.tmux.conf?${RANDOM}" -O $HOME/.tmux.conf
+
 if uname -a | grep -qi "WSL"; then
     # add wsl.conf
     sudo wget https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/24.04/wsl.conf -O /etc/wsl.conf

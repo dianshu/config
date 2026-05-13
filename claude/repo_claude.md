@@ -12,6 +12,7 @@ The @config repo mirrors dotfiles and tool configs from the home directory. When
 | `~/.claude/` | `~/repos/config/claude/` |
 | `~/.claude/settings.json` | `~/repos/config/claude/settings.json` |
 | `~/.zshrc` | `~/repos/config/zsh/.zshrc` |
+| `~/.tmux.conf` | `~/repos/config/tmux/.tmux.conf` |
 | `~/.config/ghostty/config` | `~/repos/config/ghostty/config` |
 | `~/.config/searxng/settings.yml` | `~/repos/config/searxng/settings.yml` |
 | `~/.config/glow/glow.yml` | `~/repos/config/glow/glow.yml` |

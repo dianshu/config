@@ -299,6 +299,9 @@ git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-histor
 # === Vim Config ===
 wget https://raw.githubusercontent.com/dianshu/config/refs/heads/main/vimrc -O $HOME/.vimrc
 
+# === Tmux Config ===
+curl -fsSL "https://raw.githubusercontent.com/dianshu/config/HEAD/tmux/.tmux.conf?${RANDOM}" -o $HOME/.tmux.conf
+
 # === Sing-box ===
 mkdir -p $HOME/.sing-box
 curl -fsSL https://raw.githubusercontent.com/dianshu/config/refs/heads/main/sing-box.config.json -o $HOME/.sing-box/config.json
