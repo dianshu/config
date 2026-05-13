@@ -113,3 +113,17 @@ sudo locale-gen
 
 # prepare git repos
 mkdir -p $HOME/repos
+
+# mail MCP token keepalive cron — see macOS/Tahoe/init.sh for rationale.
+# Requires `cron` (Ubuntu ships it; in WSL it must be started manually
+# unless you use systemd or an autostart hook).
+if command -v crontab >/dev/null 2>&1; then
+    KA_SCRIPT="$HOME/.zsh_scripts/mail_mcp_keepalive.sh"
+    KA_CRON_LINE="*/30 * * * * $KA_SCRIPT >/dev/null 2>&1"
+    if ! crontab -l 2>/dev/null | grep -qF "$KA_SCRIPT"; then
+        (crontab -l 2>/dev/null; echo "$KA_CRON_LINE") | crontab -
+        echo "mail MCP keepalive cron installed (every 30min)."
+    else
+        echo "mail MCP keepalive cron already configured."
+    fi
+fi
