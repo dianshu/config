@@ -33,12 +33,20 @@ notify() {
 body_file=$(mktemp)
 trap 'rm -f "$body_file"' EXIT
 
-http_code=$(curl -sS -o "$body_file" -w '%{http_code}' \
-    --max-time 15 --connect-timeout 3 \
-    -X POST "$URL" \
-    -H 'Content-Type: application/json' \
-    -H 'Accept: application/json, text/event-stream' \
-    -d '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"keepalive","version":"1"}}}' 2>/dev/null) || http_code="curl_error"
+do_request() {
+    curl -sS -o "$body_file" -w '%{http_code}' \
+        --max-time 20 --connect-timeout 10 \
+        -X POST "$URL" \
+        -H 'Content-Type: application/json' \
+        -H 'Accept: application/json, text/event-stream' \
+        -d '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"keepalive","version":"1"}}}' 2>/dev/null
+}
+
+http_code=$(do_request) || http_code="curl_error"
+if [[ "$http_code" != "200" ]]; then
+    sleep 2
+    http_code=$(do_request) || http_code="curl_error"
+fi
 
 if [[ "$http_code" == "200" ]]; then
     echo "$(ts) ok" >> "$LOG_FILE"
