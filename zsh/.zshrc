@@ -484,6 +484,7 @@ cc_sync() {
         "playground@claude-plugins-official"
         "skill-creator@claude-plugins-official"
         "claude-code-setup@claude-plugins-official"
+        "frontend-design@claude-plugins-official"
     )
     if [[ "$(uname)" == "Darwin" ]]; then
         plugins+=("swift-lsp@claude-plugins-official")
