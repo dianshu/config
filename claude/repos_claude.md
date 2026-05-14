@@ -12,10 +12,16 @@ The @config repo mirrors dotfiles and tool configs from the home directory. When
 | `~/.claude/` | `~/repos/config/claude/` |
 | `~/.claude/settings.json` | `~/repos/config/claude/settings.json` |
 | `~/.zshrc` | `~/repos/config/zsh/.zshrc` |
+| `~/.zsh_scripts/` | `~/repos/config/zsh/scripts/` |
+| `~/.tmux.conf` | `~/repos/config/tmux/.tmux.conf` |
 | `~/.config/ghostty/config` | `~/repos/config/ghostty/config` |
 | `~/.config/searxng/settings.yml` | `~/repos/config/searxng/settings.yml` |
 | `~/.config/glow/glow.yml` | `~/repos/config/glow/glow.yml` |
-| `~/repos/CLAUDE.md` | `~/repos/config/claude/repo_claude.md` |
+| `~/.gitconfig` | `~/repos/config/git/config` |
+| `~/.config/git/ignore` | `~/repos/config/git/ignore` |
+| `~/repos/CLAUDE.md` | `~/repos/config/claude/repos_claude.md` |
+
+Skills under `~/.claude/skills/` that are managed in the `~/repos/skills` git repo (currently: diagnose, grill, improve-codebase-architecture, issues, prd, tdd, triage, zoom-out) sync to `~/repos/skills/<name>/` instead of the config repo. Commit and push changes there.
 
 This directory (`~/repos`) is a normal directory, not a git repo. Do not run git commands directly in this directory.
 
