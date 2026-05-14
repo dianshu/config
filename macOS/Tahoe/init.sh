@@ -222,8 +222,8 @@ brew_install displayplacer
 # Override macOS system python3 (3.9.6) with Homebrew's
 ln -sf /opt/homebrew/bin/python3.13 /opt/homebrew/bin/python3
 
-# bun
-curl -fsSL https://bun.sh/install | bash
+# bun (use `bun upgrade` to update; cc_sync handles that)
+command -v bun &>/dev/null || curl -fsSL https://bun.sh/install | bash
 
 # === GUI Applications ===
 brew_install --cask google-chrome visual-studio-code
