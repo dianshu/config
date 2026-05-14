@@ -96,10 +96,29 @@ git push -u origin HEAD
 **Draft PR description before invoking `az`:**
 
 - Read the full branch diff (`git diff origin/<base>...HEAD`), not just the latest commit.
-- Description body: 1-3 sentences explaining **what changed and why it matters**. No headings needed for short PRs. Ground claims in the actual diff — name specific files/functions/flags when it aids understanding, but don't restate the file list (the PR's Files Changed tab covers that).
-- For large or multi-area PRs only, add a `## Changes` section with bullets grouped by area to serve as a reading guide.
+- **Default to the structured template below.** Use bullets, not prose paragraphs — reviewers scan, they don't read. Ground claims in the actual diff (specific files/functions/flags), but don't restate the file list.
+- **Exception:** trivial single-concern changes (typo, one-line fix, doc tweak) may use a single sentence with no headings.
 - Title: concise, imperative; match the repo's existing PR title style (Conventional Commits if used).
 - Do NOT include "Generated with Claude Code" or similar attribution.
+
+**Template** (omit any section that doesn't apply — don't write "N/A"):
+
+```markdown
+## Summary
+One sentence: what changed and why it matters.
+
+## Changes
+- `<file or area>`: what changed
+- `<file or area>`: what changed
+
+## Verification
+- How it was tested (E2E test name, unit test, manual repro)
+
+## Notes
+- Side fixes, follow-ups, caveats reviewers should know
+```
+
+Keep each bullet to one line. If a bullet needs a sub-point, indent with `  - `.
 
 Then invoke:
 
