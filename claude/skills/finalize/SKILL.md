@@ -21,21 +21,25 @@ Orchestrates the full post-implementation finalization cycle: review, verify, se
    c. If passing → proceed to step 4.
    d. If failing → parent fixes the failure in main session, then **return to step 2a** (one more review pass before re-running e2e). If parent judges the failure not worth fixing → record as won't-fix and proceed to step 4.
 4. **Testing-rules self-check**:
-   a. Re-read `~/.claude/rules/testing.md` and check every test file changed in this session against it.
+   a. Re-read `~/.claude/rules/testing.md`. Then for **each test file changed in this session**, write an explicit evidence block: file path, what was changed, which testing.md rules apply, and a verdict (✅ compliant / ❌ violation) with one-line justification. A single "looks clean" sentence is NOT acceptable — the per-file enumeration must be visible in the output.
    b. Each violation → fix in main session, then **return to step 2a** (one more review pass). Track count for the summary.
    c. No violations → proceed to step 5.
 5. **Full test suite**:
-   a. Look in the current session context for explicit commands the user has provided for running the full unit-test suite and the full E2E suite (these are typically injected by the user as part of the conversation context, not read from any file).
-   b. For each of UT and E2E: if a command is present → run it; if not → mark as `skipped (no command in session context)` and continue. **Do not ask the user.**
+   a. Resolve the UT and E2E commands by checking, in order:
+      1. Explicit commands the user provided in the current session context.
+      2. Project scripts under `.claude/scripts/` — e.g. `test.sh` for UT, `e2e.sh` for E2E. Use these as-is if executable.
+      3. `Makefile` targets — `make test` for UT, `make e2e` (or `make test-e2e`) for E2E.
+      4. `package.json` `scripts.test` / `scripts.e2e` (run via `npm test` / `npm run e2e`).
+   b. For each of UT and E2E: if a command is resolved → run it; if not → mark as `skipped (no command found)` and continue. **Do not ask the user.**
    c. On failure → parent fixes in main session → **return to step 2a**.
    d. On pass / skipped → proceed to step 6.
-6. **Summary** — print a single block:
+6. **Summary** — output the summary as the **final, standalone assistant message** (no other content before or after — no "next steps", no "ready to push", no file lists). It must be a single block:
    - Review rounds completed: N
    - Won't-fix items: list (or "none")
    - Testing-rules self-check: clean | fixed N violations
    - e2e-verify (step 3): pass | fail (won't-fix) | skipped
-   - Full UT (step 5): pass | fail (won't-fix) | skipped (no command in session context)
-   - Full E2E (step 5): pass | fail (won't-fix) | skipped (no command in session context)
+   - Full UT (step 5): pass | fail (won't-fix) | skipped (no command found)
+   - Full E2E (step 5): pass | fail (won't-fix) | skipped (no command found)
 
 ## Rules
 
