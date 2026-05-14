@@ -175,7 +175,7 @@ grep -qxF "$ZSH_PATH" /etc/shells || echo "$ZSH_PATH" | sudo tee -a /etc/shells
 sudo chsh -s "$ZSH_PATH" "${USER}"
 
 # === Vim Config ===
-curl -fsSL "https://raw.githubusercontent.com/dianshu/config/HEAD/Ubuntu/24.04/vimrc?${RANDOM}" -o $HOME/.vimrc
+curl -fsSL "https://raw.githubusercontent.com/dianshu/config/HEAD/vimrc?${RANDOM}" -o $HOME/.vimrc
 
 # === Tmux Config ===
 curl -fsSL "https://raw.githubusercontent.com/dianshu/config/HEAD/tmux/.tmux.conf?${RANDOM}" -o $HOME/.tmux.conf
