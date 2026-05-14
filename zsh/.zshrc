@@ -292,7 +292,15 @@ cc_sync() {
         echo "  brew not found, skipping"
     fi
 
-    # 1f. Clean Trivy local DB cache
+    # 1f. Bun
+    echo "\n=== Bun ==="
+    if command -v bun &>/dev/null; then
+        bun upgrade
+    else
+        curl -fsSL https://bun.sh/install | bash
+    fi
+
+    # 1g. Clean Trivy local DB cache
     echo "\n=== Trivy Cache ==="
     if [[ -d "$HOME/.cache/trivy" ]]; then
         echo "  Removing Trivy cache (~/.cache/trivy)..."
