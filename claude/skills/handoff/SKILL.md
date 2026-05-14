@@ -56,7 +56,7 @@ _Generated: YYYY-MM-DD HH:MM | Branch: <branch> | Last commit: <short-sha>_
 
 ## 已经试过的方案和结果(含失败的)
 
-<Bullet list. Include failed attempts and why they failed — this is the highest-value section for resume.>
+<Bullet list. Include failed attempts and why they failed — this is the highest-value section for resume. Do not duplicate content already captured in commits, PRDs, plans, ADRs, or issues — reference them by path/SHA/URL instead.>
 
 ## 下一步计划
 
