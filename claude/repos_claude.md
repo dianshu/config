@@ -28,3 +28,7 @@ This directory (`~/repos`) is a normal directory, not a git repo. Do not run git
 ## Dependency Tracking
 
 When adding a new external command dependency to any hook or script under `~/.claude/`, also add it to `~/.claude/hooks/session-deps-check.sh` in the appropriate platform section (common, macOS, or WSL).
+
+## Download Discipline
+
+In init/sync scripts, always download with `curl -fsSL` (or `wget -q` with explicit failure check). Never `wget URL -O FILE` without `--content-on-error` rejection — `wget` exits 0 on HTTP 404 and writes the error page into the destination, silently corrupting the install. A single 404 hidden this way once made the Ubuntu vimrc setup look fine for years while actually doing nothing; the same path was caught immediately when migrated to `curl -fsSL`.
