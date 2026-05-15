@@ -144,13 +144,20 @@ PMD3_LINK="$(command -v pymobiledevice3)"
 PMD3_REAL="$(readlink -f "$PMD3_LINK")"
 PMD3_SUDOERS="/etc/sudoers.d/pymobiledevice3"
 PMD3_SUDOERS_LINE="$(whoami) ALL=(root) NOPASSWD: ${PMD3_REAL}, ${PMD3_LINK}"
-if ! sudo test -f "$PMD3_SUDOERS" || ! sudo grep -qxF "$PMD3_SUDOERS_LINE" "$PMD3_SUDOERS"; then
+# Use a user-readable marker to avoid invoking sudo on every sync run (which
+# would prompt for Touch ID even when the rule is already in place — sudoers
+# files are 0440 root:wheel, so verifying their content otherwise needs sudo).
+PMD3_MARKER="$HOME/.cache/init-sh/pmd3-sudoers.sha"
+PMD3_EXPECTED_SHA="$(printf '%s\n' "$PMD3_SUDOERS_LINE" | shasum -a 256 | awk '{print $1}')"
+mkdir -p "$(dirname "$PMD3_MARKER")"
+if [[ -f "$PMD3_SUDOERS" && "$(cat "$PMD3_MARKER" 2>/dev/null)" == "$PMD3_EXPECTED_SHA" ]]; then
+    echo "Passwordless sudo for pymobiledevice3 already configured."
+else
     echo "$PMD3_SUDOERS_LINE" | sudo tee "$PMD3_SUDOERS" > /dev/null
     sudo chmod 440 "$PMD3_SUDOERS"
     sudo visudo -c -f "$PMD3_SUDOERS" >/dev/null
+    printf '%s' "$PMD3_EXPECTED_SHA" > "$PMD3_MARKER"
     echo "Passwordless sudo for pymobiledevice3 configured."
-else
-    echo "Passwordless sudo for pymobiledevice3 already configured."
 fi
 
 # Passwordless sudo for /usr/bin/true. Xcode's `devicectl diagnose` (triggered
@@ -160,13 +167,17 @@ fi
 # tool that uses the same probe pattern.
 TRUE_SUDOERS="/etc/sudoers.d/sudo-true-probe"
 TRUE_SUDOERS_LINE="$(whoami) ALL=(root) NOPASSWD: /usr/bin/true"
-if ! sudo test -f "$TRUE_SUDOERS" || ! sudo grep -qxF "$TRUE_SUDOERS_LINE" "$TRUE_SUDOERS"; then
+TRUE_MARKER="$HOME/.cache/init-sh/true-sudoers.sha"
+TRUE_EXPECTED_SHA="$(printf '%s\n' "$TRUE_SUDOERS_LINE" | shasum -a 256 | awk '{print $1}')"
+mkdir -p "$(dirname "$TRUE_MARKER")"
+if [[ -f "$TRUE_SUDOERS" && "$(cat "$TRUE_MARKER" 2>/dev/null)" == "$TRUE_EXPECTED_SHA" ]]; then
+    echo "Passwordless sudo for /usr/bin/true probe already configured."
+else
     echo "$TRUE_SUDOERS_LINE" | sudo tee "$TRUE_SUDOERS" > /dev/null
     sudo chmod 440 "$TRUE_SUDOERS"
     sudo visudo -c -f "$TRUE_SUDOERS" >/dev/null
+    printf '%s' "$TRUE_EXPECTED_SHA" > "$TRUE_MARKER"
     echo "Passwordless sudo for /usr/bin/true probe configured."
-else
-    echo "Passwordless sudo for /usr/bin/true probe already configured."
 fi
 
 # pymobiledevice3 tunneld (iOS 17+ device screenshot/debug requires root tunnel)
