@@ -100,13 +100,15 @@ Include: specific symptoms (exact errors), context markers (framework/file/tool 
 Bad: `Helps with React problems`
 Good: `Fix for "ENOENT: no such file" in npm workspaces. Use when (1) npm run fails with ENOENT in a workspace, (2) paths work in root but not packages.`
 
-### Step 6: Save and mirror
+### Step 6: Save to the project
 
-- Project-specific: `.claude/skills/[name]/SKILL.md`
-- User-wide: `~/.claude/skills/[name]/SKILL.md`
-- Helper scripts: `scripts/` subdir
+Always save into the current project — do NOT judge whether the knowledge is globally applicable, and do NOT write to `~/.claude/skills/`.
 
-After saving to `~/.claude/skills/`, mirror to `~/repos/config/claude/skills/` (`~/.claude/` is source of truth). Then `/push` the config repo.
+- New skill: `.claude/skills/[name]/SKILL.md` in the current project
+- Helper scripts: `.claude/skills/[name]/scripts/`
+- Project-specific lessons that fit existing docs: update `CLAUDE.md` (or the project's equivalent) instead of creating a new skill
+
+Promotion to user-wide (`~/.claude/skills/`) is a separate, explicit decision made by the user later — not part of this skill.
 
 ## Retrospective mode (`/continuous-learning`)
 
