@@ -20,8 +20,18 @@ The @config repo mirrors dotfiles and tool configs from the home directory. When
 | `~/.gitconfig` | `~/repos/config/git/config` |
 | `~/.config/git/ignore` | `~/repos/config/git/ignore` |
 | `~/repos/CLAUDE.md` | `~/repos/config/claude/repos_claude.md` |
+| `~/.claude/skills/diagnose/` | `~/repos/skills/diagnose/` |
+| `~/.claude/skills/grill/` | `~/repos/skills/grill/` |
+| `~/.claude/skills/improve-codebase-architecture/` | `~/repos/skills/improve-codebase-architecture/` |
+| `~/.claude/skills/issues/` | `~/repos/skills/issues/` |
+| `~/.claude/skills/load-feature/` | `~/repos/skills/load-feature/` |
+| `~/.claude/skills/prd/` | `~/repos/skills/prd/` |
+| `~/.claude/skills/run-next-issue/` | `~/repos/skills/run-next-issue/` |
+| `~/.claude/skills/tdd/` | `~/repos/skills/tdd/` |
+| `~/.claude/skills/triage/` | `~/repos/skills/triage/` |
+| `~/.claude/skills/zoom-out/` | `~/repos/skills/zoom-out/` |
 
-Skills under `~/.claude/skills/` that are managed in the `~/repos/skills` git repo (currently: diagnose, grill, improve-codebase-architecture, issues, prd, tdd, triage, zoom-out) sync to `~/repos/skills/<name>/` instead of the config repo. Commit and push changes there.
+Skills under `~/.claude/skills/` that are managed in the `~/repos/skills` git repo (currently: diagnose, grill, improve-codebase-architecture, issues, load-feature, prd, run-next-issue, tdd, triage, zoom-out) sync to `~/repos/skills/<name>/` instead of the config repo. Commit and push changes there.
 
 This directory (`~/repos`) is a normal directory, not a git repo. Do not run git commands directly in this directory.
 
