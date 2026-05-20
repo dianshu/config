@@ -67,11 +67,6 @@ defaults write com.apple.dock mineffect -string "genie"
 # 将窗口最小化至应用程序图标
 defaults write com.apple.dock minimize-to-application -bool true
 
-# === Hot Corners ===
-# 左下：锁定屏幕
-defaults write com.apple.dock wvous-bl-corner -int 13
-defaults write com.apple.dock wvous-bl-modifier -int 0
-
 killall Dock
 # === Homebrew ===
 if command -v brew &>/dev/null; then
