@@ -56,6 +56,90 @@
           {
             "type": "command",
             "command": "bash ~/.claude/hooks/load-project-rules.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh azure"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh bash-timeout"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh checkpoint-after-steps"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh code-discipline"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh code-review"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh commit-behavior"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh context7"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh debug-discipline"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh first-principles"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh language"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh large-file-writing"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh model-judgment-only"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh no-stalling"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh prd-review"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh prompt-supersedes-rules"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh question-format"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh skills-summary"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh surface-conflicts"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh testing"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh update-readme"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh web-fetching"
           }
         ]
       }
@@ -67,6 +151,10 @@
           {
             "type": "command",
             "command": "bash ~/.claude/hooks/session-learnings.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/remind-user-rules.sh"
           }
         ]
       }

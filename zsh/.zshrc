@@ -340,6 +340,14 @@ cc_sync() {
         fi
     done <<< "$files"
 
+    # 2a. Regenerate per-rule SessionStart hook entries for ~/.claude/injected-rules/
+    echo "\n=== Regen user-rule hooks ==="
+    if [[ -x "$HOME/.claude/hooks/regen-user-rule-hooks.sh" ]]; then
+        bash "$HOME/.claude/hooks/regen-user-rule-hooks.sh"
+    else
+        echo "  Skipping: regen-user-rule-hooks.sh not found or not executable"
+    fi
+
     # 2b. Codex config file
     echo "\n=== Codex Config ==="
     dl_with_backup "$raw_base/codex/config.toml" "$HOME/.codex/config.toml"

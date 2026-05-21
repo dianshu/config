@@ -39,6 +39,18 @@ This directory (`~/repos`) is a normal directory, not a git repo. Do not run git
 
 When adding a new external command dependency to any hook or script under `~/.claude/`, also add it to `~/.claude/hooks/session-deps-check.sh` in the appropriate platform section (common, macOS, or WSL).
 
+## User-Level Rule Injection
+
+User-level rules live under `~/.claude/injected-rules/*.md` (mirrored to `~/repos/config/claude/injected-rules/`). They are **not** loaded automatically by Claude Code — each rule is injected via its own SessionStart hook entry in `settings.json` (one `bash ~/.claude/hooks/inject-one-user-rule.sh <name>` per rule). This avoids the 10,000-char persisted-output threshold that truncates bulk additionalContext payloads.
+
+When you add, remove, or rename a file under `injected-rules/`, you **must** regenerate the SessionStart hook entries:
+
+```bash
+bash ~/.claude/hooks/regen-user-rule-hooks.sh
+```
+
+`cc_sync` runs this automatically after pulling the latest config, so if you add a rule via the config repo + `cc_sync` workflow, no manual step is needed. The regen script is idempotent — running it when nothing changed is a no-op.
+
 ## Download Discipline
 
 In init/sync scripts, always download with `curl -fsSL` (or `wget -q` with explicit failure check). Never `wget URL -O FILE` without `--content-on-error` rejection — `wget` exits 0 on HTTP 404 and writes the error page into the destination, silently corrupting the install. A single 404 hidden this way once made the Ubuntu vimrc setup look fine for years while actually doing nothing; the same path was caught immediately when migrated to `curl -fsSL`.
