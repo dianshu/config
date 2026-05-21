@@ -1,6 +1,6 @@
 ---
 name: finalize
-description: Post-implementation finalization: /simplify → parallel /codex-review + /gemini-review (loop) → /e2e-verify (loop) → testing-rules self-check → full UT+E2E → summary. Use after completing a code change. Trigger: "finalize", "/finalize".
+description: Post-implementation finalization: /code-review → parallel /codex-review + /gemini-review (loop) → /e2e-verify (loop) → testing-rules self-check → full UT+E2E → summary. Use after completing a code change. Trigger: "finalize", "/finalize".
 allowed-tools: Bash, Read, Skill
 ---
 
@@ -10,7 +10,15 @@ Orchestrates the full post-implementation finalization cycle: review, verify, se
 
 ## Flow
 
-1. **Simplify (once)** — invoke `/simplify`.
+1. **Code review (once)** — run `~/.claude/scripts/diff-scale.sh` to classify the change, then invoke `/code-review` with the matching effort level. Mapping (one tier above review-with-agent's lens map, since `/code-review` is a single pass without independent lenses to compensate):
+
+   | Scale (script output) | `/code-review` argument |
+   |---|---|
+   | Light  | `medium` |
+   | Medium | `high`   |
+   | Heavy  | `xhigh`  |
+
+   If the script exits non-zero (not a git repo / nothing to review), skip this step and proceed to step 2.
 2. **Review loop** — repeat until the Progression Check (below) signals exit:
    a. Invoke `/codex-review` and `/gemini-review` **in parallel** (single message, two Skill calls).
    b. Read both structured outputs. For each issue, decide: **fix** (apply edit in main session), or **add to won't-fix list** (parent's working memory; not persisted, not sent back to reviewers).
@@ -49,7 +57,7 @@ Orchestrates the full post-implementation finalization cycle: review, verify, se
 - **Exit conditions** (any one):
   - Steps 1–5 all complete: every review issue fixed-or-won't-fix; e2e-verify pass-or-won't-fix-or-skipped; testing-rules self-check clean (after any fixes); full UT and full E2E each pass-or-skipped-or-won't-fix.
   - Parent judges a remaining failure not worth fixing (logged in summary).
-- **Simplify runs exactly once**, at the start. Subsequent iterations are pure review-driven fixes.
+- **Code review runs exactly once**, at the start (with auto-selected effort). Subsequent iterations are pure review-driven fixes via `/codex-review` + `/gemini-review`.
 - **Steps 2, 3, 4, 5 may re-run multiple times.** Any "return to step 2a" replays Step 2 → 3 → 4 → 5 in order. Convergence is governed by Step 2's Progression Check and the natural decrease in violations/failures per round. If a fix repeatedly fails to converge, parent marks it won't-fix and exits via the second exit condition.
 
 ## Progression Check (3-of-5)

@@ -67,15 +67,10 @@ EXCLUDED_COUNT=$(( TOTAL_FILES - FILTERED_FILES ))
 # Abort if exclusions left us with nothing reviewable (preflight may pass on excluded-only files).
 [ "$FILTERED_FILES" -eq 0 ] && { echo "review-with-agent: no eligible files after exclusions"; exit 0; }
 
-UNTRACKED_LINES=$(printf '%s\n' "$UNTRACKED_SET" | while read -r F; do
-  [ -n "$F" ] && [ -f "$F" ] && wc -l < "$F"
-done | awk '{s+=$1} END {print s+0}')
-LINES=$(( $(git diff --stat -- . $EXCLUDE_PATHS | tail -1 | grep -oP '\d+ insertion' | grep -oP '\d+' || echo 0) + $(git diff --stat -- . $EXCLUDE_PATHS | tail -1 | grep -oP '\d+ deletion' | grep -oP '\d+' || echo 0) + $(git diff --cached --stat -- . $EXCLUDE_PATHS | tail -1 | grep -oP '\d+ insertion' | grep -oP '\d+' || echo 0) + $(git diff --cached --stat -- . $EXCLUDE_PATHS | tail -1 | grep -oP '\d+ deletion' | grep -oP '\d+' || echo 0) + UNTRACKED_LINES ))
-DIRS=$(list_files "" | xargs -I{} dirname {} | sort -u | wc -l)
-
-if   [ "$LINES" -ge 200 ] || [ "$DIRS" -ge 3 ]; then SCALE="Heavy"
-elif [ "$LINES" -ge 50 ];                       then SCALE="Medium"
-else                                                  SCALE="Light"; fi
+# Scale classification (Light/Medium/Heavy) is delegated to the shared script,
+# which /finalize also uses to pick a /code-review effort level. Single source
+# of truth — thresholds defined there.
+eval "$(~/.claude/scripts/diff-scale.sh)"
 ```
 
 | Scale | Condition | Reviewers |
