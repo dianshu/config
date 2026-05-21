@@ -377,7 +377,6 @@ cc_sync() {
     local mp_json="$HOME/.claude/plugins/known_marketplaces.json"
     typeset -A marketplaces=(
         [microsoft-docs-marketplace]="microsoftdocs/mcp"
-        [anthropic-agent-skills]="anthropics/skills"
         [claude-plugins-official]="anthropics/claude-plugins-official"
     )
     for mp_key mp_repo in "${(@kv)marketplaces}"; do
@@ -396,7 +395,6 @@ cc_sync() {
     local plugins_json="$HOME/.claude/plugins/installed_plugins.json"
     local -a plugins=(
         "microsoft-docs@microsoft-docs-marketplace"
-        "document-skills@anthropic-agent-skills"
         "playground@claude-plugins-official"
         "skill-creator@claude-plugins-official"
         "claude-code-setup@claude-plugins-official"
@@ -417,6 +415,23 @@ cc_sync() {
         # Ensure plugin is enabled (install doesn't auto-enable)
         claude plugin enable "$plugin" -s user 2>/dev/null
     done
+
+    # 4b. Document skills (pptx + docx) — fetched directly from anthropics/skills
+    #     (document-skills plugin was dropped; only these two are wanted)
+    echo "\n=== Document Skills (pptx, docx) ==="
+    local doc_skills_tmp
+    doc_skills_tmp="$(mktemp -d /tmp/anthropic-skills.XXXXXX)"
+    if git clone --depth 1 --filter=blob:none --sparse https://github.com/anthropics/skills.git "$doc_skills_tmp" &>/dev/null \
+       && (cd "$doc_skills_tmp" && git sparse-checkout set skills/pptx skills/docx &>/dev/null); then
+        mkdir -p "$HOME/.claude/skills"
+        rm -rf "$HOME/.claude/skills/pptx" "$HOME/.claude/skills/docx"
+        cp -R "$doc_skills_tmp/skills/pptx" "$HOME/.claude/skills/pptx"
+        cp -R "$doc_skills_tmp/skills/docx" "$HOME/.claude/skills/docx"
+        echo "  pptx + docx installed to ~/.claude/skills/"
+    else
+        echo "  FAILED: Could not fetch anthropics/skills"
+    fi
+    rm -rf "$doc_skills_tmp"
 
     # 4c. Skills (clone and install)
     echo "\n=== Skills ==="
