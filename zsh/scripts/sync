@@ -1,0 +1,17 @@
+#!/usr/bin/env zsh
+raw_base="https://raw.githubusercontent.com/dianshu/config/main"
+os="$(uname)"
+if [[ "$os" == "Darwin" ]]; then
+    script_url="$raw_base/macOS/Tahoe/init.sh"
+elif [[ -f /etc/os-release ]]; then
+    id="$(. /etc/os-release && echo "$ID")"
+    version="$(. /etc/os-release && echo "$VERSION_ID")"
+    case "$id" in
+        ubuntu) script_url="$raw_base/Ubuntu/${version}/init.sh" ;;
+        *) echo "Unsupported distro: $id $version"; exit 1 ;;
+    esac
+else
+    echo "Unsupported OS: $os"; exit 1
+fi
+echo "Running: $script_url"
+bash <(wget -qO- "$script_url")

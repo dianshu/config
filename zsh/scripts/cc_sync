@@ -1,0 +1,238 @@
+#!/usr/bin/env zsh
+# 1. Install or update Claude CLI
+echo "=== Claude CLI ==="
+if command -v claude &>/dev/null; then
+    echo "  Found, updating..."
+    claude update
+else
+    echo "  Not found, installing..."
+    curl -fsSL -4 https://claude.ai/install.sh | bash
+fi
+
+# 1b. Install or update Codex CLI
+echo "\n=== Codex CLI ==="
+if command -v codex &>/dev/null; then
+    echo "  Found, updating..."
+else
+    echo "  Not found, installing..."
+fi
+npm i -y -g @openai/codex@latest
+
+# 1c. Install or update Agency
+echo "\n=== Agency ==="
+if is_work; then
+    if command -v agency &>/dev/null; then
+        agency update
+    else
+        curl -sSfL https://aka.ms/InstallTool.sh | sh -s agency
+    fi
+else
+    echo "  Skipping (no work account available)"
+fi
+
+# 1d. Install or update Gemini CLI
+echo "\n=== Gemini CLI ==="
+if command -v gemini &>/dev/null; then
+    echo "  Found, updating..."
+else
+    echo "  Not found, installing..."
+fi
+npm i -y -g @google/gemini-cli@latest
+
+# 1e. Upgrade Homebrew packages
+echo "\n=== Homebrew ==="
+if command -v brew &>/dev/null; then
+    brew update && brew upgrade
+else
+    echo "  brew not found, skipping"
+fi
+
+# 1f. Bun
+echo "\n=== Bun ==="
+if command -v bun &>/dev/null; then
+    bun upgrade
+else
+    curl -fsSL https://bun.sh/install | bash
+fi
+
+# 1g. Clean Trivy local DB cache
+echo "\n=== Trivy Cache ==="
+if [[ -d "$HOME/.cache/trivy" ]]; then
+    echo "  Removing Trivy cache (~/.cache/trivy)..."
+    rm -rf "$HOME/.cache/trivy"
+    echo "  Done"
+else
+    echo "  No cache found, skipping"
+fi
+
+# 2. Config files (dynamically discover + download all files from claude/ in repo)
+echo "\n=== Config Files ==="
+raw_base="https://raw.githubusercontent.com/dianshu/config/main"
+tree_json="$(wget -qO- "https://api.github.com/repos/dianshu/config/git/trees/main?recursive=1")"
+if [[ -z "$tree_json" ]]; then
+    echo "  ERROR: Failed to fetch repo tree from GitHub API"
+    exit 1
+fi
+
+files="$(echo "$tree_json" | jq -r '.tree[] | select((.path | startswith("claude/")) and .type == "blob") | .path')"
+if [[ -z "$files" ]]; then
+    echo "  ERROR: No files found under claude/ in repo tree"
+    exit 1
+fi
+
+while IFS= read -r file_path; do
+    rel_path="${file_path#claude/}"
+    if [[ "$rel_path" == "repos_claude.md" ]]; then
+        dl_with_backup "$raw_base/$file_path" "$HOME/repos/CLAUDE.md"
+        continue
+    fi
+    dl_with_backup "$raw_base/$file_path" "$HOME/.claude/$rel_path"
+    if [[ "$rel_path" == *.sh ]]; then
+        chmod +x "$HOME/.claude/$rel_path"
+    fi
+done <<< "$files"
+
+# 2a. Regenerate per-rule SessionStart hook entries for ~/.claude/injected-rules/
+echo "\n=== Regen user-rule hooks ==="
+if [[ -x "$HOME/.claude/hooks/regen-user-rule-hooks.sh" ]]; then
+    bash "$HOME/.claude/hooks/regen-user-rule-hooks.sh"
+else
+    echo "  Skipping: regen-user-rule-hooks.sh not found or not executable"
+fi
+
+# 2b. Codex config file
+echo "\n=== Codex Config ==="
+dl_with_backup "$raw_base/codex/config.toml" "$HOME/.codex/config.toml"
+
+# 2c. Gemini CLI config file
+echo "\n=== Gemini Config ==="
+dl_with_backup "$raw_base/gemini/settings.json" "$HOME/.gemini/settings.json"
+dl_with_backup "$raw_base/gemini/.env.template" "$HOME/.gemini/.env"
+
+# 2d. Ghostty config file
+echo "\n=== Ghostty Config ==="
+mkdir -p "$HOME/.config/ghostty"
+dl_with_backup "$raw_base/ghostty/config" "$HOME/.config/ghostty/config"
+
+# Install BurntToast PowerShell module for Windows toast notifications
+if command -v /mnt/q/Programs/PowerShell/7/pwsh.exe &>/dev/null; then
+    /mnt/q/Programs/PowerShell/7/pwsh.exe -NoProfile -Command "
+        if (-not (Get-Module -ListAvailable -Name BurntToast)) {
+            Install-Module -Name BurntToast -Force -Scope CurrentUser
+        }
+    " 2>/dev/null
+    echo "  BurntToast module ensured"
+fi
+
+# 3. Marketplaces (add if missing, then update all)
+echo "\n=== Marketplaces ==="
+mp_json="$HOME/.claude/plugins/known_marketplaces.json"
+typeset -A marketplaces=(
+    [microsoft-docs-marketplace]="microsoftdocs/mcp"
+    [claude-plugins-official]="anthropics/claude-plugins-official"
+)
+for mp_key mp_repo in "${(@kv)marketplaces}"; do
+    if [[ -f "$mp_json" ]] && jq -e --arg k "$mp_key" 'has($k)' "$mp_json" &>/dev/null; then
+        echo "  Marketplace '$mp_key' already registered"
+    else
+        echo "  Adding marketplace '$mp_key' ($mp_repo)..."
+        claude plugin marketplace add "$mp_repo"
+    fi
+done
+echo "  Updating all marketplaces..."
+claude plugin marketplace update
+
+# 4. Plugins (install if missing, update if exists)
+echo "\n=== Plugins ==="
+plugins_json="$HOME/.claude/plugins/installed_plugins.json"
+plugins=(
+    "microsoft-docs@microsoft-docs-marketplace"
+    "playground@claude-plugins-official"
+    "skill-creator@claude-plugins-official"
+    "claude-code-setup@claude-plugins-official"
+    "frontend-design@claude-plugins-official"
+)
+if [[ "$(uname)" == "Darwin" ]]; then
+    plugins+=("swift-lsp@claude-plugins-official")
+fi
+for plugin in "${plugins[@]}"; do
+    if [[ -f "$plugins_json" ]] && jq -e --arg p "$plugin" '.plugins | has($p)' "$plugins_json" &>/dev/null; then
+        echo "  Plugin '$plugin' exists, updating..."
+        claude plugin update "$plugin" -s user
+    else
+        echo "  Installing plugin '$plugin'..."
+        claude plugin install "$plugin" -s user
+    fi
+
+    # Ensure plugin is enabled (install doesn't auto-enable)
+    claude plugin enable "$plugin" -s user 2>/dev/null
+done
+
+# 4b. Document skills (pptx + docx) — fetched directly from anthropics/skills
+#     (document-skills plugin was dropped; only these two are wanted)
+echo "\n=== Document Skills (pptx, docx) ==="
+doc_skills_tmp="$(mktemp -d /tmp/anthropic-skills.XXXXXX)"
+if git clone --depth 1 --filter=blob:none --sparse https://github.com/anthropics/skills.git "$doc_skills_tmp" &>/dev/null \
+   && (cd "$doc_skills_tmp" && git sparse-checkout set skills/pptx skills/docx &>/dev/null); then
+    mkdir -p "$HOME/.claude/skills"
+    rm -rf "$HOME/.claude/skills/pptx" "$HOME/.claude/skills/docx"
+    cp -R "$doc_skills_tmp/skills/pptx" "$HOME/.claude/skills/pptx"
+    cp -R "$doc_skills_tmp/skills/docx" "$HOME/.claude/skills/docx"
+    echo "  pptx + docx installed to ~/.claude/skills/"
+else
+    echo "  FAILED: Could not fetch anthropics/skills"
+fi
+rm -rf "$doc_skills_tmp"
+
+# 4c. Skills (clone and install)
+echo "\n=== Skills ==="
+skills_dir="$(mktemp -d /tmp/skills.XXXXXX)"
+if git clone --depth 1 https://github.com/dianshu/skills.git "$skills_dir"; then
+    bash "$skills_dir/install.sh"
+    rm -rf "$skills_dir"
+else
+    echo "  FAILED: Could not clone skills repo"
+    rm -rf "$skills_dir"
+fi
+
+# 4d. SearXNG config
+echo "\n=== SearXNG Config ==="
+searxng_config="$HOME/.config/searxng"
+if [[ -d "$searxng_config" && ! -w "$searxng_config" ]]; then
+    sudo chown -R "$(id -u):$(id -g)" "$searxng_config"
+fi
+dl_with_backup \
+    "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/searxng/settings.yml" \
+    "$searxng_config/settings.yml"
+
+# 4e. SearXNG Docker image
+echo "\n=== SearXNG Docker Image ==="
+docker pull searxng/searxng
+
+# 4f. MCP Servers (direct registration for servers not installable as plugins)
+echo "\n=== MCP Servers ==="
+claude mcp remove context7 -s user 2>/dev/null
+claude mcp add context7 -s user -- npx -y @upstash/context7-mcp
+echo "  MCP server 'context7' configured"
+claude mcp remove searxng -s user 2>/dev/null
+claude mcp add searxng -s user -e SEARXNG_URL="http://localhost:30963" -- npx -y mcp-searxng
+echo "  MCP server 'searxng' configured"
+claude mcp remove chrome -s user 2>/dev/null
+claude mcp add chrome -s user -- npx -y chrome-devtools-mcp@latest --browserUrl http://localhost:9222
+echo "  MCP server 'chrome' configured"
+if command -v xcodebuildmcp &>/dev/null; then
+    claude mcp remove xcodebuildmcp -s user 2>/dev/null
+    claude mcp add xcodebuildmcp -s user -- xcodebuildmcp mcp
+    echo "  MCP server 'xcodebuildmcp' configured"
+fi
+claude mcp remove mail -s user 2>/dev/null
+claude mcp remove s360 -s user 2>/dev/null
+if is_work; then
+    claude mcp add mail -s user --transport http http://localhost:30970
+    claude mcp add s360 -s user --transport http http://localhost:30971
+    echo "  MCP servers 'mail', 's360' (http) configured"
+else
+    echo "  Skipping Agency MCP servers (no work account available)"
+fi
+
+echo "\n=== cc_sync complete ==="

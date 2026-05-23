@@ -1,0 +1,6 @@
+#!/usr/bin/env zsh
+targets=(~/.claude ~/.local/share/claude ~/.claude.json ~/repos/.claude)
+for t in "${targets[@]}"; do
+    [[ -e "$t" || -L "$t" ]] && echo "Removing $t" && rm -rf "$t"
+done
+echo "All Claude Code data cleaned. Run 'claude' to re-authenticate."

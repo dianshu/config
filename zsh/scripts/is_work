@@ -1,0 +1,3 @@
+#!/usr/bin/env zsh
+# Exit 0 if running in a work environment (macOS or WSL with Q: drive mounted).
+[[ "$(uname)" == "Darwin" ]] || [[ -d "/mnt/q" ]]

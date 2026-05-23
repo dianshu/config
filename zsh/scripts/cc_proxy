@@ -1,0 +1,59 @@
+#!/usr/bin/env zsh
+port=29427
+
+# Kill any process occupying the port (idempotent)
+if lsof -i :"$port" > /dev/null 2>&1; then
+    echo "Port $port is in use, killing occupying process..."
+    lsof -ti :"$port" | xargs kill -9 2>/dev/null
+    sleep 2
+fi
+
+# Start SearXNG container for web search
+searxng_port=30963
+searxng_config="$HOME/.config/searxng"
+
+if curl -sf http://localhost:$searxng_port > /dev/null 2>&1; then
+    echo "SearXNG already running on port $searxng_port"
+else
+    echo "SearXNG not responding, restarting..."
+    docker rm -f searxng > /dev/null 2>&1
+    if ! docker run -d -p ${searxng_port}:8080 \
+        -v "$searxng_config:/etc/searxng" \
+        --restart unless-stopped --name searxng searxng/searxng; then
+        echo "Failed to start SearXNG container"
+    else
+        echo "Waiting for SearXNG to start..."
+        max_wait=30
+        waited=0
+        while ! curl -sf http://localhost:$searxng_port > /dev/null 2>&1; do
+            sleep 1
+            waited=$((waited + 1))
+            if [[ $waited -ge $max_wait ]]; then
+                echo "SearXNG failed to start within ${max_wait}s"
+                break
+            fi
+        done
+        if [[ $waited -lt $max_wait ]]; then
+            echo "SearXNG started on port $searxng_port"
+        fi
+    fi
+fi
+
+# Start the copilot API in a tmux session so it survives terminal close
+tmux kill-session -t cc_proxy 2>/dev/null
+tmux new-session -d -s cc_proxy "npx --yes @dianshuv/copilot-api@latest start -p $port -a enterprise --posthog-key $CC_POSTHOG_KEY"
+echo "copilot-api started in tmux session 'cc_proxy' (port $port)"
+echo "  attach: tmux attach -t cc_proxy"
+
+# Start Agency MCP servers in separate tmux sessions (HTTP transport)
+if is_work; then
+    for svc_port in "mail:30970" "s360-breeze:30971"; do
+        svc="${svc_port%%:*}"
+        p="${svc_port##*:}"
+        name="${svc%%-*}"  # mail, s360
+        lsof -ti :"$p" | xargs kill -9 2>/dev/null
+        tmux kill-session -t "cc_$name" 2>/dev/null
+        tmux new-session -d -s "cc_$name" "agency mcp $svc --transport http --port $p"
+        echo "Agency MCP '$name' started in tmux session 'cc_$name' (port $p)"
+    done
+fi
