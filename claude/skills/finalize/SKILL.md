@@ -19,6 +19,8 @@ Orchestrates the full post-implementation finalization cycle: review, verify, se
    | Heavy  | `xhigh`  |
 
    If the script exits non-zero (not a git repo / nothing to review), skip this step and proceed to step 2.
+
+   **MANDATORY HAND-OFF:** Step 1's output (findings list or empty `[]`) does NOT determine whether Step 2 runs. Step 2 ALWAYS runs next, no exceptions. Step 1 is an internal multi-lens pass; Step 2 is independent external reviewers (`/codex-review` + `/gemini-review`). Empty Step 1 findings are NOT an exit condition — only the Progression Check inside Step 2 can exit the review loop. If you find yourself writing a summary or stopping after Step 1, you are doing it wrong: immediately dispatch Step 2a.
 2. **Review loop** — repeat until the Progression Check (below) signals exit:
    a. Invoke `/codex-review` and `/gemini-review` **in parallel** (single message, two Skill calls).
    b. Read both structured outputs. For each issue, decide: **fix** (apply edit in main session), or **add to won't-fix list** (parent's working memory; not persisted, not sent back to reviewers).
