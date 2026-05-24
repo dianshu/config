@@ -31,7 +31,18 @@
       "Skill(review-loop)",
       "Skill(prd-review-loop)",
       "Skill(simplify)",
-      "Skill(e2e-verify)"
+      "Skill(e2e-verify)",
+      "Skill(diagnose)",
+      "Skill(grill)",
+      "Skill(improve-codebase-architecture)",
+      "Skill(issues)",
+      "Skill(load-feature)",
+      "Skill(prd)",
+      "Skill(run-all-issues)",
+      "Skill(run-next-issue)",
+      "Skill(tdd)",
+      "Skill(triage)",
+      "Skill(zoom-out)"
     ],
     "deny": [
       "Bash(git push --force:*)",
