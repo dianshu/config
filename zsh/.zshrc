@@ -177,3 +177,6 @@ if [[ ":${PATH}:" != *":$HOME/.config/agency/CurrentVersion:"* ]]; then
     export PATH="$HOME/.config/agency/CurrentVersion:${PATH}"
 fi
 # END Agency MANAGED BLOCK
+
+# Disable zsh end-of-line mark (the trailing %)
+PROMPT_EOL_MARK=""
