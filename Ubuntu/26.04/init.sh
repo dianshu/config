@@ -155,17 +155,20 @@ done
 
 mkdir -p $HOME/.zsh/plugins
 
-rm -rf $HOME/.zsh/plugins/zsh-abbr
-git clone --depth 1 --recurse-submodules https://github.com/olets/zsh-abbr $HOME/.zsh/plugins/zsh-abbr
+clone_or_update() {
+    local url="$1" dest="$2"
+    if [[ -d "$dest/.git" ]]; then
+        git -C "$dest" pull --ff-only --recurse-submodules
+    else
+        rm -rf "$dest"
+        git clone --depth 1 --recurse-submodules "$url" "$dest"
+    fi
+}
 
-rm -rf $HOME/.zsh/plugins/zsh-autosuggestions
-git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-autosuggestions $HOME/.zsh/plugins/zsh-autosuggestions
-
-rm -rf $HOME/.zsh/plugins/zsh-syntax-highlighting
-git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-syntax-highlighting $HOME/.zsh/plugins/zsh-syntax-highlighting
-
-rm -rf $HOME/.zsh/plugins/zsh-history-substring-search
-git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-history-substring-search $HOME/.zsh/plugins/zsh-history-substring-search
+clone_or_update https://github.com/olets/zsh-abbr $HOME/.zsh/plugins/zsh-abbr
+clone_or_update https://github.com/zsh-users/zsh-autosuggestions $HOME/.zsh/plugins/zsh-autosuggestions
+clone_or_update https://github.com/zsh-users/zsh-syntax-highlighting $HOME/.zsh/plugins/zsh-syntax-highlighting
+clone_or_update https://github.com/zsh-users/zsh-history-substring-search $HOME/.zsh/plugins/zsh-history-substring-search
 
 # replace "/usr/bin/env zsh" to actually zsh "/home/linuxbrew/.linuxbrew/bin/zsh" to avoid error "/usr/bin/env: 'zsh': Permission denied"
 find $HOME/.zsh/plugins/ -type f -name "*.zsh" -exec sed -i 's|^#!/usr/bin/env zsh|#!/home/linuxbrew/.linuxbrew/bin/zsh|' {} +
@@ -181,9 +184,9 @@ curl -fsSL "https://raw.githubusercontent.com/dianshu/config/HEAD/vimrc?${RANDOM
 curl -fsSL "https://raw.githubusercontent.com/dianshu/config/HEAD/tmux/.tmux.conf?${RANDOM}" -o $HOME/.tmux.conf
 
 # === WSL Config ===
-if uname -a | grep -qi "WSL"; then
-    sudo curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/24.04/wsl.conf -o /etc/wsl.conf
-    sudo curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/24.04/resolved.conf -o /etc/systemd/resolved.conf
+if [[ -n "${WSL_DISTRO_NAME:-}" ]] || [[ -f /proc/sys/fs/binfmt_misc/WSLInterop ]]; then
+    sudo curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/26.04/wsl.conf -o /etc/wsl.conf
+    sudo curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/26.04/resolved.conf -o /etc/systemd/resolved.conf
 
     # use browser in windows
     sudo apt install -y wslu
@@ -202,8 +205,8 @@ mkdir -p $HOME/repos
 # agency mcp mail uses Entra local auth (~60min TTL) and only refreshes
 # lazily on next request — poke it every 30min so the first user-visible
 # call after idle never hits an expired token.
-# Requires `cron` (Ubuntu ships it; in WSL it must be started manually
-# unless you use systemd or an autostart hook).
+sudo apt install -y cron
+sudo systemctl enable --now cron
 if command -v crontab >/dev/null 2>&1; then
     KA_SCRIPT="$HOME/.zsh_scripts/mail_mcp_keepalive.sh"
     KA_CRON_LINE="*/30 * * * * $KA_SCRIPT >/dev/null 2>&1"
@@ -215,5 +218,5 @@ if command -v crontab >/dev/null 2>&1; then
     fi
 fi
 
-echo "=== Ubuntu 24.04 init complete ==="
+echo "=== Ubuntu 26.04 init complete ==="
 echo "Please restart your terminal or run: source ~/.zshrc"
