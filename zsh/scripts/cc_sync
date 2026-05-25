@@ -168,17 +168,18 @@ for plugin in "${plugins[@]}"; do
     claude plugin enable "$plugin" -s user 2>/dev/null
 done
 
-# 4b. Document skills (pptx + docx) — fetched directly from anthropics/skills
-#     (document-skills plugin was dropped; only these two are wanted)
-echo "\n=== Document Skills (pptx, docx) ==="
+# 4b. Document skills (pptx + docx + xlsx) — fetched directly from anthropics/skills
+#     (document-skills plugin was dropped; only these are wanted)
+echo "\n=== Document Skills (pptx, docx, xlsx) ==="
 doc_skills_tmp="$(mktemp -d /tmp/anthropic-skills.XXXXXX)"
 if git clone --depth 1 --filter=blob:none --sparse https://github.com/anthropics/skills.git "$doc_skills_tmp" &>/dev/null \
-   && (cd "$doc_skills_tmp" && git sparse-checkout set skills/pptx skills/docx &>/dev/null); then
+   && (cd "$doc_skills_tmp" && git sparse-checkout set skills/pptx skills/docx skills/xlsx &>/dev/null); then
     mkdir -p "$HOME/.claude/skills"
-    rm -rf "$HOME/.claude/skills/pptx" "$HOME/.claude/skills/docx"
+    rm -rf "$HOME/.claude/skills/pptx" "$HOME/.claude/skills/docx" "$HOME/.claude/skills/xlsx"
     cp -R "$doc_skills_tmp/skills/pptx" "$HOME/.claude/skills/pptx"
     cp -R "$doc_skills_tmp/skills/docx" "$HOME/.claude/skills/docx"
-    echo "  pptx + docx installed to ~/.claude/skills/"
+    cp -R "$doc_skills_tmp/skills/xlsx" "$HOME/.claude/skills/xlsx"
+    echo "  pptx + docx + xlsx installed to ~/.claude/skills/"
 else
     echo "  FAILED: Could not fetch anthropics/skills"
 fi
