@@ -1,12 +1,21 @@
 #!/usr/bin/env zsh
 port=29427
 
+# Portable: kill all PIDs listening on a TCP port (macOS: lsof, Linux/WSL: ss)
+_kill_tcp_port() {
+    local p="$1"
+    if [[ "$(uname)" == "Darwin" ]]; then
+        lsof -ti tcp:"$p" 2>/dev/null | xargs kill -9 2>/dev/null
+    else
+        ss -lptnH "sport = :$p" 2>/dev/null \
+            | grep -oE 'pid=[0-9]+' | cut -d= -f2 \
+            | xargs -r kill -9 2>/dev/null
+    fi
+}
+
 # Kill any process occupying the port (idempotent)
-if lsof -i :"$port" > /dev/null 2>&1; then
-    echo "Port $port is in use, killing occupying process..."
-    lsof -ti :"$port" | xargs kill -9 2>/dev/null
-    sleep 2
-fi
+_kill_tcp_port "$port"
+sleep 1
 
 # Start SearXNG container for web search
 searxng_port=30963
@@ -51,7 +60,7 @@ if is_work; then
         svc="${svc_port%%:*}"
         p="${svc_port##*:}"
         name="${svc%%-*}"  # mail, s360
-        lsof -ti :"$p" | xargs kill -9 2>/dev/null
+        _kill_tcp_port "$p"
         tmux kill-session -t "cc_$name" 2>/dev/null
         tmux new-session -d -s "cc_$name" "agency mcp $svc --transport http --port $p"
         echo "Agency MCP '$name' started in tmux session 'cc_$name' (port $p)"

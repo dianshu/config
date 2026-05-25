@@ -104,7 +104,9 @@ fi
 _zshrc_mark "brew shellenv"
 
 # Homebrew Ruby (keg-only, override system Ruby)
-export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+if [[ "$_zshrc_os" == "Darwin" ]]; then
+    export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+fi
 
 # 启用 k8s 命令自动补全
 # source <(kubectl completion zsh)
