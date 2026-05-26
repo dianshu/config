@@ -5,137 +5,164 @@ description: Use when the user wants to review unread emails, says "daily mail",
 
 # Daily Mail
 
-Review and triage unread emails, categorizing them by urgency and verifying actionability through external systems (ADO pipelines, S360, etc.).
+Review and triage unread emails from the last 3 days, verifying actionability through external systems (ADO pipelines, S360, Azure Monitor, etc.). Verification is parallelized via sub-agents; the main agent only fetches, classifies, dispatches, and aggregates.
 
 ## Workflow
 
-```dot
-digraph daily_mail {
-  rankdir=TB;
-  "Fetch unread emails" -> "Categorize by type";
-  "Categorize by type" -> "Verify actionability";
-  "Verify actionability" -> "Present summary";
-}
-```
+The main agent's job is: (1) compute the time window, (2) fetch + classify all unread emails inline, (3) bucket them by verification path and dispatch one sub-agent per non-empty bucket **in a single assistant message**, (4) aggregate. Do **not** run verification inline.
 
-### Step 1: Fetch Unread Emails
+### Step 0 — Compute the absolute time window (main agent)
 
-Use the Mail MCP to fetch all unread emails from the last 3 days. Calculate the date dynamically (today minus 3 days in ISO 8601 format).
+Compute once in UTC ISO 8601 (`YYYY-MM-DDTHH:MM:SSZ`) and embed verbatim in every sub-agent prompt. Sub-agents MUST NOT recompute "now":
+
+- `END_UTC` = current UTC time
+- `START_UTC` = `END_UTC − 3d`
+
+### Step 1 — Fetch unread emails (main agent, inline)
 
 ```
 SearchMessagesQueryParameters:
-  queryParameters: "?$filter=isRead eq false and receivedDateTime ge <3-days-ago>T00:00:00Z&$orderby=receivedDateTime desc&$select=id,subject,from,receivedDateTime,bodyPreview,importance,hasAttachments"
+  queryParameters: "?$filter=isRead eq false and receivedDateTime ge <START_UTC>&$orderby=receivedDateTime desc&$select=id,subject,from,receivedDateTime,bodyPreview,importance,hasAttachments"
 ```
 
-**Pagination:** The API returns `hasMoreResults: true` with a `nextLink` when there are more results. Keep calling `SearchMessagesQueryParameters` with the `nextLink` until all results are fetched.
+**Pagination:** When the API returns `hasMoreResults: true` with a `nextLink`, keep calling `SearchMessagesQueryParameters` with the `nextLink` until all results are fetched.
 
-### Step 2: Categorize by Type
+### Step 2 — Classify by verification path (main agent, inline)
 
-Classify each email into one of these categories:
+Classify each email into exactly one bucket below, based on subject/sender/bodyPreview. Use `GetMessage` inline ONLY when bodyPreview is insufficient to classify (don't deep-read here — that's the sub-agent's job).
 
-| Category | Examples | Default Action |
-|----------|----------|----------------|
-| **Needs Action** | Manual validation pending, approval requests, assigned tasks | Verify then present |
-| **Alerts** | Azure Monitor alerts, build failures, Sev incidents | Verify current status |
-| **Reports** | S360 daily report, digest emails | Cross-check with source system |
-| **Informational** | Build succeeded, resolved incidents, newsletters | Summarize briefly |
-| **Noise** | Medium articles, auto-digests, Microsoft Daily Digest | Skip unless user asks |
+| Bucket | Matches | Sub-agent |
+|---|---|---|
+| **ADO** | Build failure, manual validation pending, release notifications | A |
+| **AzureMonitor** | Probe failure / Sev incident / Azure Monitor alert / `*-nodata` / `*-failure` | B |
+| **S360** | S360 daily report, KPI digest | C |
+| **External** | Grok daily digest, other links that require opening a webpage to read full content | D |
+| **LightTouch** | Meeting invites, learning events, insurance/financial notifications, Meetup registration | E |
+| **Noise** | Medium articles, Microsoft Daily Digest, marketing, "build succeeded" auto-notifications, resolved-incident emails with no companion active alert | (no sub-agent — render directly in "Ignored by Rule") |
 
-### Step 3: Verify Actionability
+Build a per-bucket list `[{id, subject, from, receivedDateTime}, ...]`. Skip dispatching sub-agents for empty buckets.
 
-For each "Needs Action" or "Alert" email, verify against the source system before presenting:
+### Step 3 — Dispatch (single message, N parallel Agent calls)
 
-#### ADO Pipeline Notifications
+Use `subagent_type: general-purpose` for all. Issue all sub-agent `Agent` calls in **one assistant message**. Each prompt MUST be self-contained.
 
-For build failure or manual validation emails:
+**Shared context block to embed verbatim in every sub-agent prompt** (substitute `<...>` placeholders):
 
-1. Extract the build ID and pipeline name from the email body (read full email via `GetMessage` if needed)
-2. Check the build status:
+```
+- Time window (use these EXACT timestamps, do NOT recompute):
+  - START_UTC = <START_UTC>
+  - END_UTC   = <END_UTC>
+- ADO org: https://dev.azure.com/AIVertical, project: AIHardware
+- Azure subscription: f497e8c9-69ff-4479-9f68-778e799b162a (STCA-Carina). Always pass `--subscription f497e8c9-69ff-4479-9f68-778e799b162a` to every `az` command. Read-only operations only.
+- Mail MCP is available for `GetMessage`, `SearchMessages*` (read-only).
+- Email list assigned to you (verbatim):
+  <bucketed list of {id, subject, from, receivedDateTime}>
+- Output format:
+  - Markdown, lead with a one-line verdict: `✅ all clear` / `⚠️ N need action` / `🚨 sub-agent failed: <reason>`
+  - Then for EACH email: `- [<verdict-icon>] **<subject>** — <one-line reason with concrete evidence>` where verdict-icon ∈ {✅ can-ignore, ⚠️ needs-action, ℹ️ worth-noting}.
+  - For each ⚠️ item, include the actionable next step (link / command / approver).
+  - If a verification command fails (auth, timeout, permission), report that email as `🚨 verify-failed: <command> → <error>` rather than silently dropping it.
+```
+
+#### Sub-agent A — ADO pipeline emails
+
+For each assigned email:
+1. Read full body via `GetMessage` to extract `buildId`, pipeline name, branch.
+2. Check current build state:
    ```
-   az pipelines build show --id <buildId> --org <org> --project <project> --query "{status: status, result: result, finishTime: finishTime, definitionName: definition.name}" -o json
+   az pipelines build show --id <buildId> --org https://dev.azure.com/AIVertical --project AIHardware \
+     --query "{status:status, result:result, finishTime:finishTime, definitionName:definition.name}" -o json
    ```
-3. If the build already completed successfully → mark as "can ignore". **This includes manual validation pending emails** — if the overall build/release run has status=completed and result=succeeded, it means the validation stage was already approved or bypassed. Do NOT tell the user they still need to approve it.
-4. For build failures, check if a subsequent run on the same branch succeeded:
-   ```
-   az pipelines build list --org <org> --project <project> --top 5 --query "[?definition.name=='<pipeline>'].{id:id, buildNumber:buildNumber, status:status, result:result, finishTime:finishTime, sourceBranch:sourceBranch}" -o json
-   ```
-5. If a later run succeeded on the same branch → mark as "can ignore"
+3. Classify:
+   - `status==completed && result==succeeded` → `✅ can-ignore` (covers manual-validation-pending emails where the stage was already approved/bypassed — do NOT tell the user to approve it again)
+   - `result==failed` → check for a later successful run on the same branch:
+     ```
+     az pipelines build list --org https://dev.azure.com/AIVertical --project AIHardware --top 5 \
+       --query "[?definition.name=='<pipeline>' && sourceBranch=='<branch>'].{id:id, status:status, result:result, finishTime:finishTime}" -o json
+     ```
+     - Later success → `✅ can-ignore` (self-recovered)
+     - No later success → `⚠️ needs-action`, include build URL + failed stage if available
+   - Still running → `ℹ️ worth-noting`
 
-#### S360 Daily Report
+#### Sub-agent B — Azure Monitor alert emails
 
-1. Query active action items for the service using S360 MCP:
+For each assigned email (typically probe failures / scheduled-query alerts):
+1. Read full HTML via `GetMessage` with `preferHtml: true`. Alert emails are large (100KB+); if needed, write the body to a tmp file and grep:
+   ```bash
+   grep -oP 'scheduledqueryrules/[^"\\&]+' <file> | head -1   # rule name
+   grep -oP 'subscriptions/[a-f0-9-]+' <file> | head -1       # subscription
+   grep -oP 'resourceGroups/[^/]+' <file> | head -1            # resource group
+   ```
+2. Fetch the rule's underlying KQL + workspace scope:
+   ```
+   az monitor scheduled-query show --name <rule> -g <rg> --subscription <sub> --query "criteria.allOf[0].query" -o tsv
+   az monitor scheduled-query show --name <rule> -g <rg> --subscription <sub> --query "scopes[0]" -o tsv
+   ```
+   Resolve workspace customerId (the `--workspace` flag needs the GUID, not the resource path):
+   ```
+   az monitor log-analytics workspace show -g <ws-rg> --workspace-name <ws-name> --subscription <sub> --query "customerId" -o tsv
+   ```
+3. Re-run the rule's KQL with the `| where ... fail` filter REMOVED, scoped to the time window, last 10 runs:
+   ```
+   az monitor log-analytics query --workspace <customerId> --analytics-query "<base-query without fail filter> | where TimeGenerated between (datetime(<START_UTC>) .. datetime(<END_UTC>)) | project TimeGenerated, status=tostring(log.status) | order by TimeGenerated desc | take 10" -o table
+   ```
+4. Classify:
+   - All 10 recent runs `pass` → `✅ can-ignore` (self-recovered)
+   - Any `fail` in the last 10 → `⚠️ needs-action`, quote the latest fail reason
+   - A companion RESOLVED email exists in the same conversation AND recent runs pass → `✅ can-ignore`
+
+#### Sub-agent C — S360 daily report
+
+For each assigned email:
+1. Identify the service `targetId` from the email subject/body (or session memory). Always query by `targetIds`, NOT by `assignedTo` alias.
+2. Query active items:
    ```
    search_active_s360_kpi_action_items:
      request: { targetIds: ["<service-id>"], pageSize: 50 }
    ```
-   **Important:** Query by service targetId, NOT by assignedTo alias (check memory for the correct service ID).
-2. If no active items → mark as "can ignore"
-3. If items exist → list them with KPI name, due date, and status
+3. Classify:
+   - Zero active items → `✅ can-ignore`
+   - Items exist → `⚠️ needs-action`, list `KpiName | dueDate | slaStatus` for each
 
-#### Azure Monitor Alerts
+#### Sub-agent D — External link emails (Grok etc.)
 
-1. Read the full email to get alert details (severity, resource, timestamp)
-2. Check if a "RESOLVED" email exists in the same conversation
-3. For **probe failure** alerts (e.g., "LB Probe Failure", "Mem0 Probe Failure"):
-   a. Read the full email HTML via `GetMessage` with `preferHtml: true`. Alert emails are typically very large (100KB+), so save to file and use `grep` to extract identifiers:
-      ```bash
-      grep -oP 'scheduledqueryrules/[^"\\&]+' <saved-file> | head -1   # rule name
-      grep -oP 'subscriptions/[a-f0-9-]+' <saved-file> | head -1       # subscription
-      grep -oP 'resourceGroups/[^/]+' <saved-file> | head -1            # resource group
-      ```
-   b. Get the alert rule's underlying KQL query:
-      ```
-      az monitor scheduled-query show --name <rule-name> --resource-group <rg> --subscription <sub> --query "criteria.allOf[0].query" -o tsv
-      ```
-   c. Get the workspace scope and resolve its customer ID (the `--workspace` parameter requires the GUID, not the resource path):
-      ```
-      az monitor scheduled-query show --name <rule-name> --resource-group <rg> --subscription <sub> --query "scopes[0]" -o tsv
-      # Extract workspace-name and its resource-group from the scope path, then:
-      az monitor log-analytics workspace show --resource-group <ws-rg> --workspace-name <ws-name> --subscription <sub> --query "customerId" -o tsv
-      ```
-   d. Modify the KQL query to show **both pass and fail** results (remove the `| where log.status == 'fail'` filter), then query the last 10 runs:
-      ```
-      az monitor log-analytics query --workspace <customer-id-guid> --analytics-query "<base-query without fail filter> | project TimeGenerated, status = tostring(log.status) | order by TimeGenerated desc | take 10" -o table
-      ```
-   e. If all recent runs show `pass` → mark as "can ignore" (self-recovered). If any show `fail` → surface as active alert in **Needs Action**.
-4. For other alerts, present current status
+For each assigned email:
+1. Read full HTML via `GetMessage` with `preferHtml: true`.
+2. Extract the canonical URL from link hrefs — use the `originalsrc` attribute, NOT the Safelinks wrapper. For Grok, look for `grok.com/chat/`.
+3. Fetch the URL via the web-fetching fallback chain (defuddle.md → searxng → Chrome MCP). If Chrome shows a login wall, tell the user and pause.
+4. Summarize the key points in 3-5 bullets.
+5. Classify as `ℹ️ worth-noting`. Include the summary inline.
 
-#### Insurance / Financial Notifications
+#### Sub-agent E — Light-touch emails
 
-1. Read full email to determine if it's a pure notification or requires action
-2. System-generated "do not reply" emails with completed transactions → mark as "can ignore"
+For each assigned email:
+1. Read full body via `GetMessage` only if bodyPreview is insufficient.
+2. Classify per type:
+   - **Meetup / team registration** ("Time to Meetup!", "Register for Meetup", etc.): `⚠️ needs-action`, include registration link + deadline.
+   - **Meeting invites** (`eventMessageRequest` type), learning events: `ℹ️ worth-noting`, one-line summary `<topic> | <sender>`.
+   - **Insurance / financial "do not reply" notifications** with a completed transaction: `✅ can-ignore`.
+   - Anything else: `ℹ️ worth-noting` with a one-line summary.
 
-#### Grok AI Daily Digest
+### Step 4 — Retry failed sub-agents (main agent)
 
-**IMPORTANT: Always execute these steps for Grok emails. Do NOT just summarize the email body — it is always truncated.**
+After collecting all sub-agent responses, identify any that:
+- returned no response / empty body, OR
+- led with `🚨 sub-agent failed`, OR
+- raised a tool error during dispatch.
 
-1. Read the full email HTML via `GetMessage` with `preferHtml: true`
-2. Extract the Grok chat URL from the HTML (search for `grok.com/chat/` in link hrefs, use the `originalsrc` attribute, not the safelinks wrapper)
-3. Open the URL using Chrome MCP (`new_page`)
-4. If login is required, use Google login flow (click "使用 Google 登录", select account)
-5. Take a snapshot (`take_snapshot`) and extract the full content
-6. Summarize the key points and present in **Worth Noting**
+**Re-dispatch each failed sub-agent exactly once with the identical prompt**, again in a single assistant message (parallel retry). After this single retry:
+- Success on retry → use the retried result.
+- Still failing → render that bucket's section as `🚨 broken — sub-agent failed after 1 retry: <reason>`. Never imply healthy when verification didn't run.
 
-#### Meetup Registration / Team Events
+Do NOT loop beyond one retry.
 
-**IMPORTANT: Meetup registration emails (e.g., "Time to Meetup!", "Register for Meetup") are high-priority — always surface them in "Needs Action" with the registration link.**
+### Step 5 — Aggregate (main agent)
 
-1. Read the full email via `GetMessage` to extract the registration link
-2. Present in **Needs Action** with the registration deadline and link
-
-#### Meeting Invites / Learning Events
-
-1. For calendar invites (`eventMessageRequest` type) and activity/learning invitations, do NOT deep-verify
-2. Present a brief one-line summary table with: sender, topic description
-3. Format as: `| Subject | Sender | Brief description |`
-
-### Step 4: Present Summary
-
-Output a structured summary table:
+Render the final report in the user's language (Chinese if conversation is in Chinese):
 
 ```markdown
 ### Needs Action
-1. **[Subject]** — [what needs to be done]
+1. **[Subject]** — [what needs to be done + link/command]
 
 ### Worth Noting
 1. **[Subject]** — [brief summary]
@@ -143,27 +170,33 @@ Output a structured summary table:
 ### Can Ignore (verified)
 | Email | Reason |
 |-------|--------|
-| [Subject] | [why — with verification result, e.g. "probe recovered, last 10 runs all pass"] |
+| [Subject] | [verification evidence, e.g. "probe recovered, last 10 runs all pass"] |
 
 ### Ignored by Rule
 | Email | Rule |
 |-------|------|
-| [Subject] | [which rule matched, e.g. "Medium article", "build succeeded notification", "Microsoft Daily Digest"] |
+| [Subject] | [which rule matched, e.g. "Medium article", "Microsoft Daily Digest"] |
 
 ### Meeting Invites / Learning Events
 | Subject | Sender | Description |
 |---------|--------|-------------|
-| [Subject] | [Sender name] | [One-line summary of the event/meeting] |
+| [Subject] | [Sender] | [One-line summary] |
+
+### Verification Failures (if any)
+| Bucket | Reason |
+|--------|--------|
+| [A/B/C/D/E] | [reason after 1 retry] |
 ```
 
 **Distinction:**
-- **Can Ignore (verified)**: Emails that *could* have needed action, but were verified against the source system and confirmed safe to skip (e.g., build failure with subsequent success, probe alert that self-recovered, S360 report with zero items)
-- **Ignored by Rule**: Emails that are categorically noise and don't need verification (e.g., Medium articles, Microsoft Daily Digest, build succeeded notifications, marketing emails, newsletters)
+- **Can Ignore (verified)** — could have needed action; sub-agent verified against source system and confirmed safe.
+- **Ignored by Rule** — categorically noise per the classification table; never dispatched.
 
-## Notes
+## Constraints
 
-- Always read the full email (`GetMessage`) before making triage decisions — `bodyPreview` is often truncated
-- For ADO pipeline emails, the org/project info can be extracted from URLs in the email body
-- Grok daily digest emails may contain truncated content in the email body; always open the linked Grok chat for full content
-- When multiple emails are about the same incident (e.g., AWARENESS → RESOLVED), group them together
-- Present the summary in the user's language (Chinese if the conversation is in Chinese)
+- The 3-day window is computed once by the main agent and passed verbatim into sub-agents — they MUST NOT recompute "now".
+- A sub-agent reporting empty findings still includes its `✅ all clear` verdict so the user can see it ran.
+- Every Azure resource-management `az` command MUST include `--subscription f497e8c9-69ff-4479-9f68-778e799b162a`. Azure DevOps commands (`az pipelines`, `az repos`, `az devops invoke`) MUST NOT pass `--subscription`. Read-only operations only (STCA-Carina guard).
+- Always read the full email (`GetMessage`) before making a verification decision — `bodyPreview` is often truncated. Classification (Step 2) can use bodyPreview; verification (sub-agents) MUST use the full body.
+- When multiple emails describe the same incident (AWARENESS → RESOLVED), group them in the output.
+- Failed sub-agents get exactly one retry (Step 4). Never silently drop a bucket.
