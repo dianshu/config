@@ -158,7 +158,7 @@ update_zshrc() {
     else
         _dl() {
             mkdir -p "$(dirname "$2")"
-            wget -qO "$2" "$1" && echo "  OK ${2/$HOME/~}" || { echo "  FAILED ${2/$HOME/~}"; return 1 }
+            curl -fsSL -o "$2" "$1" && echo "  OK ${2/$HOME/~}" || { echo "  FAILED ${2/$HOME/~}"; return 1 }
         }
     fi
 
@@ -166,7 +166,7 @@ update_zshrc() {
     _dl "$raw_base/zsh/.zshrc" "$HOME/.zshrc"
 
     local tree_json
-    tree_json="$(wget -qO- "https://api.github.com/repos/dianshu/config/git/trees/main?recursive=1")"
+    tree_json="$(curl -fsSL "https://api.github.com/repos/dianshu/config/git/trees/main?recursive=1")"
     if [[ -z "$tree_json" ]]; then
         echo "  ERROR: Failed to fetch repo tree from GitHub API"
         unfunction _dl

@@ -14,4 +14,4 @@ else
     echo "Unsupported OS: $os"; exit 1
 fi
 echo "Running: $script_url"
-bash <(wget -qO- "$script_url")
+bash <(curl -fsSL "$script_url")
