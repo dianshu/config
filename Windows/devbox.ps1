@@ -167,8 +167,8 @@ if ($phase -eq "4") {
     Invoke-WebRequest -Uri $remoteFile -OutFile $localPath
 
     wsl --update
-    wsl --unregister Ubuntu-24.04 2>$null
-    wsl --install --no-launch Ubuntu-24.04
+    wsl --unregister Ubuntu-26.04 2>$null
+    wsl --install --no-launch Ubuntu-26.04
 
     # Overwrite .wslconfig (mirrored networking required for chrome-devtools-mcp and cross-OS localhost access)
     $remoteFile = "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/Windows/.wslconfig"
@@ -179,6 +179,6 @@ if ($phase -eq "4") {
     }
     Invoke-WebRequest -Uri $remoteFile -OutFile $localPath
 
-    Write-Output 'Init script for Ubuntu-24.04: sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/dianshu/config/HEAD/Ubuntu/24.04/init.sh?${RANDOM})"'
+    Write-Output 'Init script for Ubuntu-26.04: sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/dianshu/config/HEAD/Ubuntu/26.04/init.sh?${RANDOM})"'
     Write-Output 'Windows Terminal json config: https://raw.githubusercontent.com/dianshu/config/refs/heads/main/Windows/windows_terminal.json'
 }

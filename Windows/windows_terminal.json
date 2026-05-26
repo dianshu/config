@@ -82,10 +82,10 @@
         "list": 
         [
             {
-                "commandline": "C:\\Windows\\system32\\wsl.exe -d Ubuntu-24.04",
+                "commandline": "C:\\Windows\\system32\\wsl.exe -d Ubuntu-26.04",
                 "guid": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
                 "hidden": false,
-                "name": "Ubuntu-24.04",
+                "name": "Ubuntu-26.04",
                 "startingDirectory": "~/repos"
             },
             {
@@ -95,14 +95,14 @@
                 "name": "Pwsh"
             },
             {
-                "commandline": "C:\\Windows\\system32\\wsl.exe -d Ubuntu-24.04  -- ssh -p 22 neo4j@1.1.1.1",
+                "commandline": "C:\\Windows\\system32\\wsl.exe -d Ubuntu-26.04  -- ssh -p 22 neo4j@1.1.1.1",
                 "guid": "{6805683d-f6fa-4d83-a3c5-7f910f7eb659}",
                 "hidden": false,
                 "icon": "ms-appx:///ProfileIcons/pwsh.png",
                 "name": "Mem0-Neo4j-SoutheastAsia"
             },
             {
-                "commandline": "C:\\Windows\\system32\\wsl.exe -d Ubuntu-24.04  -- ssh -p 22 neo4j@2.2.2.2",
+                "commandline": "C:\\Windows\\system32\\wsl.exe -d Ubuntu-26.04  -- ssh -p 22 neo4j@2.2.2.2",
                 "guid": "{5a139e12-1ef0-4f0e-8ba9-bb8c20642d5e}",
                 "hidden": false,
                 "icon": "ms-appx:///ProfileIcons/pwsh.png",
