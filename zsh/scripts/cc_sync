@@ -68,7 +68,7 @@ fi
 # 2. Config files (dynamically discover + download all files from claude/ in repo)
 echo "\n=== Config Files ==="
 raw_base="https://raw.githubusercontent.com/dianshu/config/main"
-tree_json="$(curl -fsSL "https://api.github.com/repos/dianshu/config/git/trees/main?recursive=1")"
+tree_json="$(curl -fsSL -H 'Cache-Control: no-cache' "https://api.github.com/repos/dianshu/config/git/trees/main?recursive=1")"
 if [[ -z "$tree_json" ]]; then
     echo "  ERROR: Failed to fetch repo tree from GitHub API"
     exit 1

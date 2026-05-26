@@ -193,7 +193,7 @@ KEEP_ALIVE_LOG_DIR="$HOME/Library/Logs"
 mkdir -p "$(dirname "$KEEP_ALIVE_PLIST")" "$KEEP_ALIVE_LOG_DIR" "$(dirname "$KEEP_ALIVE_SCRIPT")"
 # Bootstrap the script directly so the LaunchAgent has something to run before
 # the first interactive zsh session syncs ~/.zsh_scripts/.
-curl -fsSL "https://raw.githubusercontent.com/dianshu/config/HEAD/zsh/scripts/keep_alive_iphone" \
+curl -fsSL -H 'Cache-Control: no-cache' "https://raw.githubusercontent.com/dianshu/config/HEAD/zsh/scripts/keep_alive_iphone" \
     -o "$KEEP_ALIVE_SCRIPT"
 chmod +x "$KEEP_ALIVE_SCRIPT"
 # Render plist with current PATH so launchd's clean env can find brew/uv tools.
@@ -243,9 +243,9 @@ code --install-extension ms-python.python
 code --install-extension panxiaoan.themes-falcon-vscode
 
 # === Git Config ===
-curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/git/config -o $HOME/.gitconfig
+curl -fsSL -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/dianshu/config/main/git/config -o $HOME/.gitconfig
 mkdir -p $HOME/.config/git
-curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/git/ignore -o $HOME/.config/git/ignore
+curl -fsSL -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/dianshu/config/main/git/ignore -o $HOME/.config/git/ignore
 
 # Silent credential refresh: GitHub via gh keyring, Azure DevOps via macOS Platform SSO broker.
 gh auth status >/dev/null 2>&1 || gh auth login --hostname github.com --git-protocol https --web
@@ -280,12 +280,12 @@ setup_git_identity "$HOME/.gitconfig-github" "GitHub"
 setup_git_identity "$HOME/.gitconfig-ado" "Azure DevOps"
 
 # === Zsh Plugins & Config ===
-curl -fsSL "https://raw.githubusercontent.com/dianshu/config/HEAD/zsh/.zshrc?${RANDOM}" -o $HOME/.zshrc
+curl -fsSL -H 'Cache-Control: no-cache' "https://raw.githubusercontent.com/dianshu/config/HEAD/zsh/.zshrc" -o $HOME/.zshrc
 
 # 同步 zsh/*.zsh（顶层）到 ~/.zsh/
 mkdir -p $HOME/.zsh
 for f in prompt; do
-    curl -fsSL "https://raw.githubusercontent.com/dianshu/config/HEAD/zsh/${f}.zsh?${RANDOM}" -o "$HOME/.zsh/${f}.zsh"
+    curl -fsSL -H 'Cache-Control: no-cache' "https://raw.githubusercontent.com/dianshu/config/HEAD/zsh/${f}.zsh" -o "$HOME/.zsh/${f}.zsh"
 done
 
 mkdir -p $HOME/.zsh/plugins
@@ -303,14 +303,14 @@ rm -rf $HOME/.zsh/plugins/zsh-history-substring-search
 git clone --depth 1 --recurse-submodules https://github.com/zsh-users/zsh-history-substring-search $HOME/.zsh/plugins/zsh-history-substring-search
 
 # === Vim Config ===
-wget https://raw.githubusercontent.com/dianshu/config/refs/heads/main/vimrc -O $HOME/.vimrc
+curl -fsSL -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/dianshu/config/refs/heads/main/vimrc -o $HOME/.vimrc
 
 # === Tmux Config ===
-curl -fsSL "https://raw.githubusercontent.com/dianshu/config/HEAD/tmux/.tmux.conf?${RANDOM}" -o $HOME/.tmux.conf
+curl -fsSL -H 'Cache-Control: no-cache' "https://raw.githubusercontent.com/dianshu/config/HEAD/tmux/.tmux.conf" -o $HOME/.tmux.conf
 
 # === Sing-box ===
 mkdir -p $HOME/.sing-box
-curl -fsSL https://raw.githubusercontent.com/dianshu/config/refs/heads/main/sing-box.config.json -o $HOME/.sing-box/config.json
+curl -fsSL -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/dianshu/config/refs/heads/main/sing-box.config.json -o $HOME/.sing-box/config.json
 
 # === Azure CLI Config ===
 az config set extension.dynamic_install_allow_preview=true

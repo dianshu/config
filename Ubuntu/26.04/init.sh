@@ -93,16 +93,16 @@ command -v bun &>/dev/null || curl -fsSL https://bun.sh/install | bash
 
 # === Sing-box ===
 mkdir -p $HOME/.sing-box
-curl -fsSL https://raw.githubusercontent.com/dianshu/config/refs/heads/main/sing-box.config.json -o $HOME/.sing-box/config.json
+curl -fsSL -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/dianshu/config/refs/heads/main/sing-box.config.json -o $HOME/.sing-box/config.json
 
 # === Azure CLI Config ===
 az config set extension.dynamic_install_allow_preview=true
 az config set extension.use_dynamic_install=yes_without_prompt
 
 # === Git Config ===
-curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/git/config -o $HOME/.gitconfig
+curl -fsSL -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/dianshu/config/main/git/config -o $HOME/.gitconfig
 mkdir -p $HOME/.config/git
-curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/git/ignore -o $HOME/.config/git/ignore
+curl -fsSL -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/dianshu/config/main/git/ignore -o $HOME/.config/git/ignore
 
 # Silent credential refresh: GitHub via gh keyring; Azure DevOps via WSL→Windows GCM bridge.
 gh auth status >/dev/null 2>&1 || gh auth login --hostname github.com --git-protocol https --web
@@ -145,12 +145,12 @@ else
 fi
 
 # === Zsh Plugins & Config ===
-curl -fsSL "https://raw.githubusercontent.com/dianshu/config/HEAD/zsh/.zshrc?${RANDOM}" -o $HOME/.zshrc
+curl -fsSL -H 'Cache-Control: no-cache' "https://raw.githubusercontent.com/dianshu/config/HEAD/zsh/.zshrc" -o $HOME/.zshrc
 
 # 同步 zsh/*.zsh（顶层）到 ~/.zsh/
 mkdir -p $HOME/.zsh
 for f in prompt; do
-    curl -fsSL "https://raw.githubusercontent.com/dianshu/config/HEAD/zsh/${f}.zsh?${RANDOM}" -o "$HOME/.zsh/${f}.zsh"
+    curl -fsSL -H 'Cache-Control: no-cache' "https://raw.githubusercontent.com/dianshu/config/HEAD/zsh/${f}.zsh" -o "$HOME/.zsh/${f}.zsh"
 done
 
 mkdir -p $HOME/.zsh/plugins
@@ -178,15 +178,15 @@ grep -qxF "$ZSH_PATH" /etc/shells || echo "$ZSH_PATH" | sudo tee -a /etc/shells
 sudo chsh -s "$ZSH_PATH" "${USER}"
 
 # === Vim Config ===
-curl -fsSL "https://raw.githubusercontent.com/dianshu/config/HEAD/vimrc?${RANDOM}" -o $HOME/.vimrc
+curl -fsSL -H 'Cache-Control: no-cache' "https://raw.githubusercontent.com/dianshu/config/HEAD/vimrc" -o $HOME/.vimrc
 
 # === Tmux Config ===
-curl -fsSL "https://raw.githubusercontent.com/dianshu/config/HEAD/tmux/.tmux.conf?${RANDOM}" -o $HOME/.tmux.conf
+curl -fsSL -H 'Cache-Control: no-cache' "https://raw.githubusercontent.com/dianshu/config/HEAD/tmux/.tmux.conf" -o $HOME/.tmux.conf
 
 # === WSL Config ===
 if [[ -n "${WSL_DISTRO_NAME:-}" ]] || [[ -f /proc/sys/fs/binfmt_misc/WSLInterop ]]; then
-    sudo curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/26.04/wsl.conf -o /etc/wsl.conf
-    sudo curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/26.04/resolved.conf -o /etc/systemd/resolved.conf
+    sudo curl -fsSL -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/26.04/wsl.conf -o /etc/wsl.conf
+    sudo curl -fsSL -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/26.04/resolved.conf -o /etc/systemd/resolved.conf
 
     # Open URLs/files in Windows default app via pwsh (PowerShell 7, always installed on host).
     # Replaces wslu/wslview: wslutilities PPA doesn't build for 26.04 yet, and pwsh's

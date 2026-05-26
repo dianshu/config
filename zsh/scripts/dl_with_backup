@@ -11,7 +11,7 @@ if [[ -f "$dest" ]]; then
     touch "$backup"
     echo "  Backed up: ${dest/$HOME/~} -> ${backup/$HOME/~}"
 fi
-if curl -fsSL -o "$dest" "$url"; then
+if curl -fsSL -H 'Cache-Control: no-cache' -o "$dest" "$url"; then
     echo "  Downloaded: ${dest/$HOME/~}"
 else
     echo "  FAILED: ${dest/$HOME/~}"

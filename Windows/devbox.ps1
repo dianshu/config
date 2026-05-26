@@ -179,6 +179,6 @@ if ($phase -eq "4") {
     }
     Invoke-WebRequest -Uri $remoteFile -OutFile $localPath
 
-    Write-Output 'Init script for Ubuntu-26.04: sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/dianshu/config/HEAD/Ubuntu/26.04/init.sh?${RANDOM})"'
+    Write-Output 'Init script for Ubuntu-26.04: sudo /bin/bash -c "$(curl -fsSL -H ''Cache-Control: no-cache'' https://raw.githubusercontent.com/dianshu/config/HEAD/Ubuntu/26.04/init.sh)"'
     Write-Output 'Windows Terminal json config: https://raw.githubusercontent.com/dianshu/config/refs/heads/main/Windows/windows_terminal.json'
 }

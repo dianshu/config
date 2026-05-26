@@ -14,4 +14,4 @@ else
     echo "Unsupported OS: $os"; exit 1
 fi
 echo "Running: $script_url"
-bash <(curl -fsSL "$script_url")
+bash <(curl -fsSL -H 'Cache-Control: no-cache' "$script_url")
