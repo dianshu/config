@@ -189,6 +189,9 @@ if [[ -n "${WSL_DISTRO_NAME:-}" ]] || [[ -f /proc/sys/fs/binfmt_misc/WSLInterop 
     sudo curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/26.04/resolved.conf -o /etc/systemd/resolved.conf
 
     # use browser in windows
+    # wslu not in Ubuntu 26.04 universe yet; use upstream PPA
+    sudo add-apt-repository -y ppa:wslutilities/wslu
+    sudo apt update
     sudo apt install -y wslu
     grep -qxF "export BROWSER=wslview" "$HOME/.zshrc" || echo "export BROWSER=wslview" >> "$HOME/.zshrc"
 fi
