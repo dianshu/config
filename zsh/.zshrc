@@ -144,9 +144,59 @@ else
 fi
 _zshrc_mark "claude user.env"
 
-# User-facing functions are now scripts in ~/.zsh_scripts/ (already on PATH):
-#   is_work, dl_with_backup, cc_proxy, cc_clean, cc_sync, update_zshrc,
+# User-facing functions are scripts in ~/.zsh_scripts/ (already on PATH):
+#   is_work, dl_with_backup, cc_proxy, cc_clean, cc_sync,
 #   sync, cc_remote, cc_remote_stop, screen-builtin
+# update_zshrc is inline (not a script) so a fresh install with an empty
+# ~/.zsh_scripts/ can still bootstrap itself. Uses dl_with_backup when
+# available, falls back to plain overwrite otherwise.
+update_zshrc() {
+    local raw_base="https://raw.githubusercontent.com/dianshu/config/main"
+    local _dl
+    if command -v dl_with_backup >/dev/null 2>&1; then
+        _dl() { dl_with_backup "$1" "$2" }
+    else
+        _dl() {
+            mkdir -p "$(dirname "$2")"
+            wget -qO "$2" "$1" && echo "  OK ${2/$HOME/~}" || { echo "  FAILED ${2/$HOME/~}"; return 1 }
+        }
+    fi
+
+    echo "=== Updating .zshrc ==="
+    _dl "$raw_base/zsh/.zshrc" "$HOME/.zshrc"
+
+    local tree_json
+    tree_json="$(wget -qO- "https://api.github.com/repos/dianshu/config/git/trees/main?recursive=1")"
+    if [[ -z "$tree_json" ]]; then
+        echo "  ERROR: Failed to fetch repo tree from GitHub API"
+        unfunction _dl
+        return 1
+    fi
+
+    echo "\n=== Syncing zsh/scripts/ ==="
+    mkdir -p "$HOME/.zsh_scripts"
+    local file_path rel_path
+    echo "$tree_json" | jq -r '.tree[] | select((.path | startswith("zsh/scripts/")) and .type == "blob") | .path' \
+    | while IFS= read -r file_path; do
+        [[ -z "$file_path" ]] && continue
+        rel_path="${file_path#zsh/scripts/}"
+        _dl "$raw_base/$file_path" "$HOME/.zsh_scripts/$rel_path" && chmod +x "$HOME/.zsh_scripts/$rel_path"
+    done
+
+    echo "\n=== Syncing zsh/*.zsh ==="
+    mkdir -p "$HOME/.zsh"
+    echo "$tree_json" | jq -r '.tree[] | select((.path | test("^zsh/[^/]+\\.zsh$")) and .type == "blob") | .path' \
+    | while IFS= read -r file_path; do
+        [[ -z "$file_path" ]] && continue
+        rel_path="${file_path#zsh/}"
+        _dl "$raw_base/$file_path" "$HOME/.zsh/$rel_path"
+    done
+
+    unfunction _dl
+    echo "\n=== update_zshrc complete ==="
+    echo "Run 'source ~/.zshrc' to reload."
+}
+
 : ${CC_REMOTE_PORT:=3006}
 _zshrc_mark "functions"
 
