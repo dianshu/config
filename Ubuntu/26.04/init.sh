@@ -188,11 +188,15 @@ if [[ -n "${WSL_DISTRO_NAME:-}" ]] || [[ -f /proc/sys/fs/binfmt_misc/WSLInterop 
     sudo curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/26.04/wsl.conf -o /etc/wsl.conf
     sudo curl -fsSL https://raw.githubusercontent.com/dianshu/config/main/Ubuntu/26.04/resolved.conf -o /etc/systemd/resolved.conf
 
-    # use browser in windows
-    # wslu not in Ubuntu 26.04 universe yet; use upstream PPA
-    sudo add-apt-repository -y ppa:wslutilities/wslu
-    sudo apt update
-    sudo apt install -y wslu
+    # Open URLs/files in Windows default app via pwsh (PowerShell 7, always installed on host).
+    # Replaces wslu/wslview: wslutilities PPA doesn't build for 26.04 yet, and pwsh's
+    # Start-Process passes args via ShellExecute, avoiding cmd.exe's &/% escaping pitfalls.
+    mkdir -p "$HOME/.local/bin"
+    cat > "$HOME/.local/bin/wslview" <<'EOF'
+#!/bin/sh
+exec pwsh.exe -NoProfile -Command "Start-Process" "$@" 2>/dev/null
+EOF
+    chmod +x "$HOME/.local/bin/wslview"
     grep -qxF "export BROWSER=wslview" "$HOME/.zshrc" || echo "export BROWSER=wslview" >> "$HOME/.zshrc"
 fi
 
