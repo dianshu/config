@@ -43,7 +43,7 @@ sudo ln -snf /usr/share/zoneinfo/$TZ /etc/localtime
 echo $TZ | sudo tee /etc/timezone > /dev/null
 
 # === Base Packages ===
-sudo apt install -y build-essential procps curl file git software-properties-common apt-transport-https wget
+sudo apt install -y build-essential procps curl file git software-properties-common apt-transport-https wget libicu-dev
 
 # === Docker ===
 if ! command -v docker &>/dev/null; then
