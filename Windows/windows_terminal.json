@@ -72,11 +72,12 @@
         "defaults": 
         {
             "colorScheme": "One Half Dark",
-            "font": 
+            "font":
             {
-                "face": "Consolas",
-                "size": 13
+                "face": "Maple Mono NF CN",
+                "size": 12
             },
+            "antialiasingMode": "grayscale",
             "opacity": 80
         },
         "list": 

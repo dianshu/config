@@ -105,6 +105,29 @@ if ($phase -eq "4") {
     }
     Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/Windows/pwsh_profile.ps1" | Select-Object -ExpandProperty Content | Set-Content -Path $PROFILE -Force
 
+    # Install Maple Mono NF CN font to per-user dir (no admin needed).
+    # Windows Terminal settings.json (downloaded below) references this font + grayscale AA
+    # for a macOS-like rendering. If the font is missing, Terminal silently falls back to Consolas.
+    $fontDir = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts"
+    if (-not (Get-ChildItem $fontDir -Filter 'MapleMono-NF-CN-*.ttf' -ErrorAction SilentlyContinue)) {
+        Write-Output "Installing Maple Mono NF CN..."
+        $mapleVer = "v7.9"
+        $tmpZip = "$env:TEMP\MapleMono-NF-CN.zip"
+        $tmpDir = "$env:TEMP\MapleMono-NF-CN"
+        Invoke-WebRequest -Uri "https://github.com/subframe7536/maple-font/releases/download/$mapleVer/MapleMono-NF-CN.zip" -OutFile $tmpZip
+        Expand-Archive -Path $tmpZip -DestinationPath $tmpDir -Force
+        New-Item -ItemType Directory -Path $fontDir -Force | Out-Null
+        Copy-Item "$tmpDir\*.ttf" -Destination $fontDir -Force
+        $regPath = 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts'
+        Get-ChildItem $fontDir -Filter 'MapleMono-NF-CN-*.ttf' | ForEach-Object {
+            New-ItemProperty -Path $regPath -Name ($_.BaseName + ' (TrueType)') -Value $_.FullName -PropertyType String -Force | Out-Null
+        }
+        Remove-Item $tmpZip, $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Output "Maple Mono NF CN installed."
+    } else {
+        Write-Output "Maple Mono NF CN already installed."
+    }
+
     # Overwrite windows terminal settings.json
     $remoteFile = "https://raw.githubusercontent.com/dianshu/config/refs/heads/main/Windows/windows_terminal.json"
     $localPath = "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
