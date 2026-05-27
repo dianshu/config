@@ -115,7 +115,7 @@ ${last_assistant:-_(无)_}"
 
     body=$(python3 -c "import json,sys;print(json.dumps({'content':sys.argv[1],'summary':sys.argv[2],'contentType':3,'spt':sys.argv[3]}))" "$content" "$summary" "$CC_WXPUSHER_SPT")
 
-    curl -s -X POST "https://wxpusher.zjiecode.com/api/send/message/simple-push" \
+    curl -s --max-time 5 -X POST "https://wxpusher.zjiecode.com/api/send/message/simple-push" \
         -H "Content-Type: application/json" \
         -d "$body" &>/dev/null
 ) </dev/null &>/dev/null &

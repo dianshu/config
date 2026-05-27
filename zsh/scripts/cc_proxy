@@ -21,7 +21,7 @@ sleep 1
 searxng_port=30963
 searxng_config="$HOME/.config/searxng"
 
-if curl -sf http://localhost:$searxng_port > /dev/null 2>&1; then
+if curl -sf --max-time 2 http://localhost:$searxng_port > /dev/null 2>&1; then
     echo "SearXNG already running on port $searxng_port"
 else
     echo "SearXNG not responding, restarting..."
@@ -34,7 +34,7 @@ else
         echo "Waiting for SearXNG to start..."
         max_wait=30
         waited=0
-        while ! curl -sf http://localhost:$searxng_port > /dev/null 2>&1; do
+        while ! curl -sf --max-time 2 http://localhost:$searxng_port > /dev/null 2>&1; do
             sleep 1
             waited=$((waited + 1))
             if [[ $waited -ge $max_wait ]]; then
