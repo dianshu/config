@@ -12,26 +12,26 @@ if [[ $EUID -eq 0 ]]; then
     exit 1
 fi
 
-# === Sudo bootstrap ===
-# Prompt once up-front, then keep the sudo timestamp fresh in the background
-# so long apt/brew/git steps never re-prompt mid-script.
-sudo -v
-( while true; do sudo -n true; sleep 50; kill -0 "$$" 2>/dev/null || exit; done ) 2>/dev/null &
-SUDO_KEEPALIVE_PID=$!
-trap 'kill $SUDO_KEEPALIVE_PID 2>/dev/null || true' EXIT
-
 # === Passwordless sudo for daily use ===
 # Tradeoff: any process running as you can become root without prompt.
 # Kept because daily workflow (apt/systemctl/etc.) depends on it.
+# Configured FIRST so re-runs of this script never re-prompt for a password.
 SUDOERS_FILE="/etc/sudoers.d/${USER}"
 SUDOERS_LINE="${USER} ALL=(ALL) NOPASSWD:ALL"
-if ! sudo test -f "$SUDOERS_FILE" || ! sudo grep -qxF "$SUDOERS_LINE" "$SUDOERS_FILE"; then
+SUDO_KEEPALIVE_PID=""
+if sudo -n test -f "$SUDOERS_FILE" 2>/dev/null && sudo -n grep -qxF "$SUDOERS_LINE" "$SUDOERS_FILE" 2>/dev/null; then
+    echo "Passwordless sudo for ${USER} already configured."
+else
+    # Need one password prompt to bootstrap NOPASSWD. Keepalive covers the few
+    # seconds until the sudoers file lands; after that sudo -n succeeds forever.
+    sudo -v
+    ( while true; do sudo -n true; sleep 50; kill -0 "$$" 2>/dev/null || exit; done ) 2>/dev/null &
+    SUDO_KEEPALIVE_PID=$!
+    trap 'kill $SUDO_KEEPALIVE_PID 2>/dev/null || true' EXIT
     echo "$SUDOERS_LINE" | sudo tee "$SUDOERS_FILE" > /dev/null
     sudo chmod 440 "$SUDOERS_FILE"
     sudo visudo -c -f "$SUDOERS_FILE" >/dev/null
     echo "Passwordless sudo for ${USER} configured."
-else
-    echo "Passwordless sudo for ${USER} already configured."
 fi
 
 # === System Update & Timezone ===
