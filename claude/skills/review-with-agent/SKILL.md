@@ -1,6 +1,6 @@
 ---
 name: review-with-agent
-description: Multi-lens adversarial code review using external AI CLIs (Codex or Gemini). Shared backend logic invoked by /codex-review and /gemini-review. Supports both code review (working-tree diffs) and plan review (markdown files). Not for reviewing already-committed code.
+description: Multi-lens adversarial code review using external AI CLIs (Codex or opencode). Shared backend logic invoked by /codex-review and /opencode-review. Supports both code review (working-tree diffs) and plan review (markdown files). Not for reviewing already-committed code.
 allowed-tools: Bash, Read, Grep, Glob, Agent
 ---
 
@@ -10,7 +10,7 @@ Reviews uncommitted git changes or implementation plans using independent lens-s
 
 ## Backend Inputs
 
-This skill is invoked by a backend skill (`/codex-review`, `/gemini-review`) that defines these shell variables before calling the workflow:
+This skill is invoked by a backend skill (`/codex-review`, `/opencode-review`) that defines these shell variables before calling the workflow:
 
 - `PREFLIGHT_CMD` — version check; non-zero exit means abort
 - `DISPATCH_CMD` — read-only dispatch for in-diff lenses (Challenger, Architect, Subtractor, Devil's Advocate)

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "proxy": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Local proxy",
+      "options": {
+        "baseURL": "http://localhost:29427/v1",
+        "apiKey": "dummy"
+      },
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "name": "Gemini 3.1 Pro (preview)"
+        }
+      }
+    }
+  },
+  "model": "proxy/gemini-3.1-pro-preview",
+  "agent": {
+    "review-readonly": {
+      "description": "Read-only adversarial code reviewer driven by gemini-3.1-pro via local proxy.",
+      "mode": "primary",
+      "model": "proxy/gemini-3.1-pro-preview",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "write": "deny",
+        "webfetch": "deny"
+      }
+    }
+  }
+}

@@ -11,7 +11,7 @@ for cmd in jq git python3 curl npx npm codex; do
 done
 
 # Optional tools (all platforms)
-for cmd in ruff glow entr gemini; do
+for cmd in ruff glow entr opencode; do
   command -v "$cmd" &>/dev/null || MISSING+=("$cmd")
 done
 

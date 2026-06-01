@@ -15,6 +15,7 @@ The @config repo mirrors dotfiles and tool configs from the home directory. When
 | `~/.zsh_scripts/` | `~/repos/config/zsh/scripts/` |
 | `~/.tmux.conf` | `~/repos/config/tmux/.tmux.conf` |
 | `~/.config/ghostty/config` | `~/repos/config/ghostty/config` |
+| `~/.config/opencode/opencode.json` | `~/repos/config/opencode/opencode.json` |
 | `~/.config/searxng/settings.yml` | `~/repos/config/searxng/settings.yml` |
 | `~/.config/glow/glow.yml` | `~/repos/config/glow/glow.yml` |
 | `~/.gitconfig` | `~/repos/config/git/config` |

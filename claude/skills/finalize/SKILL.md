@@ -1,6 +1,6 @@
 ---
 name: finalize
-description: Post-implementation finalization: /code-review → parallel /codex-review + /gemini-review (loop) → /e2e-verify (loop) → testing-rules self-check → full UT+E2E → summary. Use after completing a code change. Trigger: "finalize", "/finalize".
+description: Post-implementation finalization: /code-review → parallel /codex-review + /opencode-review (loop) → /e2e-verify (loop) → testing-rules self-check → full UT+E2E → summary. Use after completing a code change. Trigger: "finalize", "/finalize".
 allowed-tools: Bash, Read, Skill
 ---
 
@@ -20,9 +20,9 @@ Orchestrates the full post-implementation finalization cycle: review, verify, se
 
    If the script exits non-zero (not a git repo / nothing to review), skip this step and proceed to step 2.
 
-   **MANDATORY HAND-OFF:** Step 1's output (findings list or empty `[]`) does NOT determine whether Step 2 runs. Step 2 ALWAYS runs next, no exceptions. Step 1 is an internal multi-lens pass; Step 2 is independent external reviewers (`/codex-review` + `/gemini-review`). Empty Step 1 findings are NOT an exit condition — only the Progression Check inside Step 2 can exit the review loop. If you find yourself writing a summary or stopping after Step 1, you are doing it wrong: immediately dispatch Step 2a.
+   **MANDATORY HAND-OFF:** Step 1's output (findings list or empty `[]`) does NOT determine whether Step 2 runs. Step 2 ALWAYS runs next, no exceptions. Step 1 is an internal multi-lens pass; Step 2 is independent external reviewers (`/codex-review` + `/opencode-review`). Empty Step 1 findings are NOT an exit condition — only the Progression Check inside Step 2 can exit the review loop. If you find yourself writing a summary or stopping after Step 1, you are doing it wrong: immediately dispatch Step 2a.
 2. **Review loop** — repeat until the Progression Check (below) signals exit:
-   a. Invoke `/codex-review` and `/gemini-review` **in parallel** (single message, two Skill calls).
+   a. Invoke `/codex-review` and `/opencode-review` **in parallel** (single message, two Skill calls).
    b. Read both structured outputs. For each issue, decide: **fix** (apply edit in main session), or **add to won't-fix list** (parent's working memory; not persisted, not sent back to reviewers).
    c. Run the **Progression Check** (below). If exit signal → proceed to step 3. Otherwise loop back to (a).
 3. **E2E verify loop** — repeat until passing:
@@ -54,12 +54,12 @@ Orchestrates the full post-implementation finalization cycle: review, verify, se
 ## Rules
 
 - **Parent does the fixing.** This skill never edits code. It only orchestrates other skills and surfaces their output.
-- **Parallel reviews.** `/codex-review` and `/gemini-review` MUST be dispatched in a single message containing two Skill tool calls, not sequentially.
+- **Parallel reviews.** `/codex-review` and `/opencode-review` MUST be dispatched in a single message containing two Skill tool calls, not sequentially.
 - **Won't-fix list is ephemeral.** Lives only in the parent's working memory for this loop invocation. Not written to disk. Not sent to reviewers (no point — they don't remember between calls).
 - **Exit conditions** (any one):
   - Steps 1–5 all complete: every review issue fixed-or-won't-fix; e2e-verify pass-or-won't-fix-or-skipped; testing-rules self-check clean (after any fixes); full UT and full E2E each pass-or-skipped-or-won't-fix.
   - Parent judges a remaining failure not worth fixing (logged in summary).
-- **Code review runs exactly once**, at the start (with auto-selected effort). Subsequent iterations are pure review-driven fixes via `/codex-review` + `/gemini-review`.
+- **Code review runs exactly once**, at the start (with auto-selected effort). Subsequent iterations are pure review-driven fixes via `/codex-review` + `/opencode-review`.
 - **Steps 2, 3, 4, 5 may re-run multiple times.** Any "return to step 2a" replays Step 2 → 3 → 4 → 5 in order. Convergence is governed by Step 2's Progression Check and the natural decrease in violations/failures per round. If a fix repeatedly fails to converge, parent marks it won't-fix and exits via the second exit condition.
 
 ## Progression Check (3-of-5)
@@ -70,6 +70,6 @@ After each review round, evaluate these 5 criteria. **Exit the review loop when 
 2. **Diminishing severity** — In the latest round, **structural/blocker** issues (correctness bugs, security, missing requirements) make up <20% of total findings. The rest are nits/style/minor.
 3. **Diff stability** — The fixes in the most recent round did not introduce a new direction or rewrite (compare to prior round's diff scope). Cosmetic/local fixes only.
 4. **Minimum rounds** — At least **1 full review round** has completed (i.e. don't exit on simplify alone).
-5. **Reviewer acknowledgment** — Both `/codex-review` and `/gemini-review` returned no blocker-severity findings in the latest round. (Their nits/suggestions don't disqualify.)
+5. **Reviewer acknowledgment** — Both `/codex-review` and `/opencode-review` returned no blocker-severity findings in the latest round. (Their nits/suggestions don't disqualify.)
 
 If <3 satisfied AND parent judges remaining issues low-value → still exit, but log which criterion was missing in the final summary so the user can override.
