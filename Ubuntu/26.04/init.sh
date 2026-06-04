@@ -85,6 +85,7 @@ brew_install azure-cli yq jq
 brew_install git tree tmux trivy coreutils
 brew_install uv node ruff git-delta
 brew_install gh glow wget entr
+brew tap reviewdog/tap 2>/dev/null || true && brew_install reviewdog/tap/reviewdog
 brew_install openjdk@21 sing-box zsh python@3.13
 brew_install frpc net-tools
 
