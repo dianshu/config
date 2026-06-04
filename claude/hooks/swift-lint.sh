@@ -33,14 +33,34 @@ esac
 # If reviewdog + git tracked file: filter swiftlint output to changed lines only.
 if command -v reviewdog &>/dev/null && git -C "$PROJECT_ROOT" rev-parse --show-toplevel &>/dev/null; then
   REPO_ROOT=$(git -C "$PROJECT_ROOT" rev-parse --show-toplevel)
-  GIT_REL=$(realpath --relative-to="$REPO_ROOT" "$FILE_PATH")
+  GIT_REL="${FILE_PATH#$REPO_ROOT/}"
   if git -C "$REPO_ROOT" ls-files --error-unmatch -- "$GIT_REL" &>/dev/null; then
     Q_PATH=$(printf '%q' "$GIT_REL")
     ERRORS=$(cd "$PROJECT_ROOT" && swiftlint lint --quiet --reporter checkstyle "$FILE_PATH" 2>/dev/null \
       | (cd "$REPO_ROOT" && reviewdog -f=checkstyle -diff="git diff HEAD -- $Q_PATH" -filter-mode=added -reporter=local) 2>&1)
     if [[ -n "$ERRORS" ]]; then
-      echo "$ERRORS" >&2
-      exit 2
+      # File-level aggregate rules (file_length / type_body_length /
+      # function_body_length / cyclomatic_complexity) attach to a single
+      # line, so reviewdog treats them as "newly added" whenever the diff
+      # happens to touch that line. Re-lint the HEAD version of the file
+      # and subtract any aggregate violation that already existed.
+      AGG_PATTERN='file_length|type_body_length|function_body_length|cyclomatic_complexity'
+      if grep -Eq "$AGG_PATTERN" <<<"$ERRORS"; then
+        TMP_BASE=$(mktemp -t swiftlint-base.XXXXXX).swift
+        if git -C "$REPO_ROOT" show "HEAD:$GIT_REL" >"$TMP_BASE" 2>/dev/null; then
+          BASE_RULES=$(cd "$PROJECT_ROOT" && swiftlint lint --quiet "$TMP_BASE" 2>/dev/null \
+            | grep -Eo "($AGG_PATTERN)" | sort -u)
+          if [[ -n "$BASE_RULES" ]]; then
+            EXCLUDE=$(echo "$BASE_RULES" | paste -sd'|' -)
+            ERRORS=$(echo "$ERRORS" | grep -Ev "swiftlint.rules.($EXCLUDE)|\(($EXCLUDE)\)")
+          fi
+        fi
+        rm -f "$TMP_BASE"
+      fi
+      if [[ -n "$ERRORS" ]]; then
+        echo "$ERRORS" >&2
+        exit 2
+      fi
     fi
     exit 0
   fi
