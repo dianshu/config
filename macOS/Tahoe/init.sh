@@ -112,21 +112,36 @@ brew_install mas
 brew_install cocoapods swiftlint swiftformat
 brew tap getsentry/xcodebuildmcp 2>/dev/null || true && brew_install xcodebuildmcp
 gem install xcodeproj
-# pymobiledevice3: check for updates, use sudo to fix permissions if needed
+# pymobiledevice3: check for updates, use sudo to fix permissions if needed.
+# Pin to Python 3.13+ — iOS 18.2+ removed QUIC, so tunneld must use TCP tunnels,
+# which require python3.13+. Default uv pick of 3.10 silently breaks all RemoteXPC
+# (tunneld returns {} forever; xcuitest reports "Device is not connected").
 PMD3_TOOL_DIR="$HOME/.local/share/uv/tools/pymobiledevice3"
+PMD3_PYTHON="3.13"
 PMD3_INSTALLED=$(uv tool list 2>/dev/null | sed -n 's/^pymobiledevice3 \([0-9.]*\).*/\1/p')
+# Detect interpreter version of the currently-installed tool (empty if not installed).
+PMD3_CUR_PY=$("$PMD3_TOOL_DIR/bin/python" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || true)
+pmd3_python_ok() {
+    [[ -n "$PMD3_CUR_PY" ]] && \
+        awk -v cur="$PMD3_CUR_PY" -v min="$PMD3_PYTHON" 'BEGIN{split(cur,a,".");split(min,b,".");exit !(a[1]>b[1]||(a[1]==b[1]&&a[2]>=b[2]))}'
+}
 if [[ -z "$PMD3_INSTALLED" ]]; then
-    echo "Installing pymobiledevice3..."
-    uv tool install pymobiledevice3
+    echo "Installing pymobiledevice3 (python $PMD3_PYTHON)..."
+    uv tool install --python "$PMD3_PYTHON" pymobiledevice3
 elif ! pymobiledevice3 -h &>/dev/null; then
     echo "pymobiledevice3 is broken, reinstalling..."
     [[ -d "$PMD3_TOOL_DIR" ]] && sudo chown -R "$(whoami)" "$PMD3_TOOL_DIR"
-    uv tool install --force pymobiledevice3
+    uv tool install --force --python "$PMD3_PYTHON" pymobiledevice3
+elif ! pmd3_python_ok; then
+    echo "pymobiledevice3 on python $PMD3_CUR_PY < $PMD3_PYTHON (iOS 18.2+ needs TCP tunnel), reinstalling..."
+    [[ -d "$PMD3_TOOL_DIR" ]] && sudo chown -R "$(whoami)" "$PMD3_TOOL_DIR"
+    uv tool install --force --python "$PMD3_PYTHON" pymobiledevice3
+    sudo launchctl kickstart -k system/com.pymobiledevice3.tunneld 2>/dev/null || true
 else
     echo "Upgrading pymobiledevice3..."
-    if [[ -d "$PMD3_TOOL_DIR" ]] && ! uv tool install --upgrade pymobiledevice3 2>/dev/null; then
+    if [[ -d "$PMD3_TOOL_DIR" ]] && ! uv tool install --upgrade --python "$PMD3_PYTHON" pymobiledevice3 2>/dev/null; then
         sudo chown -R "$(whoami)" "$PMD3_TOOL_DIR"
-        uv tool install --force pymobiledevice3
+        uv tool install --force --python "$PMD3_PYTHON" pymobiledevice3
     fi
 fi
 
