@@ -120,6 +120,10 @@
           },
           {
             "type": "command",
+            "command": "bash ~/.claude/hooks/inject-one-user-rule.sh no-skipping-skill-steps"
+          },
+          {
+            "type": "command",
             "command": "bash ~/.claude/hooks/inject-one-user-rule.sh no-stalling"
           },
           {
