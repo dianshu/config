@@ -109,7 +109,7 @@ brew_install mas
 # xcodebuild -downloadPlatform iOS
 
 # iOS dev tools
-brew_install cocoapods swiftlint swiftformat
+brew_install cocoapods swiftlint swiftformat xcode-build-server
 brew tap getsentry/xcodebuildmcp 2>/dev/null || true && brew_install xcodebuildmcp
 gem install xcodeproj
 # pymobiledevice3: check for updates, use sudo to fix permissions if needed.
