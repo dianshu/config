@@ -19,8 +19,9 @@ if command -v reviewdog &>/dev/null && git -C "$(dirname "$FILE_PATH")" rev-pars
   REL_PATH=$(realpath --relative-to="$REPO_ROOT" "$FILE_PATH")
   # Tracked by HEAD? If not (new/untracked file), fall through to full-file lint.
   if git -C "$REPO_ROOT" ls-files --error-unmatch -- "$REL_PATH" &>/dev/null; then
+    Q_PATH=$(printf '%q' "$REL_PATH")
     ERRORS=$(cd "$REPO_ROOT" && ruff check "${RUFF_ARGS[@]}" --output-format=rdjson "$REL_PATH" 2>/dev/null \
-      | reviewdog -f=rdjson -diff="git diff HEAD -- $REL_PATH" -filter-mode=added -reporter=local 2>&1)
+      | reviewdog -f=rdjson -diff="git diff HEAD -- $Q_PATH" -filter-mode=added -reporter=local 2>&1)
     if [[ -n "$ERRORS" ]]; then
       echo "$ERRORS" >&2
       exit 2
