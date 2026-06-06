@@ -1,32 +1,42 @@
 ---
 name: codex-review
 description: Code review using OpenAI Codex CLI. Use when the user says "codex review", "review with codex", "get a second opinion", "independent review", "review this plan", "codex review plan", or wants a Codex-based AI review of uncommitted changes or a plan document. Not for reviewing already-committed code.
-allowed-tools: Bash, Read, Grep, Glob, Agent
+allowed-tools: Workflow, Bash, Read, AskUserQuestion
 ---
 
 # Codex Review
 
-Use the Codex CLI as the reviewer backend, then execute the workflow in `~/.claude/skills/review-with-agent/SKILL.md`.
+Thin wrapper that delegates to the shared `review-with-agent` workflow with
+`backend='codex'`.
 
-## Backend Configuration
+## Flow
 
-Set the following before running the shared workflow:
+1. **Determine mode** from the user's request:
+   - "review changes" / no path → `mode: 'code'`
+   - File path provided → `mode: 'plan'`, `planPath: <path>`
+   - "review plan" with plan in conversation → `mode: 'plan'`, `planContent: <inline text>`
+   - Ambiguous → ask the user via AskUserQuestion BEFORE invoking the workflow
+     (the workflow itself cannot prompt mid-run)
 
-```bash
-PREFLIGHT_CMD='codex --version 2>/dev/null'
-DISPATCH_CMD='codex exec - --cd "$(pwd)" --ephemeral -s read-only'
-READONLY_DISPATCH_CMD='codex exec - --cd "$(pwd)" --ephemeral -s read-only'
-PLAN_DISPATCH_CMD='codex exec - --skip-git-repo-check --ephemeral -s read-only'
-MODE_LABEL='codex-adversarial'
-NOISE_FILTER='grep -vE "^OpenAI Codex|^----|^workdir:|^model:|^provider:|^approval:|^sandbox:|^reasoning|^session id:|^$"'
-TMPDIR_PREFIX='codex-review'
-```
+2. **Invoke the workflow:**
 
-Notes:
-- All dispatches use `-s read-only` sandbox — Codex must not modify the workspace.
+   ```
+   Workflow({
+     scriptPath: '~/.claude/skills/review-with-agent/review.workflow.js',
+     args: { mode, backend: 'codex', planPath?, planContent? },
+   })
+   ```
+
+3. **Render the result** — the workflow returns the verdict + findings table.
+   Surface it to the user as the review report.
+
+## Notes
+
+- All Codex dispatches use `-s read-only` sandbox (set in the workflow's
+  `BACKEND_CONFIG.codex` block) — Codex never modifies the workspace.
 - Never override the user's model setting (no `--model`).
-- Plan mode requires `--skip-git-repo-check --ephemeral`; do NOT use `--uncommitted` (mutually exclusive with custom prompts).
-
-## Preflight
-
-Run `PREFLIGHT_CMD`. If it fails (Codex CLI not installed or not on PATH), abort with an error — do NOT fall back to any other backend.
+- Plan mode uses `--skip-git-repo-check --ephemeral` (set in the workflow);
+  do NOT use `--uncommitted` (mutually exclusive with custom prompts).
+- Preflight (`codex --version`) runs as the first workflow phase; abort with
+  an error if Codex CLI is not installed — do NOT fall back to any other
+  backend.
