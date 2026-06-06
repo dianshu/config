@@ -24,14 +24,43 @@ Orchestrates the full post-implementation finalization cycle: review, verify, se
 2. **Review loop** — repeat until the Progression Check (below) signals exit:
    a. Invoke `/codex-review` and `/opencode-review` **in parallel** (single message, two Skill calls).
    b. Read both structured outputs. For each issue, decide: **fix** (apply edit in main session), or **add to won't-fix list** (parent's working memory; not persisted, not sent back to reviewers).
-   c. Run the **Progression Check** (below). If exit signal → proceed to step 3. Otherwise loop back to (a).
+   c. Run the **Progression Check** via the workflow at `~/.claude/skills/finalize/progression-check.workflow.js`:
+
+      ```
+      Workflow({
+        scriptPath: '~/.claude/skills/finalize/progression-check.workflow.js',
+        args: {
+          codexOutput: <raw /codex-review output from this round>,
+          opencodeOutput: <raw /opencode-review output from this round>,
+          roundNum: <1-based round counter>,
+          priorRoundFindingCount: <merged findings count from prior round, or null on round 1>,
+        },
+      })
+      ```
+
+      The workflow returns `{verdict: 'EXIT' | 'CONTINUE', satisfied, total, criteria, mergedFindings, byFile, stats, parentMustConfirm}`:
+      - `criteria.coverage` is **always null** — the workflow cannot judge whether you addressed every prior-round issue. Confirm it yourself before re-running.
+      - `verdict === 'EXIT'` AND coverage confirmed → proceed to step 3.
+      - Otherwise → use `byFile` to drive your fix decisions (one issue at a time, fix or won't-fix), then loop back to (a).
+      - Remember `stats.totalFindings` for the next round's `priorRoundFindingCount`.
 3. **E2E verify loop** — repeat until passing:
    a. Detect whether `e2e-verify` is applicable: check for a `Makefile` with an `up` target via `grep -E '^up:' Makefile 2>/dev/null`. If absent → skip step 3, print `finalize: e2e-verify skipped (no \`make up\` target)`, proceed to step 4.
    b. Invoke `/e2e-verify`.
    c. If passing → proceed to step 4.
    d. If failing → parent fixes the failure in main session, then **return to step 2a** (one more review pass before re-running e2e). If parent judges the failure not worth fixing → record as won't-fix and proceed to step 4.
 4. **Testing-rules self-check**:
-   a. Re-read `~/.claude/rules/testing.md`. Then for **each test file changed in this session**, write an explicit evidence block: file path, what was changed, which testing.md rules apply, and a verdict (✅ compliant / ❌ violation) with one-line justification. A single "looks clean" sentence is NOT acceptable — the per-file enumeration must be visible in the output.
+   a. Run the audit via the workflow at `~/.claude/skills/finalize/testing-rules-audit.workflow.js`:
+
+      ```
+      Workflow({scriptPath: '~/.claude/skills/finalize/testing-rules-audit.workflow.js'})
+      ```
+
+      The workflow enumerates every test file changed in this session, then in parallel
+      (one agent per file) audits each against `~/.claude/injected-rules/testing.md` and
+      returns `{violations, fileCount, byFile, violationsList}`. Each `byFile` entry has
+      `{file, changeSummary, applicableRules, verdict, justification}` — surface the
+      table to the user as the per-file evidence requirement (a single "looks clean"
+      sentence is NOT acceptable; this workflow's output IS the enumeration).
    b. Each violation → fix in main session, then **return to step 2a** (one more review pass). Track count for the summary.
    c. No violations → proceed to step 5.
 5. **Full test suite**:
@@ -64,12 +93,22 @@ Orchestrates the full post-implementation finalization cycle: review, verify, se
 
 ## Progression Check (3-of-5)
 
-After each review round, evaluate these 5 criteria. **Exit the review loop when ≥3 are satisfied.** Adapted from prd-debate's debate-progression algorithm.
+The 5-of-3 progression criteria are computed deterministically by
+`~/.claude/skills/finalize/progression-check.workflow.js`. The workflow parses both
+reviewer outputs into structured findings (LLM, fan-out + retry), merges/dedups
+across reviewers, then scores 4 of the 5 criteria as pure code:
 
-1. **Coverage** — Every actionable issue from the prior round was either fixed or added to won't-fix. No issue left unaddressed.
-2. **Diminishing severity** — In the latest round, **structural/blocker** issues (correctness bugs, security, missing requirements) make up <20% of total findings. The rest are nits/style/minor.
-3. **Diff stability** — The fixes in the most recent round did not introduce a new direction or rewrite (compare to prior round's diff scope). Cosmetic/local fixes only.
-4. **Minimum rounds** — At least **1 full review round** has completed (i.e. don't exit on simplify alone).
-5. **Reviewer acknowledgment** — Both `/codex-review` and `/opencode-review` returned no blocker-severity findings in the latest round. (Their nits/suggestions don't disqualify.)
+1. **Coverage** — **your job** (workflow returns `null`). Confirm every prior-round
+   issue was either fixed or added to won't-fix.
+2. **Diminishing severity** — auto. New `Blocking` make up <20% of new findings
+   (or `newFindings.length === 0`, which counts as satisfied).
+3. **Diff stability** — auto. Finding count did not increase by more than
+   `max(1, floor(priorRoundCount * 0.2))`. `null` (not evaluated) on round 1.
+4. **Minimum rounds** — auto. `roundNum >= 1`.
+5. **Reviewer acknowledgment** — auto. Zero New `Blocking` findings across both
+   reviewers in the merged set.
 
-If <3 satisfied AND parent judges remaining issues low-value → still exit, but log which criterion was missing in the final summary so the user can override.
+Exit when `satisfied >= 3` of the auto-evaluable criteria AND coverage is
+confirmed. If `<3` satisfied but parent judges remaining issues low-value →
+still exit, log which criterion was missing in the final summary so the user
+can override.
