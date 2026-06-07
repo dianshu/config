@@ -128,6 +128,18 @@ if (mode === 'prd' && !prdPath && !prdContent) {
 if (mode === 'issues' && !issuesDir) {
   throw new Error(`review-with-agent: issues mode requires args.issuesDir`)
 }
+if (mode !== 'code' && mode !== 'plan' && mode !== 'prd' && mode !== 'issues') {
+  throw new Error(`review-with-agent: args.mode must be 'code', 'plan', 'prd', or 'issues'`)
+}
+if (mode === 'plan' && !planPath && !planContent) {
+  throw new Error(`review-with-agent: plan mode requires args.planPath or args.planContent`)
+}
+if (mode === 'prd' && !prdPath && !prdContent) {
+  throw new Error(`review-with-agent: prd mode requires args.prdPath or args.prdContent`)
+}
+if (mode === 'issues' && !issuesDir) {
+  throw new Error(`review-with-agent: issues mode requires args.issuesDir`)
+}
 
 const BACKEND = BACKEND_CONFIG[backend]
 
