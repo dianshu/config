@@ -1,0 +1,581 @@
+diff --git a/claude/skills/issues-review-loop/progression-check.workflow.js b/claude/skills/issues-review-loop/progression-check.workflow.js
+index 9d69d84..63c70e7 100644
+--- a/claude/skills/issues-review-loop/progression-check.workflow.js
++++ b/claude/skills/issues-review-loop/progression-check.workflow.js
+@@ -2,3 +2,3 @@ export const meta = {
+   name: 'issues-review-loop-progression-check',
+-  description: 'Deterministic 3-of-5 Progression Check for /issues-review-loop, with an additional independent hard gate (parserPass) that overrides the 3-of-5 result. Mirrors /prd-review-loop progression but swaps H2-section churn for issue-file churn, and adds parserPass.',
++  description: 'Deterministic 3-of-4 Progression Check for /issues-review-loop, with coverage as a parent-confirmed precondition and parserPass as an independent hard gate. Mirrors /prd-review-loop progression but swaps H2-section churn for issue-file churn, splits coverage out of the counted criteria into a precondition, and adds parserPass.',
+   phases: [
+diff --git a/claude/skills/issues-review-loop/SKILL.md b/claude/skills/issues-review-loop/SKILL.md
+index 67b5ce1..bb28f3d 100644
+--- a/claude/skills/issues-review-loop/SKILL.md
++++ b/claude/skills/issues-review-loop/SKILL.md
+@@ -59,3 +59,3 @@ For each round:
+   Workflow(progression-check.workflow.js)
+-  3-of-5 deterministic/semi-deterministic criteria + 1 parent-confirmed (coverage)
++  3-of-4 deterministic/semi-deterministic counted criteria + 1 parent-confirmed precondition (coverage)
+   + parserPass hard gate (independent — must be true for any EXIT path)
+@@ -121,5 +121,5 @@ Look for `<featureDir>/.issues-review.wontfix.md`. Schema is a markdown list:
+ 
+-Parse into `wontfixLedger: [{id, severity, source, rationale, decidedRoundN, issueFile, anchor}]`. If the file does not exist, `wontfixLedger = []`. Pass to both the workflow and the progression-check.
++Parse into `wontfixLedger: [{id, severity, source, rationale, decidedRoundN, issueFile, anchor}]`. **Both `issueFile` and `anchor` must be present** — entries missing `anchor` are silently ineffective (the workflow returns them in `stats.ledgerEntriesSkipped` so you can see and re-author them). If the file does not exist, `wontfixLedger = []`. Pass to both the workflow and the progression-check.
+ 
+-The ledger lives at `<featureDir>/.issues-review.wontfix.md` (sibling of `issues/`, **not** inside it — placing the ledger inside `issues/` would violate `/run-all-issues`'s `^(done-)?[0-9]{2,}-[a-z0-9-]+\.md$` filename invariant)
++The ledger lives at `<featureDir>/.issues-review.wontfix.md` (sibling of `issues/`, **not** inside it). Inside `issues/`, any non-`(done-)?NN-slug.md` file would crash `/run-all-issues` preflight step 3 — the dot-prefixed ledger file would fail that regex. Locating it one level up keeps it completely out of `/run-all-issues`'s scrutiny scope.
+ 
+@@ -159,6 +159,5 @@ For each finding, decide one of:
+   | Move non-code gate to `## Hold` | Cut the offending bullet out of `## Blocked by`, paste into a new `## Hold` section in the same issue (or out of the issue entirely) | Flips `parserPass` to true for that file |
+-  | Sharpen Acceptance Criteria | Edit AC bullets in place | Body-byte delta only; no file churn |
+-  | Rewrite `## What to build` | Edit in place | Body-byte delta only |
++  | Inline body edit (sharpen AC, rewrite `## What to build`) | Edit bullets / prose in place | Body-byte delta only; no file churn |
+ 
+-- **Wont-fix** — append a new entry to `<featureDir>/.issues-review.wontfix.md` with `id = W-<NNN>` (next available), the finding's `issueFile` + `anchor`, source = the lens(es) that flagged it, current round, and parent's structured rationale. **Persisted to disk** — survives loop / session / cross-day.
++- **Wont-fix** — append a new entry to `<featureDir>/.issues-review.wontfix.md` with `id = W-<NNN>` (next available), the finding's `issueFile` + `anchor` (BOTH required), source = the lens(es) that flagged it, current round, and parent's structured rationale. **Persisted to disk** — survives loop / session / cross-day.
+ 
+@@ -208,3 +207,3 @@ Workflow({
+ - `verdict === 'EXIT'` → proceed to Step 3 (Final).
+-- `verdict === 'EXIT_VIA_ESCAPE_HATCH'` → permitted **only once per loop invocation**, **only at roundNum ≥ 3**, **only when zero effective Blockers remain**, AND **only when `hardGates.parserPass === true`** (the parser gate has no escape). Parent MUST emit a structured rationale (`{remainingIssues: [...], rationaleForExitAnyway: '...'}`) and log it to the final summary. Set `escapeHatchAlreadyUsed = true` for the rest of this loop. Proceed to Step 3.
++- `verdict === 'EXIT_VIA_ESCAPE_HATCH'` → permitted **only once per loop invocation**, **only at roundNum ≥ 3**, **only when zero effective Blockers remain**, AND **only when `hardGates.parserPass === true`** (the parser gate has no escape). Coverage is NOT a hard precondition for the escape hatch — its purpose is to let the parent exit when remaining issues are judged not worth fixing (which often includes ambiguity about whether prior anchors are "fixed"). Parent MUST emit a structured rationale (`{remainingIssues: [...], rationaleForExitAnyway: '...'}`) and log it to the final summary. Set `escapeHatchAlreadyUsed = true` for the rest of this loop. Proceed to Step 3.
+ - `verdict === 'CONTINUE'` → loop back to 2a (round N+1). Persist `thisRoundIssueFiles / TotalBytes / FindingCount / Anchors` as next round's prior state.
+@@ -241,4 +240,4 @@ issues-review-loop: EXIT after N rounds
+   Per-round trace:
+-    round 1: <verdict> criteriaFired=[...] hardGates={parserPass:true|false}
+-    round 2: <verdict> criteriaFired=[...] hardGates={parserPass:true|false}
++    round 1: <verdict> criteriaFired=[...] preconditions={coverage,parserPass} hardGates={parserPass:true|false}
++    round 2: <verdict> criteriaFired=[...] preconditions={coverage,parserPass} hardGates={parserPass:true|false}
+     ...
+@@ -254,4 +253,4 @@ After this summary, the loop is done. Do NOT apply triage labels; do NOT modify
+ - **Single backend × multi-lens.** Use one backend (default `codex`) with the 5-lens roster (4 lenses if no PARENT_PRD — Coverage drops). Same rationale as `/prd-review-loop`: orthogonal lens perspectives outperform same-prompt dual-backend voting at proportional cost.
+-- **`parserPass` is a HARD GATE — no LLM override.** Per `~/.claude/injected-rules/model-judgment-only.md`, the `## Blocked by` regex is deterministic and runs in `review.workflow.js` Bash, not as an LLM lens. The loop CANNOT EXIT (normal OR escape-hatch) while any pending issue file fails the parser. Even 5-of-5 progression criteria passing does not override this gate.
+-- **Won't-fix is persisted to disk.** `<featureDir>/.issues-review.wontfix.md` survives sessions. Entries never deleted; rationales become the audit trail for the issue review. **`parserFailures` are NOT wont-fix-able** — they must be physically fixed (edit the offending line or move it to `## Hold`).
++- **`parserPass` is a HARD GATE — no LLM override.** Per `~/.claude/injected-rules/model-judgment-only.md`, the `## Blocked by` regex is deterministic and runs in `review.workflow.js` Bash, not as an LLM lens. The loop CANNOT EXIT (normal OR escape-hatch) while any pending issue file fails the parser. Even 4-of-4 counted criteria + coverage passing does not override this gate.
++- **Won't-fix is persisted to disk.** `<featureDir>/.issues-review.wontfix.md` survives sessions. Entries never deleted; rationales become the audit trail for the issue review. **`parserFailures` are NOT wont-fix-able** — they must be physically fixed (edit the offending line or move it to `## Hold`). **Wont-fix entries must include both `issueFile` and `anchor`** — entries missing `anchor` are silently ineffective; the workflow surfaces them in `stats.ledgerEntriesSkipped`.
+ - **No new issue files between rounds without rationale.** Splitting an issue is a legitimate response to a Granularity / Slicer finding — but the new file must be backtick-referenced from any dependent's `## Blocked by`, and the next-round `parserPass` check must still pass.
+diff --git a/claude/skills/review-with-agent/lenses/issues/AcceptanceCriteria.md b/claude/skills/review-with-agent/lenses/issues/AcceptanceCriteria.md
+index dfff2b7..1a13cbe 100644
+--- a/claude/skills/review-with-agent/lenses/issues/AcceptanceCriteria.md
++++ b/claude/skills/review-with-agent/lenses/issues/AcceptanceCriteria.md
+@@ -2,3 +2,3 @@
+ 
+-Enforce that Acceptance Criteria are testable, observable, and strictly behavioral — no implementation details allowed in the ACs. (Implementation details belong in `## What to build`).
++Every `## Acceptance criteria` checkbox must describe externally observable behavior, be testable, and not leak implementation internals. The bar is identical to the PRD User Story Acceptance Criteria bar, applied per-issue.
+ 
+@@ -8,12 +8,16 @@ Enforce that Acceptance Criteria are testable, observable, and strictly behavior
+ ## Method
+-1. Read ALL pending issue files.
+-2. For each issue, scrutinize the `## Acceptance criteria` section bullet by bullet.
+-
+-## Checklist
+-- **Implementation leak**: An AC bullet mentions a specific class, function name, file path, database column, or library (e.g. "The `UserService.login()` method returns true") → Blocking (rewrite as observable behavior: "When a valid user logs in, they are redirected to the dashboard")
+-- **Unverifiable**: "The UI feels fast" or "The code is robust" → Blocking (needs concrete observable condition)
+-- **Tautology**: "The feature works as described in What to build" → Blocking
+-- **Missing negative path**: The ACs only cover the happy path; missing validation failures, network errors, or empty states → Required
+-- **Missing AC section**: The issue has no `## Acceptance criteria` section at all → Blocking
+-- **Checkbox formatting**: The ACs use `- [ ]` syntax instead of just `- ` or `* `. Issues are documents, not checklists (the issue itself is the checklist item) → Suggestion
++1. Read every pending issue file's `## Acceptance criteria` section.
++2. For each checkbox bullet, judge against the checklist below.
++
++## Checklist — per checkbox
++- **Missing section**: issue has no `## Acceptance criteria` heading at all → Blocking
++- **Empty section**: heading present, zero bullets → Blocking
++- **Internals leak**: bullet names a class, method, file path, schema field, DB column, library API, or internal constant → Blocking (rewrite in observable terms)
++- **Not testable**: bullet is so vague no test could be written ("it works", "performance is good", "user is happy") → Blocking
++- **Happy path only**: section covers success but not failure / boundary / empty / concurrency cases the issue's surface obviously exposes → Required
++- **Pure implementation step**: bullet describes WHAT to do, not what shall be observable afterwards ("create the X table", "import the Y module") → Required (rewrite as outcome)
++- **Compound criterion**: one bullet bundles 3+ assertions joined by "and" — split for testability → Suggestion
++- **Implicit precondition not stated**: bullet asserts an outcome but the prerequisite state (user signed in, data populated, feature flag on) is omitted → Suggestion
++- **Quantification missing where needed**: "fast", "many", "small" — replace with a measurable target → Required
++- **Negative-form-only**: section only says what shouldn't happen, never asserts what should → Required
+ 
+@@ -22,2 +26,3 @@ Enforce that Acceptance Criteria are testable, observable, and strictly behavior
+ - Wont-fix ledger
++- Optional: PARENT_PRD (lets you cross-check that this issue's criteria don't contradict the parent Story's criteria)
+ 
+@@ -32,5 +37,5 @@ One finding per line:
+ Where:
+-- Category — ACCEPTANCE_CRITERIA (primary)
++- Category — ACCEPTANCE_CRITERIA
+ - IssueFile — the issue filename
+-- Anchor — `"AC-<n>"` (the ordinal of the offending bullet)
+-- Description — why the AC is flawed → suggested rewrite (≤3 lines)
++- Anchor — `"AC-<n>"` where `<n>` is the 1-based ordinal of the checkbox bullet (e.g. `AC-2` is the second `- [ ]`); use `"AC-section"` for whole-section findings (missing/empty)
++- Description — the problem with this criterion → why it's not testable / not observable → suggested rewrite (≤3 lines)
+diff --git a/claude/skills/review-with-agent/lenses/issues/DependencyAuditor.md b/claude/skills/review-with-agent/lenses/issues/DependencyAuditor.md
+index 573a509..4114b3b 100644
+--- a/claude/skills/review-with-agent/lenses/issues/DependencyAuditor.md
++++ b/claude/skills/review-with-agent/lenses/issues/DependencyAuditor.md
+@@ -1,17 +1,42 @@
+-# Dependency Auditor Lens
++# Issues Dependency Auditor Lens
+ 
+-**Primary Dimension**: DEPENDENCIES
++Audit declared and undeclared dependencies between issues. The `## Blocked by` section drives `/run-all-issues` dispatch order — wrong dependencies stall the loop or dispatch issues whose prerequisites aren't met.
+ 
+-You are reviewing a set of pending issue files (`NN-<slug>.md`). Your goal is to enforce **correct and explicit dependencies** between issues.
++## Primary dimensions covered
++- DEPENDENCIES (primary)
++- CONSISTENCY (cross-issue references must align)
+ 
+-1. **Undeclared Dependencies**: Flag if issue B relies on code/schema/APIs built in issue A, but issue B's `## Blocked by` section does not reference issue A.
+-2. **Circular Dependencies**: Flag if A blocks B, and B blocks A.
+-3. **Missing External Context**: If an issue clearly requires a new external library, infrastructure change, or permission that isn't mentioned in the implementation steps or `## Blocked by`.
+-4. **Premature Optimization**: If an issue depends on a complex abstraction being built first, question if the abstraction is actually needed yet.
++## Method
++1. Build a directed graph: for every issue, parse its `## Blocked by` list (issues already declared as blockers) and read its `## What to build` + `## Acceptance criteria` for semantic dependencies (e.g. "uses schema from X", "calls API defined in Y", "extends component from Z").
++2. Compare declared blockers vs semantic blockers.
++3. Walk the graph for cycles and wrong-direction edges.
+ 
+-**Output Format**:
+-`<Severity>|DEPENDENCIES|<IssueFile>|<Anchor>|<Description>`
++## Checklist — per issue
++- **Undeclared semantic dependency**: issue B's `## What to build` references something (schema, API, component, util) that issue A introduces, but B doesn't list A in `## Blocked by` → Blocking (loop will dispatch B before A is done)
++- **Phantom blocker**: issue lists `## Blocked by` reference to an issue file that doesn't exist in `issuesDir` → Blocking (will fail `/run-all-issues` preflight step 8)
++- **Wrong-direction blocker**: A claims to be blocked by B, but it's actually B that depends on A's output → Required (swap direction)
++- **Cycle**: A blocks B blocks A (transitively too) → Blocking — `/run-all-issues` will report `⚠️ Stuck`
++- **Non-code gate misplaced in `## Blocked by`**: bullets like `- **Phase 4 rollout signal**`, `- wait 1 week of telemetry`, `- needs design sign-off` → Blocking — these will fail `/run-all-issues` parser; instruct the author to move them to a new `## Hold` section or out of the issue
++- **Stale done-blocker reference**: A lists `done-NN-*.md` in `## Blocked by` — technically parser-valid, but the author probably forgot to update after the blocker was completed → Suggestion (clean up for readability)
++- **Coarse dependency**: A lists a sweeping blocker like "all schema work" rather than the specific issue → Required
++- **Implicit ordering via numbering**: issue 02 logically depends on 01's output but doesn't say so — readers will assume `/run-all-issues` enforces NN ordering (it doesn't; it picks smallest unblocked NN) → Required
+ 
+-*   **Severity**: Blocking (circular dependency, undeclared hard dependency), Required (missing context), Suggestion.
+-*   **IssueFile**: The filename (e.g., `03-feature.md`).
+-*   **Anchor**: `## Blocked by` or a quoted phrase from the steps.
++## Inputs
++- The issue files in `issuesDir`
++- Wont-fix ledger
++- Optional: PARENT_PRD context (helps you reason about logical ordering)
++
++## Constraints
++- ≤10 Suggestion findings; Blocking and Required uncapped. ≤3 lines each
++- If nothing actionable: output `LGTM`
++- **You do NOT validate `## Blocked by` regex format** — that's a deterministic preflight in the workflow. Focus on SEMANTIC correctness only.
++
++## Output Format
++One finding per line:
++`<Severity>|<Category>|<IssueFile>|<Anchor>|<Description>`
++
++Where:
++- Category — DEPENDENCIES (primary) or CONSISTENCY
++- IssueFile — the issue filename relative to `issuesDir`
++- Anchor — `"Blocked by"` (for the section as a whole) or `"Blocked by:<NN>"` (referencing a specific blocker NN) or `"What to build"` (for undeclared semantic deps)
++- Description — the dependency problem → consequence at `/run-all-issues` dispatch time → fix (≤3 lines)
+diff --git a/claude/skills/review-with-agent/lenses/issues/Granularity.md b/claude/skills/review-with-agent/lenses/issues/Granularity.md
+index 6c22044..b3eb3a8 100644
+--- a/claude/skills/review-with-agent/lenses/issues/Granularity.md
++++ b/claude/skills/review-with-agent/lenses/issues/Granularity.md
+@@ -1,18 +1,41 @@
+-# Granularity Lens
++# Issues Granularity Lens
+ 
+-**Primary Dimension**: GRANULARITY (or SUBTRACTABILITY)
++Judge whether each issue is sized right — neither a multi-day epic nor a sub-task fragment — and whether the set as a whole avoids duplication and decorative slices that don't earn their keep.
+ 
+-You are reviewing a set of pending issue files (`NN-<slug>.md`). Your goal is to enforce **appropriate task sizing and optionality**.
++## Primary dimensions covered
++- GRANULARITY (primary)
++- SUBTRACTABILITY (fold-in target for the PRD `Subtractor` lens's "doesn't earn its keep" critique)
+ 
+-1. **Too Large (Granularity)**: Flag issues that contain too much work for a single logical commit (e.g., building 3 different API endpoints and their UI in one issue). An issue should take 1-4 hours to implement. If it feels like a multi-day epic, it must be split.
+-2. **Too Small (Granularity)**: Flag issues that are absurdly small (e.g., changing one string in one file) unless it's a critical configuration step.
+-3. **Subtractability**: Flag non-essential "nice to have" polish, animations, or edge-case handling that are bundled into the critical path issues. These should be split into later, independent issues (or dropped).
+-4. **Scope Creep**: Identify any requirements that appear in the issues but are not justified by the PRD (if provided).
++## Method
++1. Read every pending issue file.
++2. For each issue, estimate the implementation surface from `## What to build` + `## Acceptance criteria` (rough scale: lines of code, files touched, test surface).
++3. Compare adjacent issues for overlap, near-duplication, or unjustified hairline splits.
+ 
+-**Output Format**:
++## Checklist — per issue
++- **Too coarse (epic)**: `## What to build` reads as multiple unrelated user-visible changes; `## Acceptance criteria` mixes orthogonal concerns; estimated >1 sprint → Required (propose split point)
++- **Too coarse (multi-concern)**: one issue ships a schema + an API + a UI + a migration script + a deprecation — even if all serve one story, the loop can't recover from a partial fail → Required (split along seams)
++- **Too fine (fragment)**: issue's only output is a sub-task of a sibling (e.g. "write the helper function used by issue 04") with no independent user value → Required (fold into the consumer)
++- **Too fine (mechanical split)**: two issues with near-identical `## What to build` that should be one → Required
++- **Decorative slice**: issue exists for thoroughness but no acceptance criterion produces user-observable change (e.g. "add metrics dashboards", "refactor naming") AND PRD doesn't tie it to a Story → Suggestion (consider dropping or labelling Out-of-Scope)
++- **While-we're-here scope creep**: `## What to build` mentions "and also clean up X" / "while doing this, refactor Y" → Required (extract or drop)
++- **Speculative slice**: issue addresses a "might need later" capability with no current consumer in the PRD → Required
++- **Duplicate slice**: two issues describe the same vertical from different angles → Blocking (merge)
++
++## Inputs
++- The issue files in `issuesDir`
++- Wont-fix ledger
++- Optional: PARENT_PRD (lets you cross-check decorative slices against actual Stories)
++
++## Constraints
++- ≤10 Suggestion findings; Blocking and Required uncapped. ≤3 lines each
++- If nothing actionable: output `LGTM`
++
++## Output Format
++One finding per line:
+ `<Severity>|<Category>|<IssueFile>|<Anchor>|<Description>`
+ 
+-*   **Category**: GRANULARITY or SUBTRACTABILITY.
+-*   **Severity**: Blocking (massive multi-day issue), Required (clear scope creep, bundle of unrelated tasks), Suggestion.
+-*   **IssueFile**: The filename.
+-*   **Anchor**: `## What to build`, `Title`, or quoted text.
++Where:
++- Category — GRANULARITY (primary) or SUBTRACTABILITY
++- IssueFile — the issue filename (when finding spans two issues, pick the one to act on, mention the other in the description)
++- Anchor — `"Title"` / `"What to build"` / `"AC-<n>"` / `"GLOBAL"` (for set-wide observations like overall duplication summary)
++- Description — current size/duplication problem → why it bites → split/merge/drop suggestion (≤3 lines)
+diff --git a/claude/skills/review-with-agent/lenses/issues/Slicer.md b/claude/skills/review-with-agent/lenses/issues/Slicer.md
+index 0a815f8..8a7b13e 100644
+--- a/claude/skills/review-with-agent/lenses/issues/Slicer.md
++++ b/claude/skills/review-with-agent/lenses/issues/Slicer.md
+@@ -1,16 +1,39 @@
+-# Slicer Lens
++# Issues Slicer Lens
+ 
+-**Primary Dimension**: VERTICAL_SLICE
++Enforce the vertical-slice / tracer-bullet rule: every issue must cut end-to-end through ALL integration layers it touches, NOT a horizontal slice of one layer.
+ 
+-You are reviewing a set of pending issue files (`NN-<slug>.md`). Your goal is to enforce **vertical slicing**. An issue should never be "just frontend" or "just backend" — it must deliver a testable slice of user value.
++## Primary dimensions covered
++- VERTICAL_SLICE (primary)
++- GRANULARITY (a slice that's purely one layer is also wrong-sized)
+ 
+-1. **Horizontal Layers**: Flag any issue that builds a database schema, an API endpoint, or a UI component without wiring it to the rest of the stack to deliver a user-visible feature.
+-2. **Tracer Bullets**: If the feature requires a complex backend and frontend, the *first* issue should establish a tracer bullet (e.g., hardcoded UI connected to a dummy endpoint) rather than building out the full data model in isolation.
+-3. **Testability**: Every issue must end with a verifiable behavior. If an issue only produces "dead code" (code that isn't called or isn't visible), flag it.
++## Method
++1. Read every pending issue file (`NN-*.md`, no `done-` prefix) under the feature's `issues/` directory.
++2. For each issue, identify which layers/components it claims to touch (schema, API, server logic, transport, client/UI, tests).
++3. Judge: is the work demoable or end-to-end verifiable on its own? Or does it produce a half-finished layer that requires sibling issues before any user-observable behavior changes?
+ 
+-**Output Format**:
+-`<Severity>|VERTICAL_SLICE|<IssueFile>|<Anchor>|<Description>`
++## Checklist — per issue
++- **All-backend slice**: issue only modifies schema / DB / API but produces no user-observable change → Blocking (cite the missing client/UI/test boundary)
++- **All-frontend slice**: issue wires up UI but the data path doesn't exist yet → Blocking unless explicitly stubbed end-to-end (mock server, fake data)
++- **Schema-only slice**: pure schema migration with no consumer change in the same issue → Required (justify why it ships alone)
++- **Test-only slice**: a "write tests for X" issue with no production code touched → Required unless the issue covers retrofitting tests for already-shipped code
++- **No demo path**: nothing in `## What to build` or `## Acceptance criteria` is externally observable → Blocking
++- **Layer-only granularity in `## What to build`**: phrasing like "implement the data layer" / "build the API endpoints" without mentioning the consumer → Required
++- **Hidden vertical**: issue claims to be vertical but every acceptance criterion is internal (file written, function defined, schema applied) → Required (rewrite criteria as observable behavior)
+ 
+-*   **Severity**: Blocking (pure horizontal layer with no tracer/wiring), Required (missing wiring but easily fixed), Suggestion (can be sliced thinner).
+-*   **IssueFile**: The filename (e.g., `01-schema.md`) or `GLOBAL` if it's a cross-issue problem.
+-*   **Anchor**: `## What to build`, `AC-X`, or a quoted phrase.
++## Inputs
++- The issue files in `issuesDir`
++- Wont-fix ledger
++
++## Constraints
++- ≤10 Suggestion findings; Blocking and Required uncapped. ≤3 lines each
++- If nothing actionable: output `LGTM`
++
++## Output Format
++One finding per line:
++`<Severity>|<Category>|<IssueFile>|<Anchor>|<Description>`
++
++Where:
++- Category — VERTICAL_SLICE (primary) or GRANULARITY (for layer-only granularity findings)
++- IssueFile — the issue filename relative to `issuesDir`, e.g. `03-balance-fetch.md`
++- Anchor — `"Title"` or `"What to build"` or `"AC-<n>"` (the specific acceptance-criterion bullet ordinal) — stable for cross-round dedup
++- Description — why this isn't a vertical slice → user-visible behavior that's missing → suggested rewrite or merge target (≤3 lines)
+diff --git a/claude/skills/review-with-agent/review.workflow.js b/claude/skills/review-with-agent/review.workflow.js
+index 9cef054..414bf5f 100644
+--- a/claude/skills/review-with-agent/review.workflow.js
++++ b/claude/skills/review-with-agent/review.workflow.js
+@@ -250,2 +250,43 @@ if (mode === 'plan') {
+ // ============================================================
++//
++// Two execution paths:
++//   1. Single-pass (default, no lensRoster arg) — one dispatch per backend
++//      with the 8-dimension PRD checklist. Use when /prd-review-loop drives
++//      dual-backend voting (current P0 wiring).
++//   2. Lens fan-out (when args.lensRoster is provided) — N parallel lens
++//      dispatches to a SINGLE backend, each lens reading its own prompt
++//      file under lenses/prd/<Lens>.md. Aggregation: ≥2 lens agreement on
++//      same finding → Blocking promoted; single-lens flag → Contested.
++//      Use when /prd-review-loop drops the second backend in favor of
++//      orthogonal lens perspectives (P1 wiring).
++//
++// Both paths accept:
++//   - args.prdPath OR args.prdContent — the PRD to review
++//   - args.contextFiles — array of {path, label, content} for ADR/glossary/
++//     GRILLCOMMITMENTS/historical-PRD context injection (P0-2)
++//   - args.wontfixLedger — array of {id, severity, source, rationale,
++//     decidedRoundN} for already-decided exclusions (P1-6); reviewer is
++//     told NOT to re-flag these
++//
++// PRD 8-dimension checklist (drives both paths):
++//   1. USER_STORY_INVEST — actor/feature/benefit triple, Independent,
++//      Negotiable, Valuable, Estimable, Small, Testable
++//   2. ACCEPTANCE_CRITERIA — Given-When-Then or observable behavior per
++//      story; must NOT reference class/method/schema/file
++//   3. TRACEABILITY — every story has at least one Testing Decision; every
++//      Testing Decision maps to ≥1 story
++//   4. USER_VOCABULARY — Problem/Solution/Stories in user language, not
++//      implementation terms; engineering metrics translated to UX
++//   5. INTERNAL_CAUSAL_CHAIN — Problem → Solution → Story → Decision
++//      traceable each direction
++//   6. OUT_OF_SCOPE_DISCIPLINE — every item has observable
++//      Re-evaluate-when trigger
++//   7. ASSUMPTIONS_SURFACED — explicit list + reviewer-inferred list of
++//      load-bearing assumptions
++//   8. NFR_PRESENCE — perf/security/a11y/observability per applicable
++//      feature category
++// Plus CONSISTENCY when args.contextFiles is non-empty:
++//   9. CONSISTENCY — terminology matches glossary; ADR relationship
++//      declared (extends/refines/supersedes); no GRILLCOMMITMENTS
++//      violation; no contradiction with historical PRDs
+ 
+@@ -575,2 +616,19 @@ ${ctxFiles.length === 0 ? '' : `
+ // ============================================================
++//
++// Reviews the SET of pending issue files written by /issues (typically under
++// ~/.claude/matt/features/<slug>/issues/NN-<slug>.md). Two-axis fan-out:
++//   axis 1: 5 issue lenses (Slicer / DependencyAuditor / Granularity /
++//           AcceptanceCriteria / Coverage). Coverage drops automatically
++//           when no PARENT_PRD entry is present in args.contextFiles.
++//   axis 2: per-issue dispatch (each lens sees ALL pending issues — set-wide
++//           review, not per-issue — so it's lens-parallel × 1 dispatch per
++//           lens, with the lens prompt receiving the full pending-issues
++//           bundle inline).
++//
++// Before lens dispatch, a deterministic Bash preflight runs the
++// /run-all-issues `## Blocked by` regex over every pending issue. Results
++// are surfaced as `parserFailures: [{file, reason, offendingLine}]`. This
++// is the source of truth used by /issues-review-loop's progression-check
++// `parserPass` hard gate — LLM lenses never see these as findings.
++
+ if (mode === 'issues') {
+@@ -578,2 +636,6 @@ if (mode === 'issues') {
+ 
++  // Helper: quote a JS string for safe use in a POSIX shell single-quoted context.
++  // JSON.stringify only produces JS string literals (double-quoted) — those still
++  // do $-expansion and command-substitution when embedded in bash. Single-quote
++  // wrapping with '\'' escaping makes the value a pure literal.
+   const shellQuote = (s) => "'" + String(s).replace(/'/g, "'\\''") + "'"
+@@ -584,3 +646,3 @@ if (mode === 'issues') {
+ 
+-  // Step 1: List pending issue files + deterministic parser preflight
++  // ----- Step 1: List pending issue files + deterministic parser preflight -----
+   const PARSER_SCHEMA = {
+@@ -606,3 +668,3 @@ if (mode === 'issues') {
+   const parserPreflight = await agent(
+-    `Run this Bash script and parse its JSON stdout. The script enumerates pending issue files in ${issuesDir} (NN-*.md, no done- prefix) and validates each one's "## Blocked by" section.
++    `Run this Bash script and parse its JSON stdout. The script enumerates pending issue files in ${issuesDir} (NN-*.md, no done- prefix) and validates each one's "## Blocked by" section against the same regex /run-all-issues uses (see ~/.claude/skills/run-all-issues/SKILL.md:40-59 — backtick form OR hash form OR single "None" shortcut).
+ 
+@@ -610,2 +672,3 @@ if (mode === 'issues') {
+ set -euo pipefail
++# issuesDir is wrapped as a POSIX single-quoted shell literal (defangs $-expansion / command-substitution).
+ ISSUES_DIR=${shellQuote(issuesDir)}
+@@ -613,3 +676,6 @@ ISSUES_DIR=${shellQuote(issuesDir)}
+ 
++# Bash 3.2 compatible — no mapfile, no <<<; macOS default bash is 3.2.
++
+ emit_failure() {
++  # args: $1=file basename, $2=reason, $3=offendingLine (may be empty)
+   printf '{"file":%s,"reason":%s,"offendingLine":%s}\\n' \\
+@@ -622,2 +688,4 @@ PENDING_LIST=$(find "$ISSUES_DIR" -maxdepth 1 -type f -name '*.md' ! -name 'done
+ 
++# Build the set of valid blocker numbers (NN) from filenames: pending NN-*.md OR done-NN-*.md
++# Used by /run-all-issues preflight step 9: "blocker NN must reference an existing issue file".
+ ALL_NNS=$(find "$ISSUES_DIR" -maxdepth 1 -type f -name '*.md' 2>/dev/null \\
+@@ -631,2 +699,3 @@ trap 'rm -f "$FAILURES_FILE" "$PENDING_FILE"' EXIT
+ 
++# Iterate via heredoc to preserve outer-shell state across loop body
+ while IFS= read -r f; do
+@@ -635,2 +704,3 @@ while IFS= read -r f; do
+   printf '%s\\n' "$bn" >> "$PENDING_FILE"
++  # Extract section body between "## Blocked by" and next "## " or EOF
+   body=$(awk '
+@@ -641,4 +711,7 @@ while IFS= read -r f; do
+ 
++  # No section → no blockers, OK
+   [ -z "$(printf '%s' "$body" | tr -d '[:space:]')" ] && continue
+ 
++  # Single-line "None" shortcut — case-SENSITIVE [Nn]one only, mirroring
++  # /run-all-issues/SKILL.md:49 regex \`^[ \\t]*[Nn]one\\b.*$\`
+   non_blank_lines=$(printf '%s\\n' "$body" | grep -vE '^[[:space:]]*$' || true)
+@@ -648,2 +721,3 @@ while IFS= read -r f; do
+   fi
++  # Mixed "None" + other lines → fail (same case-sensitive matcher)
+   if printf '%s' "$non_blank_lines" | grep -qE '^[[:space:]]*[Nn]one([^[:alnum:]_]|$)'; then
+@@ -654,2 +728,6 @@ while IFS= read -r f; do
+ 
++  # Every non-blank line must match backtick form OR hash form.
++  # Both regexes mirror /run-all-issues/SKILL.md:51-52 — the hash form uses a
++  # word-boundary equivalent ([^[:alnum:]_]|$) instead of GNU \\b so that #10x
++  # (digit→letter, both word chars) is rejected — same semantics as \\b in /run-all-issues.
+   fail_this=""
+@@ -671,2 +749,8 @@ while IFS= read -r f; do
+ 
++  # Existence check — mirror /run-all-issues SKILL.md step 9: every referenced
++  # blocker NN must exist as either NN-*.md or done-NN-*.md in the directory.
++  # Extract NN from every well-formed bullet (both backtick and hash forms).
++  # Note: the boundary check already happened in the earlier shape-validation
++  # loop, so sed here can use a simpler trailing match without alternation
++  # (BSD sed -E has trouble with `([^[:alnum:]_]|$)` capture groups).
+   ref_nns=$(printf '%s\\n' "$non_blank_lines" | sed -nE \\
+@@ -690,2 +774,3 @@ EOF_LIST
+ 
++# Emit JSON object
+ if [ -s "$PENDING_FILE" ]; then
+@@ -714,3 +799,7 @@ Return the parsed JSON object verbatim.`,
+ 
+-  // Step 2: Build the issue-bundle file
++  // ----- Step 2: Build the issue-bundle file (deterministic — pure shell cat) -----
++  // Each lens dispatch will `cat $BUNDLE_PATH` in its heredoc, the same pattern
++  // PRD mode uses (`cat <prd_or_tempfile>`). The bundle is built via Bash, not
++  // an LLM, per ~/.claude/injected-rules/model-judgment-only.md — concat is
++  // deterministic data transformation, not judgment.
+   const BUNDLE_BUILD_SCHEMA = {
+@@ -747,3 +836,3 @@ Return the parsed JSON object verbatim.`,
+ 
+-  // Step 3: Decide lens roster
++  // ----- Step 3: Decide lens roster (auto-drop Coverage when no PARENT_PRD) -----
+   const DEFAULT_ROSTER = ['Slicer', 'DependencyAuditor', 'Granularity', 'AcceptanceCriteria', 'Coverage']
+@@ -757,3 +846,3 @@ Return the parsed JSON object verbatim.`,
+ 
+-  // Step 4: Compose context block and wont-fix block
++  // ----- Step 4: Compose context block (PARENT_PRD + others) and wont-fix block -----
+   const ctxBlock = ctxFiles.length === 0
+@@ -770,3 +859,3 @@ Return the parsed JSON object verbatim.`,
+ 
+-  // Step 5: Issues finding schema (per lens)
++  // ----- Step 5: Issues finding schema (per lens) -----
+   const ISSUES_FINDINGS_SCHEMA = {
+@@ -792,4 +881,10 @@ Return the parsed JSON object verbatim.`,
+             },
+-            issueFile: { type: 'string' },
+-            anchor: { type: 'string' },
++            issueFile: {
++              type: 'string',
++              description: 'Issue filename (e.g. "03-foo.md") or "GLOBAL" for set-wide findings',
++            },
++            anchor: {
++              type: 'string',
++              description: 'Stable identifier within the issue (e.g. "AC-2", "Blocked-by:NN", "Title", "MATRIX-SUMMARY") for cross-round dedup',
++            },
+             description: { type: 'string' },
+@@ -801,3 +896,3 @@ Return the parsed JSON object verbatim.`,
+ 
+-  // Step 6: Lens fan-out
++  // ----- Step 6: Lens fan-out -----
+   log(`issues: dispatching ${effectiveRoster.length} lenses to ${backend} over ${pendingFiles.length} pending issue files: ${effectiveRoster.join(', ')}`)
+@@ -809,3 +904,3 @@ Return the parsed JSON object verbatim.`,
+       1. Read ~/.claude/skills/review-with-agent/lenses/issues/${lens}.md for this lens's checklist and output format.
+-      2. Dispatch using this exact Bash pipeline:
++      2. Dispatch using this exact Bash pipeline (heredoc + cat for the bundle file — avoids shell arg length limits and avoids LLM-mangling the bundle):
+ 
+@@ -828,4 +923,5 @@ Return the parsed JSON object verbatim.`,
+          Treat as failure and return {findings: []}.
+-      5. Parse each non-noise line into a finding {severity, category, issueFile, anchor, description}.
++      5. Parse each non-noise non-LGTM line into a finding {severity, category, issueFile, anchor, description}.
+          The lens output format is: \`<Severity>|<Category>|<IssueFile>|<Anchor>|<Description>\`
++         Set category to the lens's primary dimension when ambiguous (lens file documents which).
+       Return {findings: [...]} matching the schema.`,
+@@ -847,3 +943,3 @@ Return the parsed JSON object verbatim.`,
+ 
+-  // Step 7: Synthesize — merge by (issueFile, anchor)
++  // ----- Step 7: Synthesize — merge by (issueFile, anchor) -----
+   phase('Synthesize')
+@@ -890,3 +986,5 @@ Return the parsed JSON object verbatim.`,
+ 
+-  // Step 8: Verdict
++  // ----- Step 8: Verdict -----
++  // PRD-lens-fanout style: 0 Blocking → PASS; ≥2-lens agreement on Blocking → REJECT; single-lens Blocking → CONTESTED.
++  // Plus the deterministic hard override: parserFailures.length > 0 → REJECT regardless of LLM verdict.
+   const blockers = merged.findings.filter(f => f.severity === 'Blocking')
+@@ -904,3 +1002,3 @@ Return the parsed JSON object verbatim.`,
+ 
+-  // Cleanup bundle tempfile
++  // Cleanup bundle tempfile (best-effort; ignore failure if file was never created or already gone)
+   if (bundlePath) {
+diff --git a/claude/skills/review-with-agent/SKILL.md b/claude/skills/review-with-agent/SKILL.md
+index 8304571..01f3ae5 100644
+--- a/claude/skills/review-with-agent/SKILL.md
++++ b/claude/skills/review-with-agent/SKILL.md
+@@ -2,3 +2,3 @@
+ name: review-with-agent
+-description: Multi-lens adversarial code review using external AI CLIs (Codex or opencode). Shared workflow invoked by /codex-review and /opencode-review for code review, by /prd-review-loop for PRD review. Supports code mode (working-tree diffs), plan mode (implementation-plan markdown), and prd mode (PRD documents with 8-dimension checklist). Not for reviewing already-committed code.
++description: Multi-lens adversarial code review using external AI CLIs (Codex or opencode). Shared workflow invoked by /codex-review and /opencode-review for code review, by /prd-review-loop for PRD review, by /issues-review-loop for issue-set review. Supports code mode (working-tree diffs), plan mode (implementation-plan markdown), prd mode (PRD documents with 8-dimension checklist), and issues mode (issue-set with 5-lens fan-out + deterministic Blocked-by parser preflight). Not for reviewing already-committed code.
+ allowed-tools: Workflow, Bash, Read
+@@ -36,3 +36,3 @@ Workflow({
+   args: {
+-    mode: 'code' | 'plan' | 'prd',
++    mode: 'code' | 'plan' | 'prd' | 'issues',
+     backend: 'codex' | 'opencode',
+@@ -45,4 +45,7 @@ Workflow({
+     prdContent: '<inline text>',  // when reviewing in-conversation PRD draft
++    // issues mode (issue-set review with 5-lens fan-out + parser preflight):
++    issuesDir: '<path>',          // directory containing pending NN-*.md issue files
+     contextFiles: [               // optional project-context cross-check (P0-2)
+       { path, label, content }    // ADR / GLOSSARY / GRILLCOMMITMENTS / sibling-PRD
++                                  // for issues mode: PARENT_PRD (required by Coverage lens)
+     ],
+@@ -54,2 +57,6 @@ Workflow({
+       'Subtractor', 'Glossarian', 'Coverer'
++                                  // for issues mode default:
++                                  //   ['Slicer', 'DependencyAuditor', 'Granularity',
++                                  //    'AcceptanceCriteria', 'Coverage']
++                                  // Coverage auto-drops when no PARENT_PRD in contextFiles
+     ],
+@@ -61,3 +68,4 @@ If `mode === 'plan'` and neither `planPath` nor `planContent` is provided, the
+ workflow aborts. If `mode === 'prd'` and neither `prdPath` nor `prdContent`
+-is provided, the workflow aborts. The calling backend skill is responsible
++is provided, the workflow aborts. If `mode === 'issues'` and `issuesDir`
++is not provided, the workflow aborts. The calling backend skill is responsible
+ for resolving the ambiguity (asking the user, writing in-conversation drafts
+@@ -81,2 +89,16 @@ shared with `/finalize`):
+ 
++### Issues mode lens roster
++
++Fixed 5-lens roster — no scale tiers (every pending issue is reviewed by every lens):
++
++| Lens                | Primary dimension              | Drops when                     |
++|---------------------|--------------------------------|--------------------------------|
++| Slicer              | VERTICAL_SLICE                 | never                          |
++| DependencyAuditor   | DEPENDENCIES                   | never                          |
++| Granularity         | GRANULARITY / SUBTRACTABILITY  | never                          |
++| AcceptanceCriteria  | ACCEPTANCE_CRITERIA            | never                          |
++| Coverage            | COVERAGE                       | no PARENT_PRD in contextFiles  |
++
++A deterministic `## Blocked by` parser preflight runs BEFORE the lenses (Bash regex, not an LLM lens). Results are surfaced as `parserFailures: [{file, reason, offendingLine}]`. The parser is the same one used by `/run-all-issues` (see `run-all-issues/SKILL.md:40-59`).
++
+ ## Output Schema
+@@ -159,2 +181,41 @@ PRD verdict rules:
+ 
++Issues mode (lens fan-out — always; no single-pass variant):
++
++```ts
++{
++  mode: 'issues',
++  execPath: 'lens-fanout',
++  verdict: 'PASS' | 'CONTESTED' | 'REJECT',
++  modeLabel: string,
++  lensRoster: string[],                 // effective roster after Coverage auto-drop
++  issueFilesReviewed: string[],         // basenames of pending NN-*.md files
++  parserFailures: [{                    // deterministic — NOT from LLM lenses
++    file: string,
++    reason: string,
++    offendingLine?: string,
++  }],
++  lensResults: [{ lens, findingCount }],
++  findings: [{
++    severity: 'Blocking' | 'Required' | 'Suggestion',
++    category: 'VERTICAL_SLICE' | 'DEPENDENCIES' | 'GRANULARITY'
++            | 'ACCEPTANCE_CRITERIA' | 'COVERAGE' | 'SUBTRACTABILITY',
++    issueFile: string,                  // e.g. "03-foo.md" or "GLOBAL"
++    anchor: string,                     // e.g. "AC-2", "Blocked-by:NN", "MATRIX-SUMMARY"
++    description: string,
++    lenses: string[],
++  }],
++  stats: {
++    total, blockers, multiLensBlockers,
++    parserFailureCount,                  // mirrors parserFailures.length
++    contextFilesInjected, wontfixEntriesApplied,
++  },
++}
++```
++
++Issues verdict rules:
++- `parserFailures.length > 0` → **REJECT** regardless of LLM verdict (deterministic hard override)
++- 0 Blocking → PASS
++- Any Blocking flagged by ≥2 lenses → REJECT
++- Single-lens Blocking → CONTESTED
++
+ ## Verdict Rules
