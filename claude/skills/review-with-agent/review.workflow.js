@@ -783,7 +783,7 @@ while IFS= read -r f; do
   # Extract NN from every well-formed bullet (both backtick and hash forms).
   # Note: the boundary check already happened in the earlier shape-validation
   # loop, so sed here can use a simpler trailing match without alternation
-  # (BSD sed -E has trouble with `([^[:alnum:]_]|$)` capture groups).
+  # (BSD sed -E has trouble with \`([^[:alnum:]_]|$)\` capture groups).
   ref_nns=$(printf '%s\\n' "$non_blank_lines" | sed -nE \\
     -e 's|^[[:space:]]*[-*+][[:space:]]+\`(done-)?([0-9]{2,})-[a-z0-9-]+\\.md\`.*|\\2|p' \\
     -e 's|^[[:space:]]*[-*+][[:space:]]+#([0-9]{2,}).*|\\1|p' \\
