@@ -21,8 +21,8 @@ For each changed function/class/export: find callers, check broken assumptions, 
 - Only flag impacts on code OUTSIDE the diff
 
 ## Constraints
-- ≤10 findings, ≤3 lines each
-- `[New]` findings take priority — only include `[Pre-existing]` if cap allows
+- ≤10 Suggestion findings (spam guard); Blocking and Required uncapped. ≤3 lines each
+- `[New]` findings always take priority; only include `[Pre-existing]` if the Suggestion cap (≤10) still has room
 - If nothing actionable: output `LGTM`
 
 ## Output Format

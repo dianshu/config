@@ -26,7 +26,7 @@ Focus is on test files, but production-code edits are in scope when they exist s
 - (o, **Required**) Visibility widened (private → public/internal) solely to enable assertions
 
 ## Constraints
-- ≤10 findings, ≤3 lines each
+- ≤10 Suggestion findings (spam guard); Blocking and Required uncapped. ≤3 lines each
 - Severity defaults above; you may adjust up/down with explicit reasoning
 - If nothing actionable: output `LGTM`
 

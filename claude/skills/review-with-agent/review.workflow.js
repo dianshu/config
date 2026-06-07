@@ -317,7 +317,7 @@ async function dispatchLens(lens) {
     6. Parse each non-noise line as one finding: \`<Sev> [New|Pre-existing] file:line description\`.
        For TestHygiene: description starts with item letter (a-o).
        For Integration: description includes affected caller path.
-    7. Cap findings at 10. Truncate description to 3 lines if needed.
+    7. Cap Suggestion findings at 10 (spam guard); leave Blocking and Required uncapped so multi-lens REJECT signal and real bugs aren't silently dropped. Truncate each description to 3 lines if needed.
     8. Return the schema with lens="${lens}".`,
     {
       schema: LENS_RESULT_SCHEMA,

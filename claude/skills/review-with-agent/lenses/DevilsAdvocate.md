@@ -20,8 +20,8 @@ Question the premise AND the craft: is this the right solution, and is it writte
 - Junk-drawer files (`utils.ts`, `helpers.js` accreting unrelated functions)
 
 ## Constraints
-- ≤10 findings, ≤3 lines each
-- `[New]` findings take priority — only include `[Pre-existing]` if cap allows
+- ≤10 Suggestion findings (spam guard); Blocking and Required uncapped. ≤3 lines each
+- `[New]` findings always take priority; only include `[Pre-existing]` if the Suggestion cap (≤10) still has room
 - If nothing actionable: output `LGTM`
 
 ## Output Format
