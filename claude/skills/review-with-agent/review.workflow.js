@@ -13,7 +13,7 @@ export const meta = {
 // Backend dispatch commands — single source of truth (replaces shell-var config in codex-review/opencode-review)
 const BACKEND_CONFIG = {
   codex: {
-    preflight: 'codex --version 2>/dev/null',
+    preflight: 'codex --version 2>/dev/null && command -v jq >/dev/null',
     dispatch: 'codex exec - --cd "$(pwd)" --ephemeral -s read-only',
     readonlyDispatch: 'codex exec - --cd "$(pwd)" --ephemeral -s read-only',
     planDispatch: 'codex exec - --skip-git-repo-check --ephemeral -s read-only',
@@ -165,47 +165,6 @@ if (!preflight.ok) {
 // ============================================================
 // Plan Review mode (short branch — single dispatch, no fan-out)
 // ============================================================
-//
-// Two execution paths:
-//   1. Single-pass (default, no lensRoster arg) — one dispatch per backend
-//      with the 8-dimension PRD checklist. Use when /prd-review-loop drives
-//      dual-backend voting (current P0 wiring).
-//   2. Lens fan-out (when args.lensRoster is provided) — N parallel lens
-//      dispatches to a SINGLE backend, each lens reading its own prompt
-//      file under lenses/prd/<Lens>.md. Aggregation: ≥2 lens agreement on
-//      same finding → Blocking promoted; single-lens flag → Contested.
-//      Use when /prd-review-loop drops the second backend in favor of
-//      orthogonal lens perspectives (P1 wiring).
-//
-// Both paths accept:
-//   - args.prdPath OR args.prdContent — the PRD to review
-//   - args.contextFiles — array of {path, label, content} for ADR/glossary/
-//     GRILLCOMMITMENTS/historical-PRD context injection (P0-2)
-//   - args.wontfixLedger — array of {id, severity, source, rationale,
-//     decidedRoundN} for already-decided exclusions (P1-6); reviewer is
-//     told NOT to re-flag these
-//
-// PRD 8-dimension checklist (drives both paths):
-//   1. USER_STORY_INVEST — actor/feature/benefit triple, Independent,
-//      Negotiable, Valuable, Estimable, Small, Testable
-//   2. ACCEPTANCE_CRITERIA — Given-When-Then or observable behavior per
-//      story; must NOT reference class/method/schema/file
-//   3. TRACEABILITY — every story has at least one Testing Decision; every
-//      Testing Decision maps to ≥1 story
-//   4. USER_VOCABULARY — Problem/Solution/Stories in user language, not
-//      implementation terms; engineering metrics translated to UX
-//   5. INTERNAL_CAUSAL_CHAIN — Problem → Solution → Story → Decision
-//      traceable each direction
-//   6. OUT_OF_SCOPE_DISCIPLINE — every item has observable
-//      Re-evaluate-when trigger
-//   7. ASSUMPTIONS_SURFACED — explicit list + reviewer-inferred list of
-//      load-bearing assumptions
-//   8. NFR_PRESENCE — perf/security/a11y/observability per applicable
-//      feature category
-// Plus CONSISTENCY when args.contextFiles is non-empty:
-//   9. CONSISTENCY — terminology matches glossary; ADR relationship
-//      declared (extends/refines/supersedes); no GRILLCOMMITMENTS
-//      violation; no contradiction with historical PRDs
 
 if (mode === 'plan') {
   phase('Lens-fanout')
@@ -719,26 +678,30 @@ ISSUES_DIR=${shellQuote(issuesDir)}
 
 emit_failure() {
   # args: $1=file basename, $2=reason, $3=offendingLine (may be empty)
-  printf '{"file":%s,"reason":%s,"offendingLine":%s}\n' \
-    "$(jq -Rn --arg s "$1" '$s')" \
-    "$(jq -Rn --arg s "$2" '$s')" \
+  printf '{"file":%s,"reason":%s,"offendingLine":%s}\\n' \\
+    "$(jq -Rn --arg s "$1" '$s')" \\
+    "$(jq -Rn --arg s "$2" '$s')" \\
     "$(jq -Rn --arg s "$3" '$s')"
 }
 
 PENDING_LIST=$(find "$ISSUES_DIR" -maxdepth 1 -type f -name '*.md' ! -name 'done-*' | sort)
 
+FAILURES_FILE=$(mktemp)
+PENDING_FILE=$(mktemp)
+trap 'rm -f "$FAILURES_FILE" "$PENDING_FILE"' EXIT
+
 # /run-all-issues preflight step 3 invariant: every file in issues/ must match
-# ^(done-)?[0-9]{2,}-[a-z0-9-]+\.md$ AND NN must be unique across pending+done.
+# ^(done-)?[0-9]{2,}-[a-z0-9-]+\\.md$ AND NN must be unique across pending+done.
 # Detect filenames that violate the shape — they would crash /run-all-issues at
 # preflight step 3 before any drain. Surface them as parserFailures so the
 # parserPass hard gate fires.
-SHAPE_BAD=$(find "$ISSUES_DIR" -maxdepth 1 -type f -name '*.md' \
-  | sed -E 's|^.*/||' \
-  | grep -Ev '^(done-)?[0-9]{2,}-[a-z0-9-]+\.md$' || true)
+SHAPE_BAD=$(find "$ISSUES_DIR" -maxdepth 1 -type f -name '*.md' \\
+  | sed -E 's|^.*/||' \\
+  | grep -Ev '^(done-)?[0-9]{2,}-[a-z0-9-]+\\.md$' || true)
 if [ -n "$SHAPE_BAD" ]; then
   while IFS= read -r bn; do
     [ -z "$bn" ] && continue
-    emit_failure "$bn" 'Filename violates /run-all-issues invariant ^(done-)?[0-9]{2,}-[a-z0-9-]+\.md$ — would crash preflight step 3' "" >> "$FAILURES_FILE"
+    emit_failure "$bn" 'Filename violates /run-all-issues invariant ^(done-)?[0-9]{2,}-[a-z0-9-]+\\.md$ — would crash preflight step 3' "" >> "$FAILURES_FILE"
   done <<EOF_BAD
 $SHAPE_BAD
 EOF_BAD
@@ -747,37 +710,33 @@ fi
 # Duplicate-NN detection: stripping the optional done- prefix and the slug suffix,
 # the NN must be unique across the directory. Both 03-foo.md and done-03-bar.md
 # present is a conflict per /run-all-issues preflight step 3.
-DUP_NNS=$(find "$ISSUES_DIR" -maxdepth 1 -type f -name '*.md' 2>/dev/null \
-  | sed -E 's|.*/(done-)?([0-9]{2,})-[a-z0-9-]+\.md|\2|' \
-  | grep -E '^[0-9]{2,}$' \
+DUP_NNS=$(find "$ISSUES_DIR" -maxdepth 1 -type f -name '*.md' 2>/dev/null \\
+  | sed -E 's|.*/(done-)?([0-9]{2,})-[a-z0-9-]+\\.md|\\2|' \\
+  | grep -E '^[0-9]{2,}$' \\
   | sort | uniq -d || true)
 if [ -n "$DUP_NNS" ]; then
   for nn in $DUP_NNS; do
-    DUPS=$(find "$ISSUES_DIR" -maxdepth 1 -type f \( -name "$nn-*.md" -o -name "done-$nn-*.md" \) | sed 's|^.*/||' | tr '\n' ' ')
+    DUPS=$(find "$ISSUES_DIR" -maxdepth 1 -type f \\( -name "$nn-*.md" -o -name "done-$nn-*.md" \\) | sed 's|^.*/||' | tr '\\n' ' ')
     emit_failure "$nn" "Duplicate NN $nn — multiple files share this number: $DUPS" "" >> "$FAILURES_FILE"
   done
 fi
 
 # Build the set of valid blocker numbers (NN) from filenames: pending NN-*.md OR done-NN-*.md
 # Used by /run-all-issues preflight step 9: "blocker NN must reference an existing issue file".
-ALL_NNS=$(find "$ISSUES_DIR" -maxdepth 1 -type f -name '*.md' 2>/dev/null \
-  | sed -E 's|.*/(done-)?([0-9]{2,})-[a-z0-9-]+\.md|\2|' \
-  | grep -E '^[0-9]{2,}$' \
+ALL_NNS=$(find "$ISSUES_DIR" -maxdepth 1 -type f -name '*.md' 2>/dev/null \\
+  | sed -E 's|.*/(done-)?([0-9]{2,})-[a-z0-9-]+\\.md|\\2|' \\
+  | grep -E '^[0-9]{2,}$' \\
   | sort -u || true)
-
-FAILURES_FILE=$(mktemp)
-PENDING_FILE=$(mktemp)
-trap 'rm -f "$FAILURES_FILE" "$PENDING_FILE"' EXIT
 
 # Iterate via heredoc to preserve outer-shell state across loop body
 while IFS= read -r f; do
   [ -z "$f" ] && continue
   bn=$(basename "$f")
-  printf '%s\n' "$bn" >> "$PENDING_FILE"
+  printf '%s\\n' "$bn" >> "$PENDING_FILE"
   # Extract section body between "## Blocked by" and next "## " or EOF
   body=$(awk '
-    /^##[ \t]+Blocked by[ \t]*$/ {in_sec=1; next}
-    in_sec && /^##[ \t]/ {exit}
+    /^##[ \\t]+Blocked by[ \\t]*$/ {in_sec=1; next}
+    in_sec && /^##[ \\t]/ {exit}
     in_sec {print}
   ' "$f")
 
@@ -785,28 +744,28 @@ while IFS= read -r f; do
   [ -z "$(printf '%s' "$body" | tr -d '[:space:]')" ] && continue
 
   # Single-line "None" shortcut — case-SENSITIVE [Nn]one only, mirroring
-  # /run-all-issues/SKILL.md:49 regex \`^[ \t]*[Nn]one\b.*$\`
-  non_blank_lines=$(printf '%s\n' "$body" | grep -vE '^[[:space:]]*$' || true)
-  non_blank_count=$(printf '%s\n' "$non_blank_lines" | grep -c '.' || true)
+  # /run-all-issues/SKILL.md:49 regex \`^[ \\t]*[Nn]one\\b.*$\`
+  non_blank_lines=$(printf '%s\\n' "$body" | grep -vE '^[[:space:]]*$' || true)
+  non_blank_count=$(printf '%s\\n' "$non_blank_lines" | grep -c '.' || true)
   if [ "$non_blank_count" = "1" ] && printf '%s' "$non_blank_lines" | grep -qE '^[[:space:]]*[Nn]one([^[:alnum:]_]|$)'; then
     continue
   fi
   # Mixed "None" + other lines → fail (same case-sensitive matcher)
   if printf '%s' "$non_blank_lines" | grep -qE '^[[:space:]]*[Nn]one([^[:alnum:]_]|$)'; then
-    bad_line=$(printf '%s\n' "$non_blank_lines" | grep -E '^[[:space:]]*[Nn]one([^[:alnum:]_]|$)' | head -1)
+    bad_line=$(printf '%s\\n' "$non_blank_lines" | grep -E '^[[:space:]]*[Nn]one([^[:alnum:]_]|$)' | head -1)
     emit_failure "$bn" 'Mixed None shortcut with other bullets (not allowed)' "$bad_line" >> "$FAILURES_FILE"
     continue
   fi
 
   # Every non-blank line must match backtick form OR hash form.
   # Both regexes mirror /run-all-issues/SKILL.md:51-52 — the hash form uses a
-  # word-boundary equivalent ([^[:alnum:]_]|$) instead of GNU \b so that #10x
-  # (digit→letter, both word chars) is rejected — same semantics as \b in /run-all-issues.
+  # word-boundary equivalent ([^[:alnum:]_]|$) instead of GNU \\b so that #10x
+  # (digit→letter, both word chars) is rejected — same semantics as \\b in /run-all-issues.
   fail_this=""
   fail_tmp=$(mktemp)
-  printf '%s\n' "$non_blank_lines" | while IFS= read -r line; do
+  printf '%s\\n' "$non_blank_lines" | while IFS= read -r line; do
     [ -z "$line" ] && continue
-    if printf '%s' "$line" | grep -qE '^[[:space:]]*[-*+][[:space:]]+\`(done-)?[0-9]{2,}-[a-z0-9-]+\.md\`'; then continue; fi
+    if printf '%s' "$line" | grep -qE '^[[:space:]]*[-*+][[:space:]]+\`(done-)?[0-9]{2,}-[a-z0-9-]+\\.md\`'; then continue; fi
     if printf '%s' "$line" | grep -qE '^[[:space:]]*[-*+][[:space:]]+#[0-9]{2,}([^[:alnum:]_]|$)'; then continue; fi
     printf '%s' "$line" > "$fail_tmp"
     break
@@ -825,19 +784,19 @@ while IFS= read -r f; do
   # Note: the boundary check already happened in the earlier shape-validation
   # loop, so sed here can use a simpler trailing match without alternation
   # (BSD sed -E has trouble with `([^[:alnum:]_]|$)` capture groups).
-  ref_nns=$(printf '%s\n' "$non_blank_lines" | sed -nE \
-    -e 's|^[[:space:]]*[-*+][[:space:]]+\`(done-)?([0-9]{2,})-[a-z0-9-]+\.md\`.*|\2|p' \
-    -e 's|^[[:space:]]*[-*+][[:space:]]+#([0-9]{2,}).*|\1|p' \
+  ref_nns=$(printf '%s\\n' "$non_blank_lines" | sed -nE \\
+    -e 's|^[[:space:]]*[-*+][[:space:]]+\`(done-)?([0-9]{2,})-[a-z0-9-]+\\.md\`.*|\\2|p' \\
+    -e 's|^[[:space:]]*[-*+][[:space:]]+#([0-9]{2,}).*|\\1|p' \\
     | sort -u)
   missing_nn=""
   for nn in $ref_nns; do
-    if ! printf '%s\n' "$ALL_NNS" | grep -qx "$nn"; then
+    if ! printf '%s\\n' "$ALL_NNS" | grep -qx "$nn"; then
       missing_nn="$nn"
       break
     fi
   done
   if [ -n "$missing_nn" ]; then
-    bad_line=$(printf '%s\n' "$non_blank_lines" | grep -E "(\`(done-)?$missing_nn-|#$missing_nn([^[:alnum:]_]|$))" | head -1)
+    bad_line=$(printf '%s\\n' "$non_blank_lines" | grep -E "(\`(done-)?$missing_nn-|#$missing_nn([^[:alnum:]_]|$))" | head -1)
     emit_failure "$bn" "References nonexistent blocker $missing_nn (no NN-*.md or done-NN-*.md)" "$bad_line" >> "$FAILURES_FILE"
   fi
 done <<EOF_LIST
@@ -887,13 +846,12 @@ Return the parsed JSON object verbatim.`,
 
 \`\`\`bash
 set -euo pipefail
-# issuesDir is wrapped as a POSIX single-quoted shell literal (defangs $-expansion / command-substitution).
 ISSUES_DIR=${shellQuote(issuesDir)}
 BUNDLE_PATH=$(mktemp -t issues-bundle.XXXXXX)
 for f in ${pendingFiles.map(f => shellQuote(f)).join(' ')}; do
-  printf '===== ISSUE FILE: %s =====\n' "$f" >> "$BUNDLE_PATH"
+  printf '===== ISSUE FILE: %s =====\\n' "$f" >> "$BUNDLE_PATH"
   cat "$ISSUES_DIR/$f" >> "$BUNDLE_PATH"
-  printf '\n' >> "$BUNDLE_PATH"
+  printf '\\n' >> "$BUNDLE_PATH"
 done
 jq -n --arg p "$BUNDLE_PATH" '{bundlePath: $p}'
 \`\`\`
@@ -967,11 +925,13 @@ Return the parsed JSON object verbatim.`,
             },
             issueFile: {
               type: 'string',
-              description: 'Issue filename (e.g. "03-foo.md") or "GLOBAL" for set-wide findings',
+              minLength: 1,
+              description: 'Issue filename (e.g. "03-foo.md") or "GLOBAL" for set-wide findings — must be non-empty (empty strings produce phantom keys downstream)',
             },
             anchor: {
               type: 'string',
-              description: 'Stable identifier within the issue (e.g. "AC-2", "Blocked-by:NN", "Title", "MATRIX-SUMMARY") for cross-round dedup',
+              minLength: 1,
+              description: 'Stable identifier within the issue (e.g. "AC-2", "Blocked-by:NN", "Title", "MATRIX-SUMMARY") for cross-round dedup — must be non-empty',
             },
             description: { type: 'string' },
           },
@@ -1076,14 +1036,8 @@ Return the parsed JSON object verbatim.`,
           properties: {
             severity: { enum: ['Blocking', 'Required', 'Suggestion'] },
             category: { type: 'string' },
-            issueFile: {
-              type: 'string',
-              description: 'Issue filename (e.g. "03-foo.md") or "GLOBAL" for set-wide findings',
-            },
-            anchor: {
-              type: 'string',
-              description: 'Stable identifier within the issue (e.g. "AC-2", "Blocked-by:NN", "Title", "MATRIX-SUMMARY") for cross-round dedup',
-            },
+            issueFile: { type: 'string', minLength: 1 },
+            anchor: { type: 'string', minLength: 1 },
             description: { type: 'string' },
             lenses: { type: 'array', items: { type: 'string' }, minItems: 1 },
           },

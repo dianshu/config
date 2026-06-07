@@ -8,11 +8,12 @@ Verify that the union of pending issues covers every User Story and Acceptance C
 ## Method
 1. Read the PARENT_PRD content (from `args.contextFiles` entry whose label === `"PARENT_PRD"`).
 2. Enumerate every User Story (`US-<n>`) and its Acceptance Criteria from the PRD.
-3. Read every pending issue file (`NN-*.md`, no `done-` prefix).
-4. Build the coverage matrix:
-   - PRD User Story `US-<n>` → which issue file(s) reference it (via `## Parent` link, `## What to build` mention, or an Acceptance Criterion that obviously implements one of US-`<n>`'s Acceptance Criteria)
-   - Each issue → which PRD User Story it covers
-5. Walk for gaps and orphans.
+3. Read every pending issue file (`NN-*.md`, no `done-` prefix) — this is what the bundle contains.
+4. Note: the bundle does NOT include `done-NN-*.md` file content (only filenames are observable via the bundle separator pattern in the workflow). For done coverage, infer from filenames + PRD-document Story status if any (e.g. PRD `## Completed Stories` list). When uncertain, surface as a Suggestion-severity note rather than a Blocking gap.
+5. Build the coverage matrix:
+   - PRD User Story `US-<n>` → which pending issue file(s) reference it (via `## Parent` link, `## What to build` mention, or an Acceptance Criterion that obviously implements one of US-`<n>`'s Acceptance Criteria)
+   - Each pending issue → which PRD User Story it covers
+6. Walk for gaps and orphans.
 
 ## Checklist
 - **Uncovered User Story**: PRD `US-<n>` exists, no pending or done issue covers it → Blocking
@@ -21,12 +22,14 @@ Verify that the union of pending issues covers every User Story and Acceptance C
 - **Multi-claim**: two issues both claim to cover the same `US-<n>` Acceptance Criterion without specifying which slice of the behavior each owns → Required (delineate slices or merge)
 - **Partial-coverage masquerading as full**: issue claims to cover `US-<n>` but its `## Acceptance criteria` only addresses a subset; remaining slice is silently unscheduled → Required
 - **PRD-Out-of-Scope being implemented**: an issue ships behavior the PRD's `## Out of Scope` explicitly excludes → Blocking (the author either re-scoped the PRD without updating it, or built the wrong thing)
-- **Coverage-of-done**: when `done-NN-*.md` files cover a Story, count them as covered — don't re-flag — but note in a Suggestion that the audit assumes the done work was correct
+- **Coverage-of-done**: the workflow bundle only contains pending issue file content. For Stories you suspect are covered by an already-done issue, mark them as inferred-covered with a Suggestion noting which `done-NN-*.md` filename appears to cover the Story — don't emit Blocking unless the PRD itself states the Story should still be in scope.
 - **Implicit Story addition**: pending issue adds user-visible behavior not in any PRD Story → Required (add the Story to PRD via a follow-up, or drop the issue)
 
 ## Matrix summary (always emit one)
 Emit a single `Suggestion`-severity GLOBAL finding summarizing coverage:
-`Suggestion|COVERAGE|GLOBAL|MATRIX-SUMMARY|<X> of <Y> PRD User Stories covered by pending+done issues; <Z> orphan issues`
+`Suggestion|COVERAGE|GLOBAL|MATRIX-SUMMARY|<X> of <Y> PRD User Stories covered by pending+inferred-done issues; <Z> orphan issues`
+
+The `GLOBAL::MATRIX-SUMMARY` anchor is **evergreen** — it re-fires every round by design as a status report. `progression-check.workflow.js` explicitly excludes this anchor from the `stillOpenAnchors` tracking so the loop is not forced to wont-fix it each round (see `EVERGREEN_ANCHORS` in progression-check).
 
 ## Inputs
 - The issue files in `issuesDir`

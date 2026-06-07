@@ -117,11 +117,21 @@ if (roundNum === 1 || priorRoundIssueFiles == null || priorRoundTotalBytes == nu
 // positionStability, minimumRounds, reviewerAcknowledgment) are scored 3-of-4 — that's
 // the "3-of-5" rule from the source PRD loop, minus coverage (which moved to a precondition).
 // Workflow surfaces unresolved anchors as evidence, but cannot judge intent.
-const priorAnchorSet = Array.isArray(priorRoundAnchors) ? new Set(priorRoundAnchors) : new Set()
+//
+// Exclude evergreen anchors from the still-open tracking — Coverage lens always emits
+// a `GLOBAL::MATRIX-SUMMARY` finding (see lenses/issues/Coverage.md "Matrix summary
+// (always emit one)"). Without exclusion it would re-fire every round with the same
+// key, forcing the parent to wont-fix it just to clear stillOpenAnchors. Treat it as
+// a status report, not a coverage gap.
+const EVERGREEN_ANCHORS = new Set(['GLOBAL::MATRIX-SUMMARY'])
+
+const priorAnchorSet = Array.isArray(priorRoundAnchors)
+  ? new Set(priorRoundAnchors.filter(k => !EVERGREEN_ANCHORS.has(k)))
+  : new Set()
 const thisAnchorSet = new Set(
   findings
     .map(recordKey)
-    .filter(k => k !== '::')
+    .filter(k => k !== '::' && !EVERGREEN_ANCHORS.has(k))
 )
 const wontfixAnchors = ledgerKeys   // already computed above via recordKey + anchor-required filter
 const stillOpenAnchors = [...priorAnchorSet].filter(a => thisAnchorSet.has(a) && !wontfixAnchors.has(a))
@@ -219,7 +229,7 @@ return {
     effectiveBlockers,
     blockerRatio: Math.round(blockerRatio * 100) / 100,
     reRaisedDespiteWontfixCount: reRaisedDespiteWontfix.length,
-    ledgerEntriesSkipped: ledgerKeySkipped,    // wont-fix entries with no `anchor` field — silently ineffective
+    ledgerEntriesSkipped: ledgerKeySkipped,    // wont-fix entries missing `issueFile` or `anchor` — silently ineffective
     priorRoundFindingCount: priorRoundFindingCount ?? null,
     stillOpenAnchorCount: stillOpenAnchors.length,
   },
