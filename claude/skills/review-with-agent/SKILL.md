@@ -1,6 +1,6 @@
 ---
 name: review-with-agent
-description: Multi-lens adversarial code review using external AI CLIs (Codex or opencode). Shared workflow invoked by /codex-review and /opencode-review. Supports both code review (working-tree diffs) and plan review (markdown files). Not for reviewing already-committed code.
+description: Multi-lens adversarial code review using external AI CLIs (Codex or opencode). Shared workflow invoked by /codex-review and /opencode-review for code review, by /prd-review-loop for PRD review. Supports code mode (working-tree diffs), plan mode (implementation-plan markdown), and prd mode (PRD documents with 8-dimension checklist). Not for reviewing already-committed code.
 allowed-tools: Workflow, Bash, Read
 ---
 
@@ -34,19 +34,35 @@ Diff preparation is delegated to `~/.claude/scripts/review-prep-diff.sh`.
 Workflow({
   scriptPath: '~/.claude/skills/review-with-agent/review.workflow.js',
   args: {
-    mode: 'code' | 'plan',
+    mode: 'code' | 'plan' | 'prd',
     backend: 'codex' | 'opencode',
-    planPath: '<path>',           // plan mode, when reviewing a file on disk
-    planContent: '<inline text>', // plan mode, when reviewing in-conversation plan
+    // code mode: no extra args
+    // plan mode (implementation plan review):
+    planPath: '<path>',           // when reviewing a file on disk
+    planContent: '<inline text>', // when reviewing in-conversation plan
+    // prd mode (PRD review with 8-dim checklist):
+    prdPath: '<path>',            // when reviewing a PRD file on disk
+    prdContent: '<inline text>',  // when reviewing in-conversation PRD draft
+    contextFiles: [               // optional project-context cross-check (P0-2)
+      { path, label, content }    // ADR / GLOSSARY / GRILLCOMMITMENTS / sibling-PRD
+    ],
+    wontfixLedger: [              // optional already-decided exclusions (P1-6)
+      { id, severity, source, rationale, decidedRoundN }
+    ],
+    lensRoster: [                 // optional — opt into PRD lens fan-out (P1-4)
+      'Architect', 'Challenger', 'DevilsAdvocate',
+      'Subtractor', 'Glossarian', 'Coverer'
+    ],
   },
 })
 ```
 
 If `mode === 'plan'` and neither `planPath` nor `planContent` is provided, the
-workflow aborts. The calling backend skill is responsible for resolving the
-ambiguity (asking the user, writing in-conversation plans to a tempfile, etc.)
-**before** invoking the workflow — workflow scripts cannot prompt the user
-mid-run.
+workflow aborts. If `mode === 'prd'` and neither `prdPath` nor `prdContent`
+is provided, the workflow aborts. The calling backend skill is responsible
+for resolving the ambiguity (asking the user, writing in-conversation drafts
+to a tempfile, etc.) **before** invoking the workflow — workflow scripts
+cannot prompt the user mid-run.
 
 ## Lens Roster (by scale)
 
@@ -99,6 +115,47 @@ Plan mode:
   blockerCount: number,
 }
 ```
+
+PRD mode (single-pass — default when no lensRoster passed):
+
+```ts
+{
+  mode: 'prd',
+  execPath: 'single-pass',
+  verdict: 'PASS' | 'CONTESTED' | 'REJECT',
+  modeLabel: string,
+  findings: [{
+    severity: 'Blocking' | 'Required' | 'Suggestion',
+    category: 'USER_STORY_INVEST' | 'ACCEPTANCE_CRITERIA' | 'TRACEABILITY'
+            | 'USER_VOCABULARY' | 'INTERNAL_CAUSAL_CHAIN'
+            | 'OUT_OF_SCOPE_DISCIPLINE' | 'ASSUMPTIONS_SURFACED'
+            | 'NFR_PRESENCE' | 'CONSISTENCY',
+    section: string,            // H2 heading or "GLOBAL"
+    anchor: string,             // story id / OoS index / quoted phrase (for cross-round dedup)
+    description: string,
+  }],
+  stats: { total, blockers, contextFilesInjected, wontfixEntriesApplied },
+}
+```
+
+PRD mode (lens fan-out — when args.lensRoster is non-empty):
+
+```ts
+{
+  mode: 'prd',
+  execPath: 'lens-fanout',
+  verdict: 'PASS' | 'CONTESTED' | 'REJECT',
+  modeLabel: string,
+  lensRoster: string[],
+  lensResults: [{ lens, findingCount }],
+  findings: [{ ...PRD finding, lenses: string[] }],
+  stats: { total, blockers, multiLensBlockers, contextFilesInjected, wontfixEntriesApplied },
+}
+```
+
+PRD verdict rules:
+- **single-pass**: 0 Blocking → PASS, 1 → CONTESTED, ≥2 → REJECT
+- **lens fan-out**: 0 Blocking → PASS, any Blocking flagged by ≥2 lenses → REJECT, single-lens Blocking → CONTESTED
 
 ## Verdict Rules
 

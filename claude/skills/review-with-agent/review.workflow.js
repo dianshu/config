@@ -100,16 +100,29 @@ const VERIFY_SCHEMA = {
 // Entry point — args validation
 // ============================================================
 
-const { mode = 'code', backend, planPath, planContent } = args || {}
+const {
+  mode = 'code',
+  backend,
+  planPath,
+  planContent,
+  prdPath,
+  prdContent,
+  contextFiles,
+  wontfixLedger,
+  lensRoster,
+} = args || {}
 
 if (!backend || !BACKEND_CONFIG[backend]) {
   throw new Error(`review-with-agent: args.backend must be one of: ${Object.keys(BACKEND_CONFIG).join(', ')}`)
 }
-if (mode !== 'code' && mode !== 'plan') {
-  throw new Error(`review-with-agent: args.mode must be 'code' or 'plan'`)
+if (mode !== 'code' && mode !== 'plan' && mode !== 'prd') {
+  throw new Error(`review-with-agent: args.mode must be 'code', 'plan', or 'prd'`)
 }
 if (mode === 'plan' && !planPath && !planContent) {
   throw new Error(`review-with-agent: plan mode requires args.planPath or args.planContent`)
+}
+if (mode === 'prd' && !prdPath && !prdContent) {
+  throw new Error(`review-with-agent: prd mode requires args.prdPath or args.prdContent`)
 }
 
 const BACKEND = BACKEND_CONFIG[backend]
@@ -225,6 +238,372 @@ if (mode === 'plan') {
     modeLabel: BACKEND.modeLabel,
     findings: planReview.findings || [],
     blockerCount: blockers,
+  }
+}
+
+// ============================================================
+// PRD Review mode
+// ============================================================
+//
+// Two execution paths:
+//   1. Single-pass (default, no lensRoster arg) — one dispatch per backend
+//      with the 8-dimension PRD checklist. Use when /prd-review-loop drives
+//      dual-backend voting (current P0 wiring).
+//   2. Lens fan-out (when args.lensRoster is provided) — N parallel lens
+//      dispatches to a SINGLE backend, each lens reading its own prompt
+//      file under lenses/prd/<Lens>.md. Aggregation: ≥2 lens agreement on
+//      same finding → Blocking promoted; single-lens flag → Contested.
+//      Use when /prd-review-loop drops the second backend in favor of
+//      orthogonal lens perspectives (P1 wiring).
+//
+// Both paths accept:
+//   - args.prdPath OR args.prdContent — the PRD to review
+//   - args.contextFiles — array of {path, label, content} for ADR/glossary/
+//     GRILLCOMMITMENTS/historical-PRD context injection (P0-2)
+//   - args.wontfixLedger — array of {id, severity, source, rationale,
+//     decidedRoundN} for already-decided exclusions (P1-6); reviewer is
+//     told NOT to re-flag these
+//
+// PRD 8-dimension checklist (drives both paths):
+//   1. USER_STORY_INVEST — actor/feature/benefit triple, Independent,
+//      Negotiable, Valuable, Estimable, Small, Testable
+//   2. ACCEPTANCE_CRITERIA — Given-When-Then or observable behavior per
+//      story; must NOT reference class/method/schema/file
+//   3. TRACEABILITY — every story has at least one Testing Decision; every
+//      Testing Decision maps to ≥1 story
+//   4. USER_VOCABULARY — Problem/Solution/Stories in user language, not
+//      implementation terms; engineering metrics translated to UX
+//   5. INTERNAL_CAUSAL_CHAIN — Problem → Solution → Story → Decision
+//      traceable each direction
+//   6. OUT_OF_SCOPE_DISCIPLINE — every item has observable
+//      Re-evaluate-when trigger
+//   7. ASSUMPTIONS_SURFACED — explicit list + reviewer-inferred list of
+//      load-bearing assumptions
+//   8. NFR_PRESENCE — perf/security/a11y/observability per applicable
+//      feature category
+// Plus CONSISTENCY when args.contextFiles is non-empty:
+//   9. CONSISTENCY — terminology matches glossary; ADR relationship
+//      declared (extends/refines/supersedes); no GRILLCOMMITMENTS
+//      violation; no contradiction with historical PRDs
+
+if (mode === 'prd') {
+  phase('Lens-fanout')
+
+  const prdSource = prdPath
+    ? `Read the PRD file at: ${prdPath}`
+    : `Use this inline PRD content:\n\n${prdContent}`
+
+  const ctxFiles = Array.isArray(contextFiles) ? contextFiles : []
+  const ctxBlock = ctxFiles.length === 0
+    ? ''
+    : `\n\nPROJECT CONTEXT (injected — reviewer MUST cross-check PRD against these):\n${
+        ctxFiles.map(c => `\n--- ${c.label} (${c.path}) ---\n${c.content}`).join('\n')
+      }\n--- end project context ---\n`
+
+  const wontfix = Array.isArray(wontfixLedger) ? wontfixLedger : []
+  const wontfixBlock = wontfix.length === 0
+    ? ''
+    : `\n\nWONT-FIX LEDGER (already-decided exclusions — do NOT re-flag these unless you have NEW evidence the decision is wrong):\n${
+        wontfix.map(w => `- [${w.id}] ${w.severity} (decided round ${w.decidedRoundN} via ${w.source}): ${w.rationale}`).join('\n')
+      }\n--- end wont-fix ---\n`
+
+  const PRD_DIMENSIONS = `
+1. USER_STORY_INVEST — For each "As an X, I want Y, so that Z" story:
+   (a) actor must be a concrete persona, not "user"
+   (b) want must be observable behavior, not UI/implementation
+   (c) so-that must name measurable value, not a tautology / restatement of want
+   (d) story must be Independent (no hidden ordering deps), Negotiable
+       (no premature impl freeze), Estimable (enough info), Small (single
+       sprint), Testable (writeable acceptance scenario)
+   Flag every violation as Required; circular benefit or non-testable as Blocking.
+
+2. ACCEPTANCE_CRITERIA — Each user story MUST have explicit acceptance
+   criteria nested below it (Given-When-Then or observable-behavior
+   bullets). Criteria MUST describe external behavior only — flag any
+   criterion that names a class / method / schema field / file path / DB
+   column as Blocking. Missing criteria → Blocking.
+
+3. TRACEABILITY — Output a two-way coverage matrix:
+   (a) every User Story id → which Testing Decision covers it (or
+       UNCOVERED → Blocking)
+   (b) every Testing Decision → which User Story id(s) it serves (or
+       ORPHAN → Required)
+   Also: every Implementation Decision should trace to ≥1 User Story
+   (orphan Implementation Decision → Required).
+
+4. USER_VOCABULARY — Scan Problem Statement / Solution / User Stories
+   sentence-by-sentence:
+   (a) ANY implementation term (API name, class name, schema field,
+       protocol name, library name) → Required
+   (b) ANY engineering metric (SLO, p99, QPS, throughput, ms) without a
+       user-experience translation (wait time, retry count, failure
+       probability) → Required
+   Implementation terms belong in Implementation Decisions, not the user-facing
+   sections.
+
+5. INTERNAL_CAUSAL_CHAIN — Trace Problem → Solution → Story → Decision in
+   both directions:
+   (a) every Solution element traces back to a stated Problem (orphan
+       Solution → Required)
+   (b) every Story traces to a Solution capability (orphan Story → Required)
+   (c) every Implementation Decision serves ≥1 Story (orphan → Required)
+   Problems without Solutions, Solutions without Problems → Blocking.
+
+6. OUT_OF_SCOPE_DISCIPLINE — For each Out of Scope item:
+   (a) must have an explicit Re-evaluate-when trigger
+   (b) trigger must be observable (metric threshold / user count / upstream
+       change / regulatory change), not vague ("if users complain")
+   (c) trigger must reference signals defined elsewhere in the doc or in
+       project metrics
+   Missing trigger → Required; unobservable trigger → Required.
+
+7. ASSUMPTIONS_SURFACED — Output two lists:
+   (a) Assumptions the PRD explicitly states
+   (b) Assumptions YOU inferred from the prose but the author did NOT make
+       explicit — for each, quote the line that triggered the inference
+   Flag (b) entries as Required so the author either documents them or
+   adds wont-fix justification.
+
+8. NFR_PRESENCE — Based on the feature category, check for presence of
+   relevant non-functional requirements:
+   - User-facing UI → accessibility, latency budget
+   - API / service → throughput, error budget, observability
+   - Data-handling → privacy, retention, encryption
+   - Auth-touching → security threat model
+   Missing applicable NFR section → Required.
+${ctxFiles.length === 0 ? '' : `
+9. CONSISTENCY (project-context cross-check):
+   (a) Any domain term in PRD that conflicts with CONTEXT.md glossary →
+       Required (with the canonical term to use instead)
+   (b) Any Implementation Decision that conflicts with an Accepted ADR
+       without naming it (extends/refines/supersedes) → Blocking
+   (c) Any violation of an active GRILLCOMMITMENTS commitment → Blocking
+       (cite the C-number)
+   (d) Any conflict with a sibling historical PRD without acknowledgment
+       → Required
+`}
+`.trim()
+
+  const PRD_FINDINGS_SCHEMA = {
+    type: 'object',
+    required: ['findings'],
+    properties: {
+      findings: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['severity', 'category', 'section', 'description'],
+          properties: {
+            severity: { enum: ['Blocking', 'Required', 'Suggestion'] },
+            category: {
+              enum: [
+                'USER_STORY_INVEST',
+                'ACCEPTANCE_CRITERIA',
+                'TRACEABILITY',
+                'USER_VOCABULARY',
+                'INTERNAL_CAUSAL_CHAIN',
+                'OUT_OF_SCOPE_DISCIPLINE',
+                'ASSUMPTIONS_SURFACED',
+                'NFR_PRESENCE',
+                'CONSISTENCY',
+              ],
+            },
+            section: {
+              type: 'string',
+              description: 'H2 section name (e.g. "User Stories", "Out of Scope") or "GLOBAL" if cross-cutting',
+            },
+            anchor: {
+              type: 'string',
+              description: 'Story id (e.g. "US-7"), Out-of-Scope item index, or quoted phrase — for dedup across lenses/rounds',
+            },
+            description: { type: 'string' },
+          },
+        },
+      },
+    },
+  }
+
+  // ----- Path A: lens fan-out (when lensRoster provided) -----
+  if (Array.isArray(lensRoster) && lensRoster.length > 0) {
+    log(`PRD lens fan-out: dispatching ${lensRoster.length} lenses to ${backend}: ${lensRoster.join(', ')}`)
+
+    async function dispatchPrdLens(lens) {
+      return agent(
+        `Dispatch the ${lens} PRD-review lens via the ${backend} CLI.
+
+        1. ${prdSource}
+        2. Read ~/.claude/skills/review-with-agent/lenses/prd/${lens}.md for this lens's checklist and output format.
+        3. Compose the prompt: [lens checklist from file] + the shared PRD context block (project context + wont-fix ledger).
+        4. Dispatch using this exact Bash pipeline (heredoc — avoids shell arg length limits):
+
+           \`\`\`bash
+           { cat <prd_or_tempfile>; cat <<'PROMPT'
+           ---
+           <lens checklist from step 2>
+           ${ctxBlock.replace(/\n/g, '\n           ')}
+           ${wontfixBlock.replace(/\n/g, '\n           ')}
+           PROMPT
+           } | ${BACKEND.planDispatch}
+           \`\`\`
+
+        5. Filter banner noise with: ${BACKEND.noiseFilter}
+        6. Detect failure: empty output OR matches /Retry attempts exhausted|Error executing tool|NumericalClassifier/.
+           Treat as failure and return {findings: []}.
+        7. Parse each non-noise line as one finding. Each finding has {severity, category, section, anchor, description}.
+           Set category to this lens's primary dimension when ambiguous (the lens file documents which).
+        Return {findings: [...]} matching the schema.`,
+        {
+          schema: PRD_FINDINGS_SCHEMA,
+          label: `prd-lens:${lens}`,
+          phase: 'Lens-fanout',
+        },
+      )
+    }
+
+    const lensResults = await parallel(lensRoster.map(l => () => dispatchPrdLens(l)))
+
+    // Tag each finding with originating lens, then merge with semantic dedup by (section, anchor)
+    const taggedFindings = lensResults.flatMap((r, i) => {
+      const lens = lensRoster[i]
+      return (r?.findings || []).map(f => ({ ...f, lenses: [lens] }))
+    })
+
+    phase('Synthesize')
+
+    const MERGED_PRD_SCHEMA = {
+      type: 'object',
+      required: ['findings'],
+      properties: {
+        findings: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['severity', 'category', 'section', 'description', 'lenses'],
+            properties: {
+              severity: { enum: ['Blocking', 'Required', 'Suggestion'] },
+              category: { type: 'string' },
+              section: { type: 'string' },
+              anchor: { type: 'string' },
+              description: { type: 'string' },
+              lenses: { type: 'array', items: { type: 'string' }, minItems: 1 },
+            },
+          },
+        },
+      },
+    }
+
+    const merged = taggedFindings.length === 0
+      ? { findings: [] }
+      : await agent(
+        `Merge these per-lens PRD findings, deduping by semantic equivalence at (section, anchor).
+         Two findings dedup when they refer to the same section AND same anchor (story id, OoS index, or quoted phrase) AND describe the same problem.
+         When merging duplicates: union the lenses array, keep the highest severity.
+         Drop nothing unique.
+
+         Input: ${JSON.stringify(taggedFindings)}
+
+         Return {findings: [...]} per the schema.`,
+        {
+          schema: MERGED_PRD_SCHEMA,
+          label: 'merge-prd',
+          phase: 'Synthesize',
+        },
+      )
+
+    // Verdict: ≥2 lens agreement on a Blocking → REJECT; any single-lens Blocking → CONTESTED; 0 Blocking → PASS
+    const blockers = merged.findings.filter(f => f.severity === 'Blocking')
+    const multiLensBlockers = blockers.filter(f => f.lenses.length >= 2)
+    let verdict
+    if (blockers.length === 0) verdict = 'PASS'
+    else if (multiLensBlockers.length > 0) verdict = 'REJECT'
+    else verdict = 'CONTESTED'
+
+    return {
+      mode: 'prd',
+      execPath: 'lens-fanout',
+      verdict,
+      modeLabel: BACKEND.modeLabel,
+      lensRoster,
+      lensResults: lensResults.map((r, i) => ({
+        lens: lensRoster[i],
+        findingCount: (r?.findings || []).length,
+      })),
+      findings: merged.findings,
+      stats: {
+        total: merged.findings.length,
+        blockers: blockers.length,
+        multiLensBlockers: multiLensBlockers.length,
+        contextFilesInjected: ctxFiles.length,
+        wontfixEntriesApplied: wontfix.length,
+      },
+    }
+  }
+
+  // ----- Path B: single-pass (default, no lensRoster) -----
+
+  const prdReview = await agent(
+    `${prdSource}
+
+    Then dispatch the PRD content to the ${backend} CLI for review using this exact pipeline:
+
+    \`\`\`bash
+    { cat <prd_or_tempfile>; cat <<'PROMPT'
+    ---
+    You are reviewing a Product Requirements Document (PRD), not an implementation plan.
+    A PRD describes a product feature from the USER's perspective. It does NOT
+    contain code, file paths, or task lists. Do NOT flag missing checkboxes,
+    missing TDD steps, missing file-size limits, or missing commit boundaries —
+    those concerns do not apply to PRDs.
+
+    Review the PRD against these 8 dimensions${ctxFiles.length > 0 ? ' + CONSISTENCY' : ''}:
+
+    ${PRD_DIMENSIONS}
+    ${ctxBlock}
+    ${wontfixBlock}
+
+    Output format — one finding per line:
+    <Severity>|<Category>|<Section>|<Anchor>|<Description>
+    where Severity ∈ {Blocking, Required, Suggestion}
+    and Category ∈ {USER_STORY_INVEST, ACCEPTANCE_CRITERIA, TRACEABILITY,
+                    USER_VOCABULARY, INTERNAL_CAUSAL_CHAIN, OUT_OF_SCOPE_DISCIPLINE,
+                    ASSUMPTIONS_SURFACED, NFR_PRESENCE${ctxFiles.length > 0 ? ', CONSISTENCY' : ''}}
+    and Section is the H2 heading name or "GLOBAL"
+    and Anchor is a story id / OoS index / quoted phrase (for dedup across rounds)
+
+    If the PRD is clean: output literally "LGTM" and nothing else.
+    PROMPT
+    } | ${BACKEND.planDispatch}
+    \`\`\`
+
+    Filter output with: ${BACKEND.noiseFilter}
+    Parse each non-noise non-LGTM line into a finding {severity, category, section, anchor, description}.
+    If output is empty or "LGTM" or matches /Retry attempts exhausted|Error executing tool|NumericalClassifier/, return {findings: []}.`,
+    {
+      schema: PRD_FINDINGS_SCHEMA,
+      label: `prd-review:${backend}`,
+      phase: 'Lens-fanout',
+    },
+  )
+
+  const findings = prdReview.findings || []
+  const blockers = findings.filter(f => f.severity === 'Blocking').length
+  let verdict
+  if (blockers === 0) verdict = 'PASS'
+  else if (blockers >= 2) verdict = 'REJECT'
+  else verdict = 'CONTESTED'
+
+  return {
+    mode: 'prd',
+    execPath: 'single-pass',
+    verdict,
+    modeLabel: BACKEND.modeLabel,
+    findings,
+    stats: {
+      total: findings.length,
+      blockers,
+      contextFilesInjected: ctxFiles.length,
+      wontfixEntriesApplied: wontfix.length,
+    },
   }
 }
 
