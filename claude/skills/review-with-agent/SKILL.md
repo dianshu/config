@@ -1,6 +1,6 @@
 ---
 name: review-with-agent
-description: Multi-lens adversarial code review using external AI CLIs (Codex or opencode). Shared workflow invoked by /codex-review and /opencode-review for code review, by /prd-review-loop for PRD review. Supports code mode (working-tree diffs), plan mode (implementation-plan markdown), and prd mode (PRD documents with 8-dimension checklist). Not for reviewing already-committed code.
+description: Multi-lens adversarial code review using external AI CLIs (Codex or opencode). Shared workflow invoked by /codex-review and /opencode-review for code review, by /prd-review-loop for PRD review, by /issues-review-loop for issue-set review. Supports code mode (working-tree diffs), plan mode (implementation-plan markdown), prd mode (PRD documents with 8-dimension checklist), and issues mode (issue-set with 5-lens fan-out + deterministic Blocked-by parser preflight). Not for reviewing already-committed code.
 allowed-tools: Workflow, Bash, Read
 ---
 
@@ -34,7 +34,7 @@ Diff preparation is delegated to `~/.claude/scripts/review-prep-diff.sh`.
 Workflow({
   scriptPath: '~/.claude/skills/review-with-agent/review.workflow.js',
   args: {
-    mode: 'code' | 'plan' | 'prd',
+    mode: 'code' | 'plan' | 'prd' | 'issues',
     backend: 'codex' | 'opencode',
     // code mode: no extra args
     // plan mode (implementation plan review):
@@ -43,8 +43,11 @@ Workflow({
     // prd mode (PRD review with 8-dim checklist):
     prdPath: '<path>',            // when reviewing a PRD file on disk
     prdContent: '<inline text>',  // when reviewing in-conversation PRD draft
+    // issues mode (issue-set review with 5-lens fan-out + parser preflight):
+    issuesDir: '<path>',          // directory containing pending NN-*.md issue files
     contextFiles: [               // optional project-context cross-check (P0-2)
       { path, label, content }    // ADR / GLOSSARY / GRILLCOMMITMENTS / sibling-PRD
+                                  // for issues mode: PARENT_PRD (required by Coverage lens)
     ],
     wontfixLedger: [              // optional already-decided exclusions (P1-6)
       { id, severity, source, rationale, decidedRoundN }
@@ -52,6 +55,10 @@ Workflow({
     lensRoster: [                 // optional — opt into PRD lens fan-out (P1-4)
       'Architect', 'Challenger', 'DevilsAdvocate',
       'Subtractor', 'Glossarian', 'Coverer'
+                                  // for issues mode default:
+                                  //   ['Slicer', 'DependencyAuditor', 'Granularity',
+                                  //    'AcceptanceCriteria', 'Coverage']
+                                  // Coverage auto-drops when no PARENT_PRD in contextFiles
     ],
   },
 })
@@ -59,7 +66,8 @@ Workflow({
 
 If `mode === 'plan'` and neither `planPath` nor `planContent` is provided, the
 workflow aborts. If `mode === 'prd'` and neither `prdPath` nor `prdContent`
-is provided, the workflow aborts. The calling backend skill is responsible
+is provided, the workflow aborts. If `mode === 'issues'` and `issuesDir`
+is not provided, the workflow aborts. The calling backend skill is responsible
 for resolving the ambiguity (asking the user, writing in-conversation drafts
 to a tempfile, etc.) **before** invoking the workflow — workflow scripts
 cannot prompt the user mid-run.
@@ -78,6 +86,20 @@ shared with `/finalize`):
 **Test Hygiene** is added at any scale when the diff touches a test file.
 
 **Red-Line scan** always runs in parallel with the lenses (separate agent).
+
+### Issues mode lens roster
+
+Fixed 5-lens roster — no scale tiers (every pending issue is reviewed by every lens):
+
+| Lens                | Primary dimension              | Drops when                     |
+|---------------------|--------------------------------|--------------------------------|
+| Slicer              | VERTICAL_SLICE                 | never                          |
+| DependencyAuditor   | DEPENDENCIES                   | never                          |
+| Granularity         | GRANULARITY / SUBTRACTABILITY  | never                          |
+| AcceptanceCriteria  | ACCEPTANCE_CRITERIA            | never                          |
+| Coverage            | COVERAGE                       | no PARENT_PRD in contextFiles  |
+
+A deterministic `## Blocked by` parser preflight runs BEFORE the lenses (Bash regex, not an LLM lens). Results are surfaced as `parserFailures: [{file, reason, offendingLine}]`. The parser is the same one used by `/run-all-issues` (see `run-all-issues/SKILL.md:40-59`).
 
 ## Output Schema
 
@@ -156,6 +178,45 @@ PRD mode (lens fan-out — when args.lensRoster is non-empty):
 PRD verdict rules:
 - **single-pass**: 0 Blocking → PASS, 1 → CONTESTED, ≥2 → REJECT
 - **lens fan-out**: 0 Blocking → PASS, any Blocking flagged by ≥2 lenses → REJECT, single-lens Blocking → CONTESTED
+
+Issues mode (lens fan-out — always; no single-pass variant):
+
+```ts
+{
+  mode: 'issues',
+  execPath: 'lens-fanout',
+  verdict: 'PASS' | 'CONTESTED' | 'REJECT',
+  modeLabel: string,
+  lensRoster: string[],                 // effective roster after Coverage auto-drop
+  issueFilesReviewed: string[],         // basenames of pending NN-*.md files
+  parserFailures: [{                    // deterministic — NOT from LLM lenses
+    file: string,
+    reason: string,
+    offendingLine?: string,
+  }],
+  lensResults: [{ lens, findingCount }],
+  findings: [{
+    severity: 'Blocking' | 'Required' | 'Suggestion',
+    category: 'VERTICAL_SLICE' | 'DEPENDENCIES' | 'GRANULARITY'
+            | 'ACCEPTANCE_CRITERIA' | 'COVERAGE' | 'SUBTRACTABILITY',
+    issueFile: string,                  // e.g. "03-foo.md" or "GLOBAL"
+    anchor: string,                     // e.g. "AC-2", "Blocked-by:NN", "MATRIX-SUMMARY"
+    description: string,
+    lenses: string[],
+  }],
+  stats: {
+    total, blockers, multiLensBlockers,
+    parserFailureCount,                  // mirrors parserFailures.length
+    contextFilesInjected, wontfixEntriesApplied,
+  },
+}
+```
+
+Issues verdict rules:
+- `parserFailures.length > 0` → **REJECT** regardless of LLM verdict (deterministic hard override)
+- 0 Blocking → PASS
+- Any Blocking flagged by ≥2 lenses → REJECT
+- Single-lens Blocking → CONTESTED
 
 ## Verdict Rules
 

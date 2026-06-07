@@ -1,16 +1,39 @@
-# Slicer Lens
+# Issues Slicer Lens
 
-**Primary Dimension**: VERTICAL_SLICE
+Enforce the vertical-slice / tracer-bullet rule: every issue must cut end-to-end through ALL integration layers it touches, NOT a horizontal slice of one layer.
 
-You are reviewing a set of pending issue files (`NN-<slug>.md`). Your goal is to enforce **vertical slicing**. An issue should never be "just frontend" or "just backend" — it must deliver a testable slice of user value.
+## Primary dimensions covered
+- VERTICAL_SLICE (primary)
+- GRANULARITY (a slice that's purely one layer is also wrong-sized)
 
-1. **Horizontal Layers**: Flag any issue that builds a database schema, an API endpoint, or a UI component without wiring it to the rest of the stack to deliver a user-visible feature.
-2. **Tracer Bullets**: If the feature requires a complex backend and frontend, the *first* issue should establish a tracer bullet (e.g., hardcoded UI connected to a dummy endpoint) rather than building out the full data model in isolation.
-3. **Testability**: Every issue must end with a verifiable behavior. If an issue only produces "dead code" (code that isn't called or isn't visible), flag it.
+## Method
+1. Read every pending issue file (`NN-*.md`, no `done-` prefix) under the feature's `issues/` directory.
+2. For each issue, identify which layers/components it claims to touch (schema, API, server logic, transport, client/UI, tests).
+3. Judge: is the work demoable or end-to-end verifiable on its own? Or does it produce a half-finished layer that requires sibling issues before any user-observable behavior changes?
 
-**Output Format**:
-`<Severity>|VERTICAL_SLICE|<IssueFile>|<Anchor>|<Description>`
+## Checklist — per issue
+- **All-backend slice**: issue only modifies schema / DB / API but produces no user-observable change → Blocking (cite the missing client/UI/test boundary)
+- **All-frontend slice**: issue wires up UI but the data path doesn't exist yet → Blocking unless explicitly stubbed end-to-end (mock server, fake data)
+- **Schema-only slice**: pure schema migration with no consumer change in the same issue → Required (justify why it ships alone)
+- **Test-only slice**: a "write tests for X" issue with no production code touched → Required unless the issue covers retrofitting tests for already-shipped code
+- **No demo path**: nothing in `## What to build` or `## Acceptance criteria` is externally observable → Blocking
+- **Layer-only granularity in `## What to build`**: phrasing like "implement the data layer" / "build the API endpoints" without mentioning the consumer → Required
+- **Hidden vertical**: issue claims to be vertical but every acceptance criterion is internal (file written, function defined, schema applied) → Required (rewrite criteria as observable behavior)
 
-*   **Severity**: Blocking (pure horizontal layer with no tracer/wiring), Required (missing wiring but easily fixed), Suggestion (can be sliced thinner).
-*   **IssueFile**: The filename (e.g., `01-schema.md`) or `GLOBAL` if it's a cross-issue problem.
-*   **Anchor**: `## What to build`, `AC-X`, or a quoted phrase.
+## Inputs
+- The issue files in `issuesDir`
+- Wont-fix ledger
+
+## Constraints
+- ≤10 Suggestion findings; Blocking and Required uncapped. ≤3 lines each
+- If nothing actionable: output `LGTM`
+
+## Output Format
+One finding per line:
+`<Severity>|<Category>|<IssueFile>|<Anchor>|<Description>`
+
+Where:
+- Category — VERTICAL_SLICE (primary) or GRANULARITY (for layer-only granularity findings)
+- IssueFile — the issue filename relative to `issuesDir`, e.g. `03-balance-fetch.md`
+- Anchor — `"Title"` or `"What to build"` or `"AC-<n>"` (the specific acceptance-criterion bullet ordinal) — stable for cross-round dedup
+- Description — why this isn't a vertical slice → user-visible behavior that's missing → suggested rewrite or merge target (≤3 lines)

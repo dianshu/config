@@ -57,7 +57,7 @@ For each round:
         │
         ▼
   Workflow(progression-check.workflow.js)
-  3-of-5 deterministic/semi-deterministic criteria + 1 parent-confirmed (coverage)
+  3-of-4 deterministic/semi-deterministic counted criteria + 1 parent-confirmed precondition (coverage)
   + parserPass hard gate (independent — must be true for any EXIT path)
         │
         ▼
@@ -119,9 +119,9 @@ Look for `<featureDir>/.issues-review.wontfix.md`. Schema is a markdown list:
 - **Decided round**: 1
 ```
 
-Parse into `wontfixLedger: [{id, severity, source, rationale, decidedRoundN, issueFile, anchor}]`. If the file does not exist, `wontfixLedger = []`. Pass to both the workflow and the progression-check.
+Parse into `wontfixLedger: [{id, severity, source, rationale, decidedRoundN, issueFile, anchor}]`. **Both `issueFile` and `anchor` must be present** — entries missing `anchor` are silently ineffective (the workflow returns them in `stats.ledgerEntriesSkipped` so you can see and re-author them). If the file does not exist, `wontfixLedger = []`. Pass to both the workflow and the progression-check.
 
-The ledger lives at `<featureDir>/.issues-review.wontfix.md` (sibling of `issues/`, **not** inside it — placing the ledger inside `issues/` would violate `/run-all-issues`'s `^(done-)?[0-9]{2,}-[a-z0-9-]+\.md$` filename invariant)
+The ledger lives at `<featureDir>/.issues-review.wontfix.md` (sibling of `issues/`, **not** inside it). Inside `issues/`, any non-`(done-)?NN-slug.md` file would crash `/run-all-issues` preflight step 3 — the dot-prefixed ledger file would fail that regex. Locating it one level up keeps it completely out of `/run-all-issues`'s scrutiny scope.
 
 ### Step 2 — Review round loop
 
@@ -157,10 +157,9 @@ For each finding, decide one of:
   | Merge two issues | Delete one, fold content into the other, rewrite `## Blocked by` of every dependent that pointed to the removed one | Bumps `|removed|` → trips `positionStability` |
   | Fix `## Blocked by` line | Replace malformed bullet with backtick form `` - `NN-slug.md` `` or hash form `- #NN` | May flip `parserPass` from false → true |
   | Move non-code gate to `## Hold` | Cut the offending bullet out of `## Blocked by`, paste into a new `## Hold` section in the same issue (or out of the issue entirely) | Flips `parserPass` to true for that file |
-  | Sharpen Acceptance Criteria | Edit AC bullets in place | Body-byte delta only; no file churn |
-  | Rewrite `## What to build` | Edit in place | Body-byte delta only |
+  | Inline body edit (sharpen AC, rewrite `## What to build`) | Edit bullets / prose in place | Body-byte delta only; no file churn |
 
-- **Wont-fix** — append a new entry to `<featureDir>/.issues-review.wontfix.md` with `id = W-<NNN>` (next available), the finding's `issueFile` + `anchor`, source = the lens(es) that flagged it, current round, and parent's structured rationale. **Persisted to disk** — survives loop / session / cross-day.
+- **Wont-fix** — append a new entry to `<featureDir>/.issues-review.wontfix.md` with `id = W-<NNN>` (next available), the finding's `issueFile` + `anchor` (BOTH required), source = the lens(es) that flagged it, current round, and parent's structured rationale. **Persisted to disk** — survives loop / session / cross-day.
 
 Prioritize multi-lens findings (`lenses.length >= 2`) — they are by construction the highest-confidence signal.
 
@@ -206,7 +205,7 @@ Workflow({
 #### 2d. Act on verdict
 
 - `verdict === 'EXIT'` → proceed to Step 3 (Final).
-- `verdict === 'EXIT_VIA_ESCAPE_HATCH'` → permitted **only once per loop invocation**, **only at roundNum ≥ 3**, **only when zero effective Blockers remain**, AND **only when `hardGates.parserPass === true`** (the parser gate has no escape). Parent MUST emit a structured rationale (`{remainingIssues: [...], rationaleForExitAnyway: '...'}`) and log it to the final summary. Set `escapeHatchAlreadyUsed = true` for the rest of this loop. Proceed to Step 3.
+- `verdict === 'EXIT_VIA_ESCAPE_HATCH'` → permitted **only once per loop invocation**, **only at roundNum ≥ 3**, **only when zero effective Blockers remain**, AND **only when `hardGates.parserPass === true`** (the parser gate has no escape). Coverage is NOT a hard precondition for the escape hatch — its purpose is to let the parent exit when remaining issues are judged not worth fixing (which often includes ambiguity about whether prior anchors are "fixed"). Parent MUST emit a structured rationale (`{remainingIssues: [...], rationaleForExitAnyway: '...'}`) and log it to the final summary. Set `escapeHatchAlreadyUsed = true` for the rest of this loop. Proceed to Step 3.
 - `verdict === 'CONTINUE'` → loop back to 2a (round N+1). Persist `thisRoundIssueFiles / TotalBytes / FindingCount / Anchors` as next round's prior state.
 
 #### 2e. Per-round trace
@@ -239,8 +238,8 @@ issues-review-loop: EXIT after N rounds
   Context cross-checked: <list of label:path>, or "none"
   Coverage lens: enabled (PRD: <path>) | skipped (no PARENT_PRD)
   Per-round trace:
-    round 1: <verdict> criteriaFired=[...] hardGates={parserPass:true|false}
-    round 2: <verdict> criteriaFired=[...] hardGates={parserPass:true|false}
+    round 1: <verdict> criteriaFired=[...] preconditions={coverage,parserPass} hardGates={parserPass:true|false}
+    round 2: <verdict> criteriaFired=[...] preconditions={coverage,parserPass} hardGates={parserPass:true|false}
     ...
   Next step: user reviews the issues, then either re-invokes /issues step 6 to apply triage labels (ready-for-agent / ready-for-human) or requests further changes.
 ```
@@ -252,8 +251,8 @@ After this summary, the loop is done. Do NOT apply triage labels; do NOT modify 
 - **Manual only.** Never invoke automatically.
 - **Parent does the editing.** This skill never modifies issue file content; it only orchestrates reviews and surfaces findings + parser failures. The parent uses Edit/Write on issue files between rounds (split / merge / fix Blocked-by / sharpen AC / move non-code gates).
 - **Single backend × multi-lens.** Use one backend (default `codex`) with the 5-lens roster (4 lenses if no PARENT_PRD — Coverage drops). Same rationale as `/prd-review-loop`: orthogonal lens perspectives outperform same-prompt dual-backend voting at proportional cost.
-- **`parserPass` is a HARD GATE — no LLM override.** Per `~/.claude/injected-rules/model-judgment-only.md`, the `## Blocked by` regex is deterministic and runs in `review.workflow.js` Bash, not as an LLM lens. The loop CANNOT EXIT (normal OR escape-hatch) while any pending issue file fails the parser. Even 5-of-5 progression criteria passing does not override this gate.
-- **Won't-fix is persisted to disk.** `<featureDir>/.issues-review.wontfix.md` survives sessions. Entries never deleted; rationales become the audit trail for the issue review. **`parserFailures` are NOT wont-fix-able** — they must be physically fixed (edit the offending line or move it to `## Hold`).
+- **`parserPass` is a HARD GATE — no LLM override.** Per `~/.claude/injected-rules/model-judgment-only.md`, the `## Blocked by` regex is deterministic and runs in `review.workflow.js` Bash, not as an LLM lens. The loop CANNOT EXIT (normal OR escape-hatch) while any pending issue file fails the parser. Even 4-of-4 counted criteria + coverage passing does not override this gate.
+- **Won't-fix is persisted to disk.** `<featureDir>/.issues-review.wontfix.md` survives sessions. Entries never deleted; rationales become the audit trail for the issue review. **`parserFailures` are NOT wont-fix-able** — they must be physically fixed (edit the offending line or move it to `## Hold`). **Wont-fix entries must include both `issueFile` and `anchor`** — entries missing `anchor` are silently ineffective; the workflow surfaces them in `stats.ledgerEntriesSkipped`.
 - **No new issue files between rounds without rationale.** Splitting an issue is a legitimate response to a Granularity / Slicer finding — but the new file must be backtick-referenced from any dependent's `## Blocked by`, and the next-round `parserPass` check must still pass.
 - **No code-only steps.** Unlike `/finalize`, there is no `/simplify` or `/e2e-verify` here — issues are documents (specifications), not running code. The verification is structural (parser + lens checklist + progression criteria), not behavioral.
 - **Escape hatch is bounded.** At most one use per loop, only at round ≥ 3, only with zero unresolved Blockers, only with `parserPass === true`, only with structured rationale logged.

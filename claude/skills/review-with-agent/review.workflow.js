@@ -165,6 +165,47 @@ if (!preflight.ok) {
 // ============================================================
 // Plan Review mode (short branch — single dispatch, no fan-out)
 // ============================================================
+//
+// Two execution paths:
+//   1. Single-pass (default, no lensRoster arg) — one dispatch per backend
+//      with the 8-dimension PRD checklist. Use when /prd-review-loop drives
+//      dual-backend voting (current P0 wiring).
+//   2. Lens fan-out (when args.lensRoster is provided) — N parallel lens
+//      dispatches to a SINGLE backend, each lens reading its own prompt
+//      file under lenses/prd/<Lens>.md. Aggregation: ≥2 lens agreement on
+//      same finding → Blocking promoted; single-lens flag → Contested.
+//      Use when /prd-review-loop drops the second backend in favor of
+//      orthogonal lens perspectives (P1 wiring).
+//
+// Both paths accept:
+//   - args.prdPath OR args.prdContent — the PRD to review
+//   - args.contextFiles — array of {path, label, content} for ADR/glossary/
+//     GRILLCOMMITMENTS/historical-PRD context injection (P0-2)
+//   - args.wontfixLedger — array of {id, severity, source, rationale,
+//     decidedRoundN} for already-decided exclusions (P1-6); reviewer is
+//     told NOT to re-flag these
+//
+// PRD 8-dimension checklist (drives both paths):
+//   1. USER_STORY_INVEST — actor/feature/benefit triple, Independent,
+//      Negotiable, Valuable, Estimable, Small, Testable
+//   2. ACCEPTANCE_CRITERIA — Given-When-Then or observable behavior per
+//      story; must NOT reference class/method/schema/file
+//   3. TRACEABILITY — every story has at least one Testing Decision; every
+//      Testing Decision maps to ≥1 story
+//   4. USER_VOCABULARY — Problem/Solution/Stories in user language, not
+//      implementation terms; engineering metrics translated to UX
+//   5. INTERNAL_CAUSAL_CHAIN — Problem → Solution → Story → Decision
+//      traceable each direction
+//   6. OUT_OF_SCOPE_DISCIPLINE — every item has observable
+//      Re-evaluate-when trigger
+//   7. ASSUMPTIONS_SURFACED — explicit list + reviewer-inferred list of
+//      load-bearing assumptions
+//   8. NFR_PRESENCE — perf/security/a11y/observability per applicable
+//      feature category
+// Plus CONSISTENCY when args.contextFiles is non-empty:
+//   9. CONSISTENCY — terminology matches glossary; ADR relationship
+//      declared (extends/refines/supersedes); no GRILLCOMMITMENTS
+//      violation; no contradiction with historical PRDs
 
 if (mode === 'plan') {
   phase('Lens-fanout')
@@ -248,6 +289,47 @@ if (mode === 'plan') {
 // ============================================================
 // PRD Review mode
 // ============================================================
+//
+// Two execution paths:
+//   1. Single-pass (default, no lensRoster arg) — one dispatch per backend
+//      with the 8-dimension PRD checklist. Use when /prd-review-loop drives
+//      dual-backend voting (current P0 wiring).
+//   2. Lens fan-out (when args.lensRoster is provided) — N parallel lens
+//      dispatches to a SINGLE backend, each lens reading its own prompt
+//      file under lenses/prd/<Lens>.md. Aggregation: ≥2 lens agreement on
+//      same finding → Blocking promoted; single-lens flag → Contested.
+//      Use when /prd-review-loop drops the second backend in favor of
+//      orthogonal lens perspectives (P1 wiring).
+//
+// Both paths accept:
+//   - args.prdPath OR args.prdContent — the PRD to review
+//   - args.contextFiles — array of {path, label, content} for ADR/glossary/
+//     GRILLCOMMITMENTS/historical-PRD context injection (P0-2)
+//   - args.wontfixLedger — array of {id, severity, source, rationale,
+//     decidedRoundN} for already-decided exclusions (P1-6); reviewer is
+//     told NOT to re-flag these
+//
+// PRD 8-dimension checklist (drives both paths):
+//   1. USER_STORY_INVEST — actor/feature/benefit triple, Independent,
+//      Negotiable, Valuable, Estimable, Small, Testable
+//   2. ACCEPTANCE_CRITERIA — Given-When-Then or observable behavior per
+//      story; must NOT reference class/method/schema/file
+//   3. TRACEABILITY — every story has at least one Testing Decision; every
+//      Testing Decision maps to ≥1 story
+//   4. USER_VOCABULARY — Problem/Solution/Stories in user language, not
+//      implementation terms; engineering metrics translated to UX
+//   5. INTERNAL_CAUSAL_CHAIN — Problem → Solution → Story → Decision
+//      traceable each direction
+//   6. OUT_OF_SCOPE_DISCIPLINE — every item has observable
+//      Re-evaluate-when trigger
+//   7. ASSUMPTIONS_SURFACED — explicit list + reviewer-inferred list of
+//      load-bearing assumptions
+//   8. NFR_PRESENCE — perf/security/a11y/observability per applicable
+//      feature category
+// Plus CONSISTENCY when args.contextFiles is non-empty:
+//   9. CONSISTENCY — terminology matches glossary; ADR relationship
+//      declared (extends/refines/supersedes); no GRILLCOMMITMENTS
+//      violation; no contradiction with historical PRDs
 
 if (mode === 'prd') {
   phase('Lens-fanout')
@@ -573,16 +655,37 @@ ${ctxFiles.length === 0 ? '' : `
 // ============================================================
 // Issues Review mode
 // ============================================================
+//
+// Reviews the SET of pending issue files written by /issues (typically under
+// ~/.claude/matt/features/<slug>/issues/NN-<slug>.md). Two-axis fan-out:
+//   axis 1: 5 issue lenses (Slicer / DependencyAuditor / Granularity /
+//           AcceptanceCriteria / Coverage). Coverage drops automatically
+//           when no PARENT_PRD entry is present in args.contextFiles.
+//   axis 2: per-issue dispatch (each lens sees ALL pending issues — set-wide
+//           review, not per-issue — so it's lens-parallel × 1 dispatch per
+//           lens, with the lens prompt receiving the full pending-issues
+//           bundle inline).
+//
+// Before lens dispatch, a deterministic Bash preflight runs the
+// /run-all-issues `## Blocked by` regex over every pending issue. Results
+// are surfaced as `parserFailures: [{file, reason, offendingLine}]`. This
+// is the source of truth used by /issues-review-loop's progression-check
+// `parserPass` hard gate — LLM lenses never see these as findings.
+
 if (mode === 'issues') {
   phase('Lens-fanout')
 
+  // Helper: quote a JS string for safe use in a POSIX shell single-quoted context.
+  // JSON.stringify only produces JS string literals (double-quoted) — those still
+  // do $-expansion and command-substitution when embedded in bash. Single-quote
+  // wrapping with '\'' escaping makes the value a pure literal.
   const shellQuote = (s) => "'" + String(s).replace(/'/g, "'\\''") + "'"
 
   const ctxFiles = Array.isArray(contextFiles) ? contextFiles : []
   const hasPrd = ctxFiles.some(c => c && c.label === 'PARENT_PRD')
   const wontfix = Array.isArray(wontfixLedger) ? wontfixLedger : []
 
-  // Step 1: List pending issue files + deterministic parser preflight
+  // ----- Step 1: List pending issue files + deterministic parser preflight -----
   const PARSER_SCHEMA = {
     type: 'object',
     required: ['pendingFiles', 'parserFailures'],
@@ -604,59 +707,106 @@ if (mode === 'issues') {
   }
 
   const parserPreflight = await agent(
-    `Run this Bash script and parse its JSON stdout. The script enumerates pending issue files in ${issuesDir} (NN-*.md, no done- prefix) and validates each one's "## Blocked by" section.
+    `Run this Bash script and parse its JSON stdout. The script enumerates pending issue files in ${issuesDir} (NN-*.md, no done- prefix) and validates each one's "## Blocked by" section against the same regex /run-all-issues uses (see ~/.claude/skills/run-all-issues/SKILL.md:40-59 — backtick form OR hash form OR single "None" shortcut).
 
 \`\`\`bash
 set -euo pipefail
+# issuesDir is wrapped as a POSIX single-quoted shell literal (defangs $-expansion / command-substitution).
 ISSUES_DIR=${shellQuote(issuesDir)}
 [ ! -d "$ISSUES_DIR" ] && echo '{"pendingFiles":[],"parserFailures":[]}' && exit 0
 
+# Bash 3.2 compatible — no mapfile, no <<<; macOS default bash is 3.2.
+
 emit_failure() {
-  printf '{"file":%s,"reason":%s,"offendingLine":%s}\\n' \\
-    "$(jq -Rn --arg s "$1" '$s')" \\
-    "$(jq -Rn --arg s "$2" '$s')" \\
+  # args: $1=file basename, $2=reason, $3=offendingLine (may be empty)
+  printf '{"file":%s,"reason":%s,"offendingLine":%s}\n' \
+    "$(jq -Rn --arg s "$1" '$s')" \
+    "$(jq -Rn --arg s "$2" '$s')" \
     "$(jq -Rn --arg s "$3" '$s')"
 }
 
 PENDING_LIST=$(find "$ISSUES_DIR" -maxdepth 1 -type f -name '*.md' ! -name 'done-*' | sort)
 
-ALL_NNS=$(find "$ISSUES_DIR" -maxdepth 1 -type f -name '*.md' 2>/dev/null \\
-  | sed -E 's|.*/(done-)?([0-9]{2,})-[a-z0-9-]+\\.md|\\2|' \\
-  | grep -E '^[0-9]{2,}$' \\
+# /run-all-issues preflight step 3 invariant: every file in issues/ must match
+# ^(done-)?[0-9]{2,}-[a-z0-9-]+\.md$ AND NN must be unique across pending+done.
+# Detect filenames that violate the shape — they would crash /run-all-issues at
+# preflight step 3 before any drain. Surface them as parserFailures so the
+# parserPass hard gate fires.
+SHAPE_BAD=$(find "$ISSUES_DIR" -maxdepth 1 -type f -name '*.md' \
+  | sed -E 's|^.*/||' \
+  | grep -Ev '^(done-)?[0-9]{2,}-[a-z0-9-]+\.md$' || true)
+if [ -n "$SHAPE_BAD" ]; then
+  while IFS= read -r bn; do
+    [ -z "$bn" ] && continue
+    emit_failure "$bn" 'Filename violates /run-all-issues invariant ^(done-)?[0-9]{2,}-[a-z0-9-]+\.md$ — would crash preflight step 3' "" >> "$FAILURES_FILE"
+  done <<EOF_BAD
+$SHAPE_BAD
+EOF_BAD
+fi
+
+# Duplicate-NN detection: stripping the optional done- prefix and the slug suffix,
+# the NN must be unique across the directory. Both 03-foo.md and done-03-bar.md
+# present is a conflict per /run-all-issues preflight step 3.
+DUP_NNS=$(find "$ISSUES_DIR" -maxdepth 1 -type f -name '*.md' 2>/dev/null \
+  | sed -E 's|.*/(done-)?([0-9]{2,})-[a-z0-9-]+\.md|\2|' \
+  | grep -E '^[0-9]{2,}$' \
+  | sort | uniq -d || true)
+if [ -n "$DUP_NNS" ]; then
+  for nn in $DUP_NNS; do
+    DUPS=$(find "$ISSUES_DIR" -maxdepth 1 -type f \( -name "$nn-*.md" -o -name "done-$nn-*.md" \) | sed 's|^.*/||' | tr '\n' ' ')
+    emit_failure "$nn" "Duplicate NN $nn — multiple files share this number: $DUPS" "" >> "$FAILURES_FILE"
+  done
+fi
+
+# Build the set of valid blocker numbers (NN) from filenames: pending NN-*.md OR done-NN-*.md
+# Used by /run-all-issues preflight step 9: "blocker NN must reference an existing issue file".
+ALL_NNS=$(find "$ISSUES_DIR" -maxdepth 1 -type f -name '*.md' 2>/dev/null \
+  | sed -E 's|.*/(done-)?([0-9]{2,})-[a-z0-9-]+\.md|\2|' \
+  | grep -E '^[0-9]{2,}$' \
   | sort -u || true)
 
 FAILURES_FILE=$(mktemp)
 PENDING_FILE=$(mktemp)
 trap 'rm -f "$FAILURES_FILE" "$PENDING_FILE"' EXIT
 
+# Iterate via heredoc to preserve outer-shell state across loop body
 while IFS= read -r f; do
   [ -z "$f" ] && continue
   bn=$(basename "$f")
-  printf '%s\\n' "$bn" >> "$PENDING_FILE"
+  printf '%s\n' "$bn" >> "$PENDING_FILE"
+  # Extract section body between "## Blocked by" and next "## " or EOF
   body=$(awk '
-    /^##[ \\t]+Blocked by[ \\t]*$/ {in_sec=1; next}
-    in_sec && /^##[ \\t]/ {exit}
+    /^##[ \t]+Blocked by[ \t]*$/ {in_sec=1; next}
+    in_sec && /^##[ \t]/ {exit}
     in_sec {print}
   ' "$f")
 
+  # No section → no blockers, OK
   [ -z "$(printf '%s' "$body" | tr -d '[:space:]')" ] && continue
 
-  non_blank_lines=$(printf '%s\\n' "$body" | grep -vE '^[[:space:]]*$' || true)
-  non_blank_count=$(printf '%s\\n' "$non_blank_lines" | grep -c '.' || true)
+  # Single-line "None" shortcut — case-SENSITIVE [Nn]one only, mirroring
+  # /run-all-issues/SKILL.md:49 regex \`^[ \t]*[Nn]one\b.*$\`
+  non_blank_lines=$(printf '%s\n' "$body" | grep -vE '^[[:space:]]*$' || true)
+  non_blank_count=$(printf '%s\n' "$non_blank_lines" | grep -c '.' || true)
   if [ "$non_blank_count" = "1" ] && printf '%s' "$non_blank_lines" | grep -qE '^[[:space:]]*[Nn]one([^[:alnum:]_]|$)'; then
     continue
   fi
+  # Mixed "None" + other lines → fail (same case-sensitive matcher)
   if printf '%s' "$non_blank_lines" | grep -qE '^[[:space:]]*[Nn]one([^[:alnum:]_]|$)'; then
-    bad_line=$(printf '%s\\n' "$non_blank_lines" | grep -E '^[[:space:]]*[Nn]one([^[:alnum:]_]|$)' | head -1)
+    bad_line=$(printf '%s\n' "$non_blank_lines" | grep -E '^[[:space:]]*[Nn]one([^[:alnum:]_]|$)' | head -1)
     emit_failure "$bn" 'Mixed None shortcut with other bullets (not allowed)' "$bad_line" >> "$FAILURES_FILE"
     continue
   fi
 
+  # Every non-blank line must match backtick form OR hash form.
+  # Both regexes mirror /run-all-issues/SKILL.md:51-52 — the hash form uses a
+  # word-boundary equivalent ([^[:alnum:]_]|$) instead of GNU \b so that #10x
+  # (digit→letter, both word chars) is rejected — same semantics as \b in /run-all-issues.
   fail_this=""
   fail_tmp=$(mktemp)
-  printf '%s\\n' "$non_blank_lines" | while IFS= read -r line; do
+  printf '%s\n' "$non_blank_lines" | while IFS= read -r line; do
     [ -z "$line" ] && continue
-    if printf '%s' "$line" | grep -qE '^[[:space:]]*[-*+][[:space:]]+\`(done-)?[0-9]{2,}-[a-z0-9-]+\\.md\`'; then continue; fi
+    if printf '%s' "$line" | grep -qE '^[[:space:]]*[-*+][[:space:]]+\`(done-)?[0-9]{2,}-[a-z0-9-]+\.md\`'; then continue; fi
     if printf '%s' "$line" | grep -qE '^[[:space:]]*[-*+][[:space:]]+#[0-9]{2,}([^[:alnum:]_]|$)'; then continue; fi
     printf '%s' "$line" > "$fail_tmp"
     break
@@ -669,25 +819,32 @@ while IFS= read -r f; do
     continue
   fi
 
-  ref_nns=$(printf '%s\\n' "$non_blank_lines" | sed -nE \\
-    -e 's|^[[:space:]]*[-*+][[:space:]]+\`(done-)?([0-9]{2,})-[a-z0-9-]+\\.md\`.*|\\2|p' \\
-    -e 's|^[[:space:]]*[-*+][[:space:]]+#([0-9]{2,}).*|\\1|p' \\
+  # Existence check — mirror /run-all-issues SKILL.md step 9: every referenced
+  # blocker NN must exist as either NN-*.md or done-NN-*.md in the directory.
+  # Extract NN from every well-formed bullet (both backtick and hash forms).
+  # Note: the boundary check already happened in the earlier shape-validation
+  # loop, so sed here can use a simpler trailing match without alternation
+  # (BSD sed -E has trouble with `([^[:alnum:]_]|$)` capture groups).
+  ref_nns=$(printf '%s\n' "$non_blank_lines" | sed -nE \
+    -e 's|^[[:space:]]*[-*+][[:space:]]+\`(done-)?([0-9]{2,})-[a-z0-9-]+\.md\`.*|\2|p' \
+    -e 's|^[[:space:]]*[-*+][[:space:]]+#([0-9]{2,}).*|\1|p' \
     | sort -u)
   missing_nn=""
   for nn in $ref_nns; do
-    if ! printf '%s\\n' "$ALL_NNS" | grep -qx "$nn"; then
+    if ! printf '%s\n' "$ALL_NNS" | grep -qx "$nn"; then
       missing_nn="$nn"
       break
     fi
   done
   if [ -n "$missing_nn" ]; then
-    bad_line=$(printf '%s\\n' "$non_blank_lines" | grep -E "(\`(done-)?$missing_nn-|#$missing_nn([^[:alnum:]_]|$))" | head -1)
+    bad_line=$(printf '%s\n' "$non_blank_lines" | grep -E "(\`(done-)?$missing_nn-|#$missing_nn([^[:alnum:]_]|$))" | head -1)
     emit_failure "$bn" "References nonexistent blocker $missing_nn (no NN-*.md or done-NN-*.md)" "$bad_line" >> "$FAILURES_FILE"
   fi
 done <<EOF_LIST
 $PENDING_LIST
 EOF_LIST
 
+# Emit JSON object
 if [ -s "$PENDING_FILE" ]; then
   pending_json=$(jq -R . < "$PENDING_FILE" | jq -s .)
 else
@@ -712,7 +869,11 @@ Return the parsed JSON object verbatim.`,
   const pendingFiles = parserPreflight.pendingFiles || []
   const parserFailures = parserPreflight.parserFailures || []
 
-  // Step 2: Build the issue-bundle file
+  // ----- Step 2: Build the issue-bundle file (deterministic — pure shell cat) -----
+  // Each lens dispatch will `cat $BUNDLE_PATH` in its heredoc, the same pattern
+  // PRD mode uses (`cat <prd_or_tempfile>`). The bundle is built via Bash, not
+  // an LLM, per ~/.claude/injected-rules/model-judgment-only.md — concat is
+  // deterministic data transformation, not judgment.
   const BUNDLE_BUILD_SCHEMA = {
     type: 'object',
     required: ['bundlePath'],
@@ -726,12 +887,13 @@ Return the parsed JSON object verbatim.`,
 
 \`\`\`bash
 set -euo pipefail
+# issuesDir is wrapped as a POSIX single-quoted shell literal (defangs $-expansion / command-substitution).
 ISSUES_DIR=${shellQuote(issuesDir)}
 BUNDLE_PATH=$(mktemp -t issues-bundle.XXXXXX)
 for f in ${pendingFiles.map(f => shellQuote(f)).join(' ')}; do
-  printf '===== ISSUE FILE: %s =====\\n' "$f" >> "$BUNDLE_PATH"
+  printf '===== ISSUE FILE: %s =====\n' "$f" >> "$BUNDLE_PATH"
   cat "$ISSUES_DIR/$f" >> "$BUNDLE_PATH"
-  printf '\\n' >> "$BUNDLE_PATH"
+  printf '\n' >> "$BUNDLE_PATH"
 done
 jq -n --arg p "$BUNDLE_PATH" '{bundlePath: $p}'
 \`\`\`
@@ -745,7 +907,7 @@ Return the parsed JSON object verbatim.`,
     )
   const bundlePath = bundleBuild.bundlePath
 
-  // Step 3: Decide lens roster
+  // ----- Step 3: Decide lens roster (auto-drop Coverage when no PARENT_PRD) -----
   const DEFAULT_ROSTER = ['Slicer', 'DependencyAuditor', 'Granularity', 'AcceptanceCriteria', 'Coverage']
   let effectiveRoster = (Array.isArray(lensRoster) && lensRoster.length > 0)
     ? [...lensRoster]
@@ -755,20 +917,32 @@ Return the parsed JSON object verbatim.`,
     effectiveRoster = effectiveRoster.filter(l => l !== 'Coverage')
   }
 
-  // Step 4: Compose context block and wont-fix block
+  // ----- Step 4: Compose context block (PARENT_PRD + others) and wont-fix block -----
+  // Filter wont-fix entries down to "effective" entries (BOTH issueFile and anchor present).
+  // The same effective list feeds lens prompts AND the progression-check ledger fold —
+  // single source of truth prevents the previous skew where lens prompts said
+  // "do NOT re-flag [id]" but progression silently treated the entry as inactive.
+  const effectiveLedger = wontfix.filter(w => w && w.issueFile && w.anchor)
+  const ledgerEntriesSkipped = wontfix
+    .filter(w => !w || !w.issueFile || !w.anchor)
+    .map(w => (w && w.id) || '(unknown)')
+
   const ctxBlock = ctxFiles.length === 0
     ? ''
     : `\n\nPROJECT CONTEXT (injected — reviewer MUST cross-check issues against these):\n${
         ctxFiles.map(c => `\n--- ${c.label} (${c.path}) ---\n${c.content}`).join('\n')
       }\n--- end project context ---\n`
 
-  const wontfixBlock = wontfix.length === 0
+  const wontfixBlock = effectiveLedger.length === 0
     ? ''
     : `\n\nWONT-FIX LEDGER (already-decided exclusions — do NOT re-flag these unless you have NEW evidence the decision is wrong):\n${
-        wontfix.map(w => `- [${w.id}] ${w.severity} (decided round ${w.decidedRoundN} via ${w.source}): ${w.issueFile || 'GLOBAL'}::${w.anchor || w.id} — ${w.rationale}`).join('\n')
+        effectiveLedger.map(w => `- [${w.id}] ${w.severity} (decided round ${w.decidedRoundN} via ${w.source}): ${w.issueFile}::${w.anchor} — ${w.rationale}`).join('\n')
       }\n--- end wont-fix ---\n`
 
-  // Step 5: Issues finding schema (per lens)
+  // ----- Step 5: Issues finding schema (per lens) -----
+  // anchor + issueFile are BOTH required — downstream merge / progression / wont-fix
+  // all key on `<issueFile>::<anchor>`. Allowing missing anchor lets findings validate
+  // then silently corrupt dedup, coverage tracking, and wont-fix matching.
   const ISSUES_FINDINGS_SCHEMA = {
     type: 'object',
     required: ['findings'],
@@ -777,7 +951,7 @@ Return the parsed JSON object verbatim.`,
         type: 'array',
         items: {
           type: 'object',
-          required: ['severity', 'category', 'issueFile', 'description'],
+          required: ['severity', 'category', 'issueFile', 'anchor', 'description'],
           properties: {
             severity: { enum: ['Blocking', 'Required', 'Suggestion'] },
             category: {
@@ -788,10 +962,17 @@ Return the parsed JSON object verbatim.`,
                 'ACCEPTANCE_CRITERIA',
                 'COVERAGE',
                 'SUBTRACTABILITY',
+                'CONSISTENCY',
               ],
             },
-            issueFile: { type: 'string' },
-            anchor: { type: 'string' },
+            issueFile: {
+              type: 'string',
+              description: 'Issue filename (e.g. "03-foo.md") or "GLOBAL" for set-wide findings',
+            },
+            anchor: {
+              type: 'string',
+              description: 'Stable identifier within the issue (e.g. "AC-2", "Blocked-by:NN", "Title", "MATRIX-SUMMARY") for cross-round dedup',
+            },
             description: { type: 'string' },
           },
         },
@@ -799,7 +980,22 @@ Return the parsed JSON object verbatim.`,
     },
   }
 
-  // Step 6: Lens fan-out
+  // ----- Step 5b: per-lens-result schema (wraps findings with status for fail-closed detection) -----
+  // Lens dispatch failures (CLI/quota/parse errors) MUST be visible — silently coercing to
+  // {findings: []} would let a transient backend hiccup look like LGTM and the loop EXIT
+  // with zero coverage by that lens. status='failed' bubbles up to a synthetic parserFailure
+  // that the parserPass hard gate catches.
+  const ISSUES_LENS_RESULT_SCHEMA = {
+    type: 'object',
+    required: ['status', 'findings'],
+    properties: {
+      status: { enum: ['ok', 'empty', 'failed'] },
+      reason: { type: 'string' },
+      findings: ISSUES_FINDINGS_SCHEMA.properties.findings,
+    },
+  }
+
+  // ----- Step 6: Lens fan-out -----
   log(`issues: dispatching ${effectiveRoster.length} lenses to ${backend} over ${pendingFiles.length} pending issue files: ${effectiveRoster.join(', ')}`)
 
   async function dispatchIssuesLens(lens) {
@@ -807,7 +1003,7 @@ Return the parsed JSON object verbatim.`,
       `Dispatch the ${lens} issues-review lens via the ${backend} CLI.
 
       1. Read ~/.claude/skills/review-with-agent/lenses/issues/${lens}.md for this lens's checklist and output format.
-      2. Dispatch using this exact Bash pipeline:
+      2. Dispatch using this exact Bash pipeline (heredoc + cat for the bundle file — avoids shell arg length limits and avoids LLM-mangling the bundle):
 
          \`\`\`bash
          { cat <<'PROMPT_HEAD'
@@ -824,13 +1020,19 @@ Return the parsed JSON object verbatim.`,
          \`\`\`
 
       3. Filter banner noise with: ${BACKEND.noiseFilter}
-      4. Detect failure: empty output OR matches /Retry attempts exhausted|Error executing tool|NumericalClassifier/.
-         Treat as failure and return {findings: []}.
-      5. Parse each non-noise line into a finding {severity, category, issueFile, anchor, description}.
+      4. Detect outcome:
+         - Failure: empty output OR matches /Retry attempts exhausted|Error executing tool|NumericalClassifier/.
+           Return {status: 'failed', reason: '<short summary of what failed>', findings: []}.
+         - Empty (legitimate LGTM): output is literally "LGTM" or contains zero parseable findings.
+           Return {status: 'empty', findings: []}.
+         - OK: at least one parseable finding. Return {status: 'ok', findings: [...]}.
+      5. Parse each non-noise non-LGTM line into a finding {severity, category, issueFile, anchor, description}.
          The lens output format is: \`<Severity>|<Category>|<IssueFile>|<Anchor>|<Description>\`
-      Return {findings: [...]} matching the schema.`,
+         Set category to the lens's primary dimension when ambiguous (lens file documents which).
+         **Both issueFile AND anchor MUST be present in every finding** — the schema rejects missing values.
+      Return the lens-result object matching the schema.`,
       {
-        schema: ISSUES_FINDINGS_SCHEMA,
+        schema: ISSUES_LENS_RESULT_SCHEMA,
         label: `issues-lens:${lens}`,
         phase: 'Lens-fanout',
       },
@@ -839,13 +1041,27 @@ Return the parsed JSON object verbatim.`,
 
   const lensResults = await parallel(effectiveRoster.map(l => () => dispatchIssuesLens(l)))
 
-  // Tag each finding with originating lens
+  // Surface failed lenses as synthetic parserFailures so the hard gate fires.
+  // Per /run-all-issues semantics, parserPass blocks EXIT — and a silently-failed
+  // lens is exactly the "scored zero coverage by that dimension" hazard that should
+  // block EXIT until the operator notices.
+  for (let i = 0; i < lensResults.length; i++) {
+    const r = lensResults[i]
+    if (r && r.status === 'failed') {
+      parserFailures.push({
+        file: '__lens__',
+        reason: `Lens '${effectiveRoster[i]}' dispatch failed: ${r.reason || 'unknown reason'} — fail-closed (parserPass blocks EXIT)`,
+      })
+    }
+  }
+
+  // Tag each finding with originating lens (only ok status produces findings)
   const taggedFindings = lensResults.flatMap((r, i) => {
     const lens = effectiveRoster[i]
     return (r?.findings || []).map(f => ({ ...f, lenses: [lens] }))
   })
 
-  // Step 7: Synthesize — merge by (issueFile, anchor)
+  // ----- Step 7: Synthesize — merge by (issueFile, anchor) -----
   phase('Synthesize')
 
   const MERGED_ISSUES_SCHEMA = {
@@ -856,12 +1072,18 @@ Return the parsed JSON object verbatim.`,
         type: 'array',
         items: {
           type: 'object',
-          required: ['severity', 'category', 'issueFile', 'description', 'lenses'],
+          required: ['severity', 'category', 'issueFile', 'anchor', 'description', 'lenses'],
           properties: {
             severity: { enum: ['Blocking', 'Required', 'Suggestion'] },
             category: { type: 'string' },
-            issueFile: { type: 'string' },
-            anchor: { type: 'string' },
+            issueFile: {
+              type: 'string',
+              description: 'Issue filename (e.g. "03-foo.md") or "GLOBAL" for set-wide findings',
+            },
+            anchor: {
+              type: 'string',
+              description: 'Stable identifier within the issue (e.g. "AC-2", "Blocked-by:NN", "Title", "MATRIX-SUMMARY") for cross-round dedup',
+            },
             description: { type: 'string' },
             lenses: { type: 'array', items: { type: 'string' }, minItems: 1 },
           },
@@ -888,7 +1110,9 @@ Return the parsed JSON object verbatim.`,
       },
     )
 
-  // Step 8: Verdict
+  // ----- Step 8: Verdict -----
+  // PRD-lens-fanout style: 0 Blocking → PASS; ≥2-lens agreement on Blocking → REJECT; single-lens Blocking → CONTESTED.
+  // Plus the deterministic hard override: parserFailures.length > 0 → REJECT regardless of LLM verdict.
   const blockers = merged.findings.filter(f => f.severity === 'Blocking')
   const multiLensBlockers = blockers.filter(f => f.lenses.length >= 2)
   let verdict
@@ -902,7 +1126,7 @@ Return the parsed JSON object verbatim.`,
     verdict = 'CONTESTED'
   }
 
-  // Cleanup bundle tempfile
+  // Cleanup bundle tempfile (best-effort; ignore failure if file was never created or already gone)
   if (bundlePath) {
     await agent(`Run: rm -f ${shellQuote(bundlePath)}`, { label: 'cleanup-bundle', phase: 'Synthesize' })
   }
@@ -917,7 +1141,9 @@ Return the parsed JSON object verbatim.`,
     parserFailures,
     lensResults: lensResults.map((r, i) => ({
       lens: effectiveRoster[i],
+      status: r?.status || 'failed',
       findingCount: (r?.findings || []).length,
+      reason: r?.reason,
     })),
     findings: merged.findings,
     stats: {
@@ -926,7 +1152,8 @@ Return the parsed JSON object verbatim.`,
       multiLensBlockers: multiLensBlockers.length,
       parserFailureCount: parserFailures.length,
       contextFilesInjected: ctxFiles.length,
-      wontfixEntriesApplied: wontfix.length,
+      wontfixEntriesApplied: effectiveLedger.length,
+      ledgerEntriesSkipped,        // wont-fix entries missing issueFile or anchor
     },
   }
 }

@@ -1,6 +1,6 @@
 export const meta = {
   name: 'issues-review-loop-progression-check',
-  description: 'Deterministic 3-of-5 Progression Check for /issues-review-loop, with an additional independent hard gate (parserPass) that overrides the 3-of-5 result. Mirrors /prd-review-loop progression but swaps H2-section churn for issue-file churn, and adds parserPass.',
+  description: 'Deterministic 3-of-4 Progression Check for /issues-review-loop, with coverage as a parent-confirmed precondition and parserPass as an independent hard gate. Mirrors /prd-review-loop progression but swaps H2-section churn for issue-file churn, splits coverage out of the counted criteria into a precondition, and adds parserPass.',
   phases: [
     { title: 'Score', detail: 'compute auto-evaluable criteria + apply wont-fix folding + hard-gate parserPass + escape-hatch eligibility' },
   ],
@@ -52,10 +52,16 @@ function recordKey(o) {
   return `${o.issueFile || ''}::${o.anchor || ''}`
 }
 
-const ledgerKeySkipped = ledger.filter(w => !w.anchor).map(w => w.id || '(unknown)')
+// Skip wont-fix entries missing EITHER issueFile or anchor — both are required for
+// a valid `<issueFile>::<anchor>` key. Surface skipped entries by id so the parent
+// can re-author them; without this, a missing-issueFile entry would produce a
+// phantom `::anchor` key that matches nothing and silently re-raises every round.
+const ledgerKeySkipped = ledger
+  .filter(w => !w.issueFile || !w.anchor)
+  .map(w => w.id || '(unknown)')
 const ledgerKeys = new Set(
   ledger
-    .filter(w => !!w.anchor)
+    .filter(w => !!w.issueFile && !!w.anchor)
     .map(recordKey)
 )
 
