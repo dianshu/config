@@ -15,6 +15,8 @@ Drives an adversarial multi-lens review of a PRD draft before it is published to
 
 This skill never publishes anything. It loops review-and-revise on the draft file in place, then hands back to `/prd` (or the user) to publish.
 
+`/prd-review-loop` has a sibling skill — `/issues-review-loop` — that applies the same architectural pattern (single backend × N-lens fan-out + 3-of-5 progression check + persisted wont-fix ledger) to the issue SET produced by `/issues`. Use them in sequence on a typical feature: `/prd` draft → `/prd-review-loop` → publish PRD → `/issues` draft → `/issues-review-loop` → label issues → `/run-all-issues`.
+
 ## Input — three accepted forms
 
 The skill accepts the PRD source in one of three forms. Resolve which via this priority order:
