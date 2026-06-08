@@ -31,7 +31,7 @@ else
 fi
 
 # 1d. Install or update opencode CLI
-echo "\n=== opencode CLI ==="
+echo "\n=== Opencode CLI ==="
 if command -v brew &>/dev/null; then
     if brew list opencode &>/dev/null; then
         echo "  Found, updating..."
