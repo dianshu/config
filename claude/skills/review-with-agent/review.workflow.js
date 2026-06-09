@@ -1139,10 +1139,13 @@ Return the parsed JSON object verbatim.`,
     verdict = 'CONTESTED'
   }
 
-  // Cleanup bundle tempfile (best-effort; ignore failure if file was never created or already gone)
-  if (bundlePath) {
-    await agent(`Run: rm -f ${shellQuote(bundlePath)}`, { label: 'cleanup-bundle', phase: 'Synthesize' })
-  }
+  // NOTE: intentionally do NOT clean up the bundle tempfile here.
+  // It lives in /tmp (ephemeral, OS-reclaimed) and is only a few KB. Dispatching a
+  // general-purpose agent() for a trivial `rm -f` is dangerous: with no substantive
+  // task, the agent reads the bundle it was told to delete, invents a larger "real
+  // intent", and can go rogue — observed in practice as a cleanup agent that loaded
+  // the feature, implemented BOTH issues, committed them, and marked them done-.
+  // Leaving a small temp file is strictly safer than spawning an unconstrained agent.
 
   return {
     mode: 'issues',
@@ -1416,8 +1419,10 @@ const summary = await agent(
   },
 )
 
-// Cleanup tmpdir
-await agent(`Run: rm -rf ${prep.tmpdir}`, { label: 'cleanup', phase: 'Synthesize' })
+// NOTE: intentionally do NOT spawn an agent to clean up prep.tmpdir — same hazard
+// as the issues-mode bundle cleanup above. Handing a trivial `rm -rf` to a
+// general-purpose agent invites rogue behavior (it has nothing to do but invent a
+// task); the tmpdir is ephemeral (/tmp), so leaving it is strictly safer.
 
 return {
   mode: 'code',
