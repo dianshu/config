@@ -927,7 +927,12 @@ Return the parsed JSON object verbatim.`,
     .filter(w => !w || !w.issueFile || !w.anchor)
     .map(w => (w && w.id) || '(unknown)')
 
-  const ctxBlock = ctxFiles.length === 0
+  // When the parent passes a pre-built, framed context bundle FILE
+  // (args.contextBundlePath), lenses `cat` it instead of embedding per-file
+  // content here — keeps context bodies out of /issues-review-loop's per-round
+  // Workflow args. Falls back to inline-content embedding when no bundle path.
+  const ctxBundle = (typeof contextBundlePath === 'string' && contextBundlePath) ? contextBundlePath : ''
+  const ctxBlock = (ctxFiles.length === 0 || ctxBundle)
     ? ''
     : `\n\nPROJECT CONTEXT (injected — reviewer MUST cross-check issues against these):\n${
         ctxFiles.map(c => `\n--- ${c.label} (${c.path}) ---\n${c.content}`).join('\n')
@@ -1008,7 +1013,19 @@ Return the parsed JSON object verbatim.`,
       2. Dispatch using this exact Bash pipeline (heredoc + cat for the bundle file — avoids shell arg length limits and avoids LLM-mangling the bundle):
 
          \`\`\`bash
-         { cat <<'PROMPT_HEAD'
+         ${ctxBundle
+           ? `{ cat <<'PROMPT_HEAD'
+         <lens checklist from step 1>
+
+         ISSUE BUNDLE (all pending issues for this feature, concatenated below):
+         PROMPT_HEAD
+         cat ${shellQuote(bundlePath)}
+         cat ${shellQuote(ctxBundle)}
+         cat <<'PROMPT_TAIL'
+         ${wontfixBlock.replace(/\n/g, '\n         ')}
+         PROMPT_TAIL
+         } | ${BACKEND.planDispatch}`
+           : `{ cat <<'PROMPT_HEAD'
          <lens checklist from step 1>
 
          ISSUE BUNDLE (all pending issues for this feature, concatenated below):
@@ -1018,7 +1035,7 @@ Return the parsed JSON object verbatim.`,
          ${ctxBlock.replace(/\n/g, '\n         ')}
          ${wontfixBlock.replace(/\n/g, '\n         ')}
          PROMPT_TAIL
-         } | ${BACKEND.planDispatch}
+         } | ${BACKEND.planDispatch}`}
          \`\`\`
 
       3. Filter banner noise with: ${BACKEND.noiseFilter}

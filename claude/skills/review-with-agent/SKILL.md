@@ -52,7 +52,7 @@ Workflow({
                                   // contextBundlePath instead (prd mode) so the file
                                   // bodies never enter the caller's per-round args
     ],
-    contextBundlePath: '<path>',  // optional (prd mode) — path to a pre-built,
+    contextBundlePath: '<path>',  // optional (prd + issues modes) — path to a pre-built,
                                   // framed context-bundle file (caller cats the
                                   // contextFiles into one tmpfile). When set, prd
                                   // lenses `cat` it instead of embedding per-file
@@ -74,12 +74,12 @@ Workflow({
 })
 ```
 
-**Context bundle (prd mode today).** When `contextBundlePath` is set, `contextFiles`
-entries are path-only (no `content`), so the caller never holds or re-passes file
-bodies — only the bundle path. Only `/prd-review-loop` (prd mode) uses this today.
-`/issues-review-loop` (issues mode) still passes inline `content` and re-pays it per
-round; it can adopt the same approach later by mirroring the prd-mode bundle handling
-(parent builds the bundle + issues-mode dispatch `cat`s it).
+**Context bundle (prd + issues modes).** When `contextBundlePath` is set, `contextFiles`
+entries are path-only (no `content`), so the caller never holds or re-passes file bodies
+— only the bundle path. Both `/prd-review-loop` (prd mode) and `/issues-review-loop`
+(issues mode) use this: their Step 0 builds the framed bundle and the matching lens
+dispatch `cat`s it. Callers that still pass inline `content` (and no `contextBundlePath`)
+keep working unchanged.
 
 If `mode === 'plan'` and neither `planPath` nor `planContent` is provided, the
 workflow aborts. If `mode === 'prd'` and neither `prdPath` nor `prdContent`

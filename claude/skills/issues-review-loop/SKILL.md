@@ -86,14 +86,33 @@ CTX_FILES=()
   [ -f "$f" ] && CTX_FILES+=("ADR:$f")
 done
 # NO sibling-PRD injection — issue review is scoped to ONE feature's issue set.
+
+# Build ONE framed context-bundle FILE (deterministic cat — keeps file CONTENT
+# out of the parent context AND out of per-round Workflow args; the workflow's
+# lenses `cat` this path). PARENT_PRD / GRILLCOMMITMENTS / GLOSSARY full; ADR head -200.
+CTX_BUNDLE=""
+if [ ${#CTX_FILES[@]} -gt 0 ]; then
+  CTX_BUNDLE=$(mktemp -t issues-ctx-bundle.XXXXXX)
+  printf 'PROJECT CONTEXT (injected — reviewer MUST cross-check issues against these):\n' >> "$CTX_BUNDLE"
+  for entry in "${CTX_FILES[@]}"; do
+    label="${entry%%:*}"; path="${entry#*:}"
+    printf '\n--- %s (%s) ---\n' "$label" "$path" >> "$CTX_BUNDLE"
+    case "$label" in
+      ADR) head -200 "$path" >> "$CTX_BUNDLE" ;;
+      *)   cat       "$path" >> "$CTX_BUNDLE" ;;
+    esac
+  done
+  printf '\n--- end project context ---\n' >> "$CTX_BUNDLE"
+fi
+
+# Emit path-only contextFiles + the bundle path. NOTHING in stdout contains file
+# CONTENT — only labels/paths — so the parent never holds (or re-passes) bodies.
+ctx_json=$(for e in "${CTX_FILES[@]:-}"; do [ -n "$e" ] && printf '%s\t%s\n' "${e%%:*}" "${e#*:}"; done \
+  | jq -R 'split("\t")|{label:.[0],path:.[1]}' | jq -s .)
+jq -n --argjson cf "$ctx_json" --arg bp "$CTX_BUNDLE" '{contextFiles:$cf, contextBundlePath:$bp}'
 ```
 
-For each file in `CTX_FILES`:
-- `PARENT_PRD` — **full read** (Coverage lens needs the entire User Stories + Acceptance Criteria sections; truncating would silently weaken the lens)
-- `GRILLCOMMITMENTS` / `GLOSSARY` — full read
-- `ADR` — `head -200` per file to avoid context bloat
-
-Assemble `{path, label, content}[]` to pass as `contextFiles` to the workflow.
+The bundle build above applies the issues-mode truncation policy: `PARENT_PRD` — **full** (Coverage lens needs the entire User Stories + Acceptance Criteria sections; truncating would silently weaken the lens); `GRILLCOMMITMENTS` / `GLOSSARY` — full; `ADR` — `head -200` per file. Capture the bash's JSON stdout: `contextFiles` (an array of `{label, path}` — **path-only, no `content`**) and `contextBundlePath` (the bundle file path, or `""` when no context). **Do NOT Read the context files into the parent** — their bodies live only in the bundle file. Remember `contextBundlePath` for cleanup in Step 3, and pass both fields to the workflow every round.
 
 If `PARENT_PRD` is absent, log `issues-review-loop: no PARENT_PRD at <expected path> — Coverage lens will be skipped, other 4 lenses run` and proceed.
 
@@ -136,7 +155,8 @@ Workflow({
     mode: 'issues',
     backend: 'codex',                       // single backend (same rationale as /prd-review-loop)
     issuesDir: '<resolved issues path>',
-    contextFiles: <from step 0>,            // PARENT_PRD optional; GRILLCOMMITMENTS / GLOSSARY / ADR optional
+    contextFiles: <from step 0 — path-only {label, path}, NO content>,  // PARENT_PRD optional; GRILLCOMMITMENTS / GLOSSARY / ADR optional
+    contextBundlePath: <from step 0 — bundle file path, or "" when no context>,
     wontfixLedger: <from step 1>,
     lensRoster: ['Slicer', 'DependencyAuditor', 'Granularity', 'AcceptanceCriteria', 'Coverage'],
     // Workflow auto-drops Coverage from the dispatched roster when no PARENT_PRD in contextFiles.
@@ -224,6 +244,8 @@ issues-review-loop round 2 → CONTINUE
 ```
 
 ### Step 3 — Final summary
+
+First, clean up the Step 0 context bundle (a tmpfile, no longer needed): `rm -f "$CTX_BUNDLE"` (skip when `contextBundlePath` was `""`). Run this BEFORE emitting the summary so the summary stays the final message.
 
 Emit the loop summary as the standalone final message (no other content before or after):
 
