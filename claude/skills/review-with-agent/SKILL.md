@@ -46,9 +46,19 @@ Workflow({
     // issues mode (issue-set review with 5-lens fan-out + parser preflight):
     issuesDir: '<path>',          // directory containing pending NN-*.md issue files
     contextFiles: [               // optional project-context cross-check (P0-2)
-      { path, label, content }    // ADR / GLOSSARY / GRILLCOMMITMENTS / sibling-PRD
+      { path, label, content? }   // ADR / GLOSSARY / GRILLCOMMITMENTS / sibling-PRD
                                   // for issues mode: PARENT_PRD (required by Coverage lens)
+                                  // `content` is OPTIONAL — omit it and pass
+                                  // contextBundlePath instead (prd mode) so the file
+                                  // bodies never enter the caller's per-round args
     ],
+    contextBundlePath: '<path>',  // optional (prd mode) — path to a pre-built,
+                                  // framed context-bundle file (caller cats the
+                                  // contextFiles into one tmpfile). When set, prd
+                                  // lenses `cat` it instead of embedding per-file
+                                  // content into args/prompts; this is how
+                                  // /prd-review-loop keeps its per-round project
+                                  // context out of the parent transcript.
     wontfixLedger: [              // optional already-decided exclusions (P1-6)
       { id, severity, source, rationale, decidedRoundN }
     ],
@@ -63,6 +73,13 @@ Workflow({
   },
 })
 ```
+
+**Context bundle (prd mode today).** When `contextBundlePath` is set, `contextFiles`
+entries are path-only (no `content`), so the caller never holds or re-passes file
+bodies — only the bundle path. Only `/prd-review-loop` (prd mode) uses this today.
+`/issues-review-loop` (issues mode) still passes inline `content` and re-pays it per
+round; it can adopt the same approach later by mirroring the prd-mode bundle handling
+(parent builds the bundle + issues-mode dispatch `cat`s it).
 
 If `mode === 'plan'` and neither `planPath` nor `planContent` is provided, the
 workflow aborts. If `mode === 'prd'` and neither `prdPath` nor `prdContent`

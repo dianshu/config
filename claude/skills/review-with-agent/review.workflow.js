@@ -96,6 +96,13 @@ const VERIFY_SCHEMA = {
   },
 }
 
+// Helper: quote a JS string for safe use in a POSIX shell single-quoted context.
+// JSON.stringify only produces JS string literals (double-quoted) — those still
+// do $-expansion and command-substitution when embedded in bash. Single-quote
+// wrapping with '\'' escaping makes the value a pure literal. Hoisted to module
+// scope so both prd and issues modes share one definition.
+const shellQuote = (s) => "'" + String(s).replace(/'/g, "'\\''") + "'"
+
 // ============================================================
 // Entry point — args validation
 // ============================================================
@@ -109,6 +116,7 @@ const {
   prdContent,
   issuesDir,
   contextFiles,
+  contextBundlePath,
   wontfixLedger,
   lensRoster,
 } = args || {}
@@ -262,8 +270,15 @@ if (mode === 'plan') {
 //
 // Both paths accept:
 //   - args.prdPath OR args.prdContent — the PRD to review
-//   - args.contextFiles — array of {path, label, content} for ADR/glossary/
-//     GRILLCOMMITMENTS/historical-PRD context injection (P0-2)
+//   - args.contextFiles — array of {path, label[, content]} for ADR/glossary/
+//     GRILLCOMMITMENTS/historical-PRD context injection (P0-2). When
+//     args.contextBundlePath is set, entries are path-only (no content) — the
+//     content lives in the bundle file instead.
+//   - args.contextBundlePath — optional path to a pre-built, framed context
+//     bundle file (parent concatenates the contextFiles into one tmpfile). When
+//     set, lenses `cat` it rather than embedding per-file content into args /
+//     prompts — this is what keeps /prd-review-loop's per-round context out of
+//     the parent transcript.
 //   - args.wontfixLedger — array of {id, severity, source, rationale,
 //     decidedRoundN} for already-decided exclusions (P1-6); reviewer is
 //     told NOT to re-flag these
@@ -298,7 +313,14 @@ if (mode === 'prd') {
     : `Use this inline PRD content:\n\n${prdContent}`
 
   const ctxFiles = Array.isArray(contextFiles) ? contextFiles : []
-  const ctxBlock = ctxFiles.length === 0
+  // When the parent passes a pre-built, framed context bundle FILE
+  // (args.contextBundlePath), lenses `cat` it in their dispatch heredoc instead
+  // of embedding per-file content here. This keeps context-file content out of
+  // BOTH the parent's per-round Workflow args (the main driver of /prd-review-loop
+  // context growth) AND the lens subagent prompts. Falls back to inline-content
+  // embedding (legacy) when no bundle path is given.
+  const ctxBundle = (typeof contextBundlePath === 'string' && contextBundlePath) ? contextBundlePath : ''
+  const ctxBlock = (ctxFiles.length === 0 || ctxBundle)
     ? ''
     : `\n\nPROJECT CONTEXT (injected — reviewer MUST cross-check PRD against these):\n${
         ctxFiles.map(c => `\n--- ${c.label} (${c.path}) ---\n${c.content}`).join('\n')
@@ -441,13 +463,23 @@ ${ctxFiles.length === 0 ? '' : `
         4. Dispatch using this exact Bash pipeline (heredoc — avoids shell arg length limits):
 
            \`\`\`bash
-           { cat <prd_or_tempfile>; cat <<'PROMPT'
+           ${ctxBundle
+             ? `{ cat <prd_or_tempfile>; cat <<'PROMPT_HEAD'
+           ---
+           <lens checklist from step 2>
+           PROMPT_HEAD
+           cat ${shellQuote(ctxBundle)}
+           cat <<'PROMPT_TAIL'
+           ${wontfixBlock.replace(/\n/g, '\n           ')}
+           PROMPT_TAIL
+           } | ${BACKEND.planDispatch}`
+             : `{ cat <prd_or_tempfile>; cat <<'PROMPT'
            ---
            <lens checklist from step 2>
            ${ctxBlock.replace(/\n/g, '\n           ')}
            ${wontfixBlock.replace(/\n/g, '\n           ')}
            PROMPT
-           } | ${BACKEND.planDispatch}
+           } | ${BACKEND.planDispatch}`}
            \`\`\`
 
         5. Filter banner noise with: ${BACKEND.noiseFilter}
@@ -545,14 +577,9 @@ ${ctxFiles.length === 0 ? '' : `
 
   // ----- Path B: single-pass (default, no lensRoster) -----
 
-  const prdReview = await agent(
-    `${prdSource}
-
-    Then dispatch the PRD content to the ${backend} CLI for review using this exact pipeline:
-
-    \`\`\`bash
-    { cat <prd_or_tempfile>; cat <<'PROMPT'
-    ---
+  // Invariant prompt chunks shared by both the bundle and inline-content bash
+  // variants below — extracted so the ctxBundle ternary doesn't duplicate them.
+  const singlePassHead = `---
     You are reviewing a Product Requirements Document (PRD), not an implementation plan.
     A PRD describes a product feature from the USER's perspective. It does NOT
     contain code, file paths, or task lists. Do NOT flag missing checkboxes,
@@ -561,11 +588,8 @@ ${ctxFiles.length === 0 ? '' : `
 
     Review the PRD against these 8 dimensions${ctxFiles.length > 0 ? ' + CONSISTENCY' : ''}:
 
-    ${PRD_DIMENSIONS}
-    ${ctxBlock}
-    ${wontfixBlock}
-
-    Output format — one finding per line:
+    ${PRD_DIMENSIONS}`
+  const singlePassTail = `Output format — one finding per line:
     <Severity>|<Category>|<Section>|<Anchor>|<Description>
     where Severity ∈ {Blocking, Required, Suggestion}
     and Category ∈ {USER_STORY_INVEST, ACCEPTANCE_CRITERIA, TRACEABILITY,
@@ -574,9 +598,33 @@ ${ctxFiles.length === 0 ? '' : `
     and Section is the H2 heading name or "GLOBAL"
     and Anchor is a story id / OoS index / quoted phrase (for dedup across rounds)
 
-    If the PRD is clean: output literally "LGTM" and nothing else.
+    If the PRD is clean: output literally "LGTM" and nothing else.`
+
+  const prdReview = await agent(
+    `${prdSource}
+
+    Then dispatch the PRD content to the ${backend} CLI for review using this exact pipeline:
+
+    \`\`\`bash
+    ${ctxBundle
+      ? `{ cat <prd_or_tempfile>; cat <<'PROMPT_HEAD'
+    ${singlePassHead}
+    PROMPT_HEAD
+    cat ${shellQuote(ctxBundle)}
+    cat <<'PROMPT_TAIL'
+    ${wontfixBlock}
+
+    ${singlePassTail}
+    PROMPT_TAIL
+    } | ${BACKEND.planDispatch}`
+      : `{ cat <prd_or_tempfile>; cat <<'PROMPT'
+    ${singlePassHead}
+    ${ctxBlock}
+    ${wontfixBlock}
+
+    ${singlePassTail}
     PROMPT
-    } | ${BACKEND.planDispatch}
+    } | ${BACKEND.planDispatch}`}
     \`\`\`
 
     Filter output with: ${BACKEND.noiseFilter}
@@ -633,12 +681,6 @@ ${ctxFiles.length === 0 ? '' : `
 
 if (mode === 'issues') {
   phase('Lens-fanout')
-
-  // Helper: quote a JS string for safe use in a POSIX shell single-quoted context.
-  // JSON.stringify only produces JS string literals (double-quoted) — those still
-  // do $-expansion and command-substitution when embedded in bash. Single-quote
-  // wrapping with '\'' escaping makes the value a pure literal.
-  const shellQuote = (s) => "'" + String(s).replace(/'/g, "'\\''") + "'"
 
   const ctxFiles = Array.isArray(contextFiles) ? contextFiles : []
   const hasPrd = ctxFiles.some(c => c && c.label === 'PARENT_PRD')

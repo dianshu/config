@@ -70,11 +70,35 @@ done
 for sib in "$(dirname "$PRD_DIR")"/*/PRD.md; do
   [ -f "$sib" ] && [ "$sib" != "$PRD_PATH" ] && CTX_FILES+=("SIBLING_PRD:$sib")
 done
+
+# Build ONE framed context-bundle FILE (deterministic cat — keeps file CONTENT
+# out of the parent context AND out of per-round Workflow args; the workflow's
+# lenses `cat` this path). head -200 truncation for ADR / sibling PRDs.
+CTX_BUNDLE=""
+if [ ${#CTX_FILES[@]} -gt 0 ]; then
+  CTX_BUNDLE=$(mktemp -t prd-ctx-bundle.XXXXXX)
+  printf 'PROJECT CONTEXT (injected — reviewer MUST cross-check PRD against these):\n' >> "$CTX_BUNDLE"
+  for entry in "${CTX_FILES[@]}"; do
+    label="${entry%%:*}"; path="${entry#*:}"
+    printf '\n--- %s (%s) ---\n' "$label" "$path" >> "$CTX_BUNDLE"
+    case "$label" in
+      ADR|SIBLING_PRD) head -200 "$path" >> "$CTX_BUNDLE" ;;
+      *)               cat       "$path" >> "$CTX_BUNDLE" ;;
+    esac
+  done
+  printf '\n--- end project context ---\n' >> "$CTX_BUNDLE"
+fi
+
+# Emit path-only contextFiles + the bundle path. NOTHING in stdout contains file
+# CONTENT — only labels/paths — so the parent never holds (or re-passes) bodies.
+ctx_json=$(for e in "${CTX_FILES[@]:-}"; do [ -n "$e" ] && printf '%s\t%s\n' "${e%%:*}" "${e#*:}"; done \
+  | jq -R 'split("\t")|{label:.[0],path:.[1]}' | jq -s .)
+jq -n --argjson cf "$ctx_json" --arg bp "$CTX_BUNDLE" '{contextFiles:$cf, contextBundlePath:$bp}'
 ```
 
-For each file in `CTX_FILES`, Read it (use `head -200` for ADRs / sibling PRDs to avoid context bloat; full read for GRILLCOMMITMENTS and CONTEXT.md). Assemble an array of `{path, label, content}` to pass as `contextFiles` to the workflow.
+Capture this bash's JSON stdout: `contextFiles` (an array of `{label, path}` — **path-only, no `content`**) and `contextBundlePath` (the bundle file path, or `""` when no context). **Do NOT Read the context files into the parent** — their bodies live only in the bundle file. Remember `contextBundlePath` for cleanup in Step 3, and pass both fields to the workflow every round.
 
-If NO context files are found, log `prd-review-loop: no project context found (no GRILLCOMMITMENTS / CONTEXT.md / docs/adr/ / sibling PRDs)` and proceed — `CONSISTENCY` dimension will be skipped in the reviewer prompt.
+If NO context files are found (`contextBundlePath` is `""` and `contextFiles` is `[]`), log `prd-review-loop: no project context found (no GRILLCOMMITMENTS / CONTEXT.md / docs/adr/ / sibling PRDs)` and proceed — `CONSISTENCY` dimension will be skipped in the reviewer prompt (the workflow keys it off `contextFiles.length`).
 
 ### Step 1 — Load wont-fix ledger
 
@@ -111,7 +135,8 @@ Workflow({
     mode: 'prd',
     backend: 'codex',                          // single backend (see "Why single backend" below)
     prdPath: '<resolved PRD path>',
-    contextFiles: <from step 0>,
+    contextFiles: <from step 0 — path-only {label, path}, NO content>,
+    contextBundlePath: <from step 0 — bundle file path, or "" when no context>,
     wontfixLedger: <from step 1>,
     lensRoster: ['Architect', 'Challenger', 'DevilsAdvocate',
                  'Subtractor', 'Glossarian', 'Coverer'],
@@ -181,6 +206,8 @@ prd-review-loop round 2 → CONTINUE
 ```
 
 ### Step 3 — Final summary
+
+First, clean up the Step 0 context bundle (a tmpfile, no longer needed): `rm -f "$CTX_BUNDLE"` (skip when `contextBundlePath` was `""`). Run this BEFORE emitting the summary so the summary stays the final message.
 
 Emit the loop summary as the standalone final message (no other content before or after):
 
