@@ -85,13 +85,22 @@ No third option — every issue gets one of these two labels before the step tha
    b. For each of UT and E2E: if a command is resolved → run it; if not → mark as `skipped (no command found)` and continue. **Do not ask the user.**
    c. On failure → apply the **Fix/Won't-Fix Decision**. If fix → parent edits in main session, then **return to step 2a**. If won't-fix → proceed to step 6.
    d. On pass / skipped → proceed to step 6.
-6. **Summary** — output the summary as the **final, standalone assistant message** (no other content before or after — no "next steps", no "ready to push", no file lists). It must be a single block:
-   - Review rounds completed: N
-   - Won't-fix items: list (or "none")
-   - Testing-rules self-check: clean | fixed N violations
-   - e2e-verify (step 3): pass | fail (won't-fix) | skipped
-   - Full UT (step 5): pass | fail (won't-fix) | skipped (no command found)
-   - Full E2E (step 5): pass | fail (won't-fix) | skipped (no command found)
+6. **Summary** — output the summary as the **final, standalone assistant message** (no other content before or after — no "next steps", no "ready to push", no file lists). Prefix each line with a status emoji so the reader can scan outcomes at a glance.
+
+   Emoji legend (pick per line based on the actual outcome):
+   - ✅ pass / clean / "none" / no issues
+   - 🔧 fixed N violations (started dirty, ended clean — signals work was done)
+   - ⚠️ won't-fix item(s) present, or fail-but-accepted-as-won't-fix
+   - ⏭️ skipped (no command found, or step not applicable)
+   - 🔄 informational round counter (no pass/fail concept)
+
+   Lines (substitute the right emoji from the legend, do NOT print "✅ or ⚠️"):
+   - 🔄 Review rounds completed: N
+   - {✅|⚠️} Won't-fix items: list (or "none")
+   - {✅|🔧} Testing-rules self-check: clean | fixed N violations
+   - {✅|⚠️|⏭️} e2e-verify (step 3): pass | fail (won't-fix) | skipped
+   - {✅|⚠️|⏭️} Full UT (step 5): pass | fail (won't-fix) | skipped (no command found)
+   - {✅|⚠️|⏭️} Full E2E (step 5): pass | fail (won't-fix) | skipped (no command found)
 
 ## Rules
 
