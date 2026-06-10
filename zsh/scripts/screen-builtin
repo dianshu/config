@@ -5,9 +5,16 @@ builtin_id=$(displayplacer list 2>/dev/null | awk '
   /^Persistent screen id:/ { id = $NF }
   /Type:.*built.in/ { print id; exit }
 ')
+cache_file="${HOME}/.cache/screen-builtin-id"
 if [[ -z "$builtin_id" ]]; then
-  echo "内置屏幕未找到（可能已关闭）"
-  exit 1
+  if [[ -r "$cache_file" ]]; then
+    builtin_id=$(<"$cache_file")
+  else
+    echo "内置屏幕未找到且无缓存 id；请先在屏幕开启状态下运行一次本脚本以缓存 id"
+    exit 1
+  fi
+else
+  mkdir -p "${cache_file:h}" && print -r -- "$builtin_id" > "$cache_file"
 fi
 case "$action" in
   off) displayplacer "id:$builtin_id enabled:false" && echo "内置屏幕已关闭" ;;
