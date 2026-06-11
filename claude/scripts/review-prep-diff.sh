@@ -38,6 +38,14 @@ TMPDIR_PREFIX="${1:?usage: review-prep-diff.sh <tmpdir_prefix>}"
 
 git rev-parse --git-dir >/dev/null 2>&1 || { echo "review-prep-diff: not a git repo" >&2; exit 2; }
 
+# Pin cwd to repo root so pathspecs returned by list_files (git-root-relative,
+# e.g. `Earbud/Services/Foo.swift`) resolve correctly in the subsequent
+# `git diff -- "$FILE"` calls. Without this, invoking the script from a
+# subdirectory (e.g. `EarbudIOS/Earbud/`) made git look for
+# `Earbud/Earbud/Services/Foo.swift` and silently emit an empty diff. Subshell
+# cd does not leak to the caller.
+cd "$(git rev-parse --show-toplevel)" || { echo "review-prep-diff: cannot cd to repo root" >&2; exit 2; }
+
 EXCLUDE_PATHS=':(exclude)**/package-lock.json :(exclude)**/yarn.lock :(exclude)**/pnpm-lock.yaml :(exclude)**/Cargo.lock :(exclude)**/go.sum :(exclude)**/composer.lock :(exclude)**/Gemfile.lock :(exclude)**/poetry.lock :(exclude)**/Pipfile.lock :(exclude)**/*.min.js :(exclude)**/*.min.css :(exclude)**/*.bundle.js :(exclude)**/*.map :(exclude)**/dist/** :(exclude)**/vendor/** :(exclude)**/node_modules/** :(exclude)**/__pycache__/**'
 
 list_files() {
