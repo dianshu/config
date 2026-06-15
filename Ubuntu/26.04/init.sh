@@ -209,22 +209,5 @@ sudo locale-gen
 # === Repos Directory ===
 mkdir -p $HOME/repos
 
-# === Mail MCP token keepalive cron ===
-# agency mcp mail uses Entra local auth (~60min TTL) and only refreshes
-# lazily on next request — poke it every 30min so the first user-visible
-# call after idle never hits an expired token.
-sudo apt install -y cron
-sudo systemctl enable --now cron
-if command -v crontab >/dev/null 2>&1; then
-    KA_SCRIPT="$HOME/.zsh_scripts/mail_mcp_keepalive.sh"
-    KA_CRON_LINE="*/30 * * * * $KA_SCRIPT >/dev/null 2>&1"
-    if ! crontab -l 2>/dev/null | grep -qF "$KA_SCRIPT"; then
-        (crontab -l 2>/dev/null; echo "$KA_CRON_LINE") | crontab -
-        echo "mail MCP keepalive cron installed (every 30min)."
-    else
-        echo "mail MCP keepalive cron already configured."
-    fi
-fi
-
 echo "=== Ubuntu 26.04 init complete ==="
 echo "Please restart your terminal or run: source ~/.zshrc"

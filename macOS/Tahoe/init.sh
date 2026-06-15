@@ -350,18 +350,5 @@ fi
 # === Repos Directory ===
 mkdir -p $HOME/repos
 
-# === Mail MCP token keepalive cron ===
-# agency mcp mail uses Entra local auth (~60min TTL) and only refreshes
-# lazily on next request — poke it every 30min so the first user-visible
-# call after idle never hits an expired token.
-KA_SCRIPT="$HOME/.zsh_scripts/mail_mcp_keepalive.sh"
-KA_CRON_LINE="*/30 * * * * $KA_SCRIPT >/dev/null 2>&1"
-if ! crontab -l 2>/dev/null | grep -qF "$KA_SCRIPT"; then
-    (crontab -l 2>/dev/null; echo "$KA_CRON_LINE") | crontab -
-    echo "mail MCP keepalive cron installed (every 30min)."
-else
-    echo "mail MCP keepalive cron already configured."
-fi
-
 echo "=== macOS Tahoe init complete ==="
 echo "Please restart your terminal or run: source ~/.zshrc"
