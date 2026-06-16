@@ -253,6 +253,7 @@ brew_install --cask sublime-text obsidian docker
 brew_install --cask ghostty
 brew_install --cask git-credential-manager
 brew_install --cask monitorcontrol  # 外接屏亮度/音量控制 (F1/F2)
+brew_install --cask betterdisplay   # screen-builtin on 依赖它启停触发显示重置来恢复内置屏
 
 # === VS Code Extensions ===
 code --install-extension ms-python.python
