@@ -211,6 +211,16 @@
             "statusMessage": "Running xcodebuild warning check..."
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/force-bash-background.py",
+            "statusMessage": "Checking Bash background policy..."
+          }
+        ]
       }
     ],
     "PostToolUse": [
