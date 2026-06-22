@@ -31,9 +31,9 @@ The @config repo mirrors dotfiles and tool configs from the home directory. When
 | `~/.claude/skills/run-all-issues/` | `~/repos/skills/run-all-issues/` |
 | `~/.claude/skills/tdd/` | `~/repos/skills/tdd/` |
 | `~/.claude/skills/triage/` | `~/repos/skills/triage/` |
-| `~/.claude/skills/zoom-out/` | `~/repos/skills/zoom-out/` |
+| `~/.claude/skills/writing-skills/` | `~/repos/skills/writing-skills/` |
 
-Skills under `~/.claude/skills/` that are managed in the `~/repos/skills` git repo (currently: diagnose, grill, improve-codebase-architecture, issues, load-feature, prd, run-next-issue, run-all-issues, tdd, triage, zoom-out) sync to `~/repos/skills/<name>/` instead of the config repo. Commit and push changes there.
+Skills under `~/.claude/skills/` that are managed in the `~/repos/skills` git repo (currently: diagnose, grill, improve-codebase-architecture, issues, load-feature, prd, run-next-issue, run-all-issues, tdd, triage, writing-skills) sync to `~/repos/skills/<name>/` instead of the config repo. Commit and push changes there.
 
 This directory (`~/repos`) is a normal directory, not a git repo. Do not run git commands directly in this directory.
 

@@ -43,8 +43,7 @@
       "Skill(run-all-issues)",
       "Skill(run-next-issue)",
       "Skill(tdd)",
-      "Skill(triage)",
-      "Skill(zoom-out)"
+      "Skill(triage)"
     ],
     "deny": [
       "Bash(git push --force:*)",
