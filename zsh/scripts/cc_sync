@@ -12,13 +12,29 @@ fi
 # 1b. Install or update Codex CLI
 echo "\n=== Codex CLI ==="
 if command -v codex &>/dev/null; then
-    echo "  Found, updating..."
+    echo "  Found (current: $(codex --version 2>/dev/null)), updating..."
 else
     echo "  Not found, installing..."
 fi
 npm i -y -g @openai/codex@latest
+echo "  Now at version: $(codex --version 2>/dev/null)"
 
-# 1c. Install or update Agency
+# 1c. Install or update opencode CLI
+echo "\n=== Opencode CLI ==="
+if command -v brew &>/dev/null; then
+    if brew list opencode &>/dev/null; then
+        echo "  Found (current: $(opencode --version 2>/dev/null)), updating..."
+        brew upgrade opencode -y 2>&1 | grep -v "^Warning: opencode .* already installed" || true
+    else
+        echo "  Not found, installing..."
+        brew install anomalyco/tap/opencode
+    fi
+    echo "  Now at version: $(opencode --version 2>/dev/null)"
+else
+    echo "  brew not found, skipping (install Homebrew first)"
+fi
+
+# 1d. Install or update Agency
 echo "\n=== Agency ==="
 if is_work; then
     if command -v agency &>/dev/null; then
@@ -28,20 +44,6 @@ if is_work; then
     fi
 else
     echo "  Skipping (no work account available)"
-fi
-
-# 1d. Install or update opencode CLI
-echo "\n=== Opencode CLI ==="
-if command -v brew &>/dev/null; then
-    if brew list opencode &>/dev/null; then
-        echo "  Found, updating..."
-        brew upgrade opencode -y 2>&1 | grep -v "^Warning: opencode .* already installed" || true
-    else
-        echo "  Not found, installing..."
-        brew install anomalyco/tap/opencode
-    fi
-else
-    echo "  brew not found, skipping (install Homebrew first)"
 fi
 
 # 1e. Upgrade Homebrew packages
