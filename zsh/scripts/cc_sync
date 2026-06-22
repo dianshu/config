@@ -35,7 +35,7 @@ echo "\n=== Opencode CLI ==="
 if command -v brew &>/dev/null; then
     if brew list opencode &>/dev/null; then
         echo "  Found, updating..."
-        brew upgrade opencode 2>&1 | grep -v "^Warning: opencode .* already installed" || true
+        brew upgrade opencode -y 2>&1 | grep -v "^Warning: opencode .* already installed" || true
     else
         echo "  Not found, installing..."
         brew install anomalyco/tap/opencode
@@ -47,7 +47,7 @@ fi
 # 1e. Upgrade Homebrew packages
 echo "\n=== Homebrew ==="
 if command -v brew &>/dev/null; then
-    brew update && brew upgrade
+    brew update && brew upgrade -y
 else
     echo "  brew not found, skipping"
 fi
