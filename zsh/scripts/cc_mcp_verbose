@@ -1,0 +1,50 @@
+#!/usr/bin/env zsh
+#
+# 在 /tmp 建临时项目目录,把一组精选的 agency MCP 以「项目级」装进 Claude Code
+# (只写当前目录的 .mcp.json,不碰全局/用户配置),然后启动 hapi。
+#
+set -uo pipefail
+
+# 要安装的 MCP(项目级)。增删直接改这个数组即可。
+typeset -a servers=(
+  bluebird      # 跨 ADO 仓库语义代码搜索(org/project 取自 $CC_ADO_ORG / $CC_ADO_PROJECT)
+  enghub        # EngineeringHub (eng.ms) 工程门户/文档
+  icm           # IcM 事故管理
+  service-tree  # ServiceTree 服务目录/元数据
+  calendar      # Microsoft 日历
+  teams         # Microsoft Teams 消息
+  sharepoint    # SharePoint
+  word          # Word 文档
+  m365-copilot  # 跨 M365 内容搜索(文档/邮件/站点/文件/聊天)
+  m365-user     # 用户/经理/团队/下属(Graph)
+  graph         # Microsoft Graph 企业版
+  workiq        # WorkIQ 工作洞察
+)
+
+# 1. /tmp 下临时目录
+workdir=$(mktemp -d "/tmp/agency-mcp.XXXXXX") || { print -u2 "mktemp failed"; exit 1; }
+
+# 2. cd 过去
+cd "$workdir" || { print -u2 "cd $workdir failed"; exit 1; }
+print -r -- "Working in: $workdir"
+
+# 3. 逐个以 project scope 装进 Claude Code(写当前目录 .mcp.json)
+print -r -- "Installing ${#servers} MCP server(s) into project config (.mcp.json):"
+for name in $servers; do
+  # bluebird 需要显式 org/project(其 CLI 不读 env);两者必须同时给,否则回退自动探测
+  if [[ "$name" == bluebird && -n "${CC_ADO_ORG:-}" && -n "${CC_ADO_PROJECT:-}" ]]; then
+    typeset -a cmd=(agency mcp bluebird --org "$CC_ADO_ORG" --project "$CC_ADO_PROJECT")
+  else
+    typeset -a cmd=(agency mcp "$name")
+  fi
+
+  if claude mcp add "$name" -s project -- "${cmd[@]}" >/dev/null 2>&1; then
+    print -r -- "  + $name"
+  else
+    print -r -- "  ! $name (failed, skipped)"
+  fi
+done
+
+# 4. 启动 hapi(自动读取本目录的 .mcp.json)
+print -r -- "Launching hapi in $workdir ..."
+hapi
