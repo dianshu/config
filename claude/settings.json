@@ -13,6 +13,7 @@
   "permissions": {
     "allow": [
       "Bash",
+      "Bash(npm publish:*)",
       "WebFetch",
       "WebSearch",
       "mcp__plugin_microsoft-docs_microsoft-learn",
