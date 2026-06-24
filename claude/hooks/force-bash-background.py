@@ -5,6 +5,13 @@ Policy: every Bash command runs in background (`run_in_background: true`)
 EXCEPT commands whose every segment head is on WHITELIST below. Whitelisted
 commands (quick / read-only / need-immediate-result) stay in the foreground.
 
+Subagents are also exempt: a Bash call carrying an `agent_id` (any subagent --
+a workflow worker or a Task-spawned agent) is left in the foreground, because
+whatever orchestration spawned it consumes each command's stdout synchronously
+and a backgrounded command would hand back a task id instead of its output. The
+force-background policy targets the interactive top-level session, which carries
+no `agent_id`.
+
 Mechanism: emit `hookSpecificOutput.updatedInput` to rewrite the tool input,
 WITHOUT `permissionDecision` — so the user's `permissions.deny` rules are still
 enforced (deny-first precedence). The hook never blocks a command; on any
@@ -128,6 +135,12 @@ def main():
         return  # bad input; never break the Bash call
 
     if data.get("tool_name") != "Bash":
+        return
+
+    # Any subagent (workflow worker or Task-spawned) needs synchronous Bash
+    # stdout -- see the module docstring. Such calls carry an agent_id; the
+    # interactive top-level session does not.
+    if data.get("agent_id"):
         return
 
     tool_input = data.get("tool_input") or {}
