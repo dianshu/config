@@ -70,6 +70,13 @@ Workflow({
                                   //    'AcceptanceCriteria', 'Coverage']
                                   // Coverage auto-drops when no PARENT_PRD in contextFiles
     ],
+    agentModel: '<model>',        // optional — model alias for ALL orchestration
+                                  // subagents (preflight / dispatch / merge / verify /
+                                  // parser / intent / summary). Defaults to 'sonnet' so a
+                                  // review never consumes the main session's (heavier)
+                                  // model quota. The external CLI (codex|opencode) does the
+                                  // actual review judgment regardless, so a mid-tier model
+                                  // suffices. Accepts: 'sonnet' | 'haiku' | 'opus' | 'fable'.
   },
 })
 ```

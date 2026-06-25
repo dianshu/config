@@ -119,7 +119,16 @@ const {
   contextBundlePath,
   wontfixLedger,
   lensRoster,
+  agentModel,
 } = args || {}
+
+// All orchestration subagents in this workflow run on a lighter model than the
+// main session, so a review never consumes the (heavier) main-session model's
+// quota. The actual review *judgment* is delegated to the external CLI
+// (codex|opencode) — these Claude subagents only orchestrate (run bash scripts,
+// dispatch to the CLI, parse/merge/verify findings), so a mid-tier model is
+// enough. Override per-invocation via args.agentModel.
+const REVIEW_AGENT_MODEL = agentModel || 'sonnet'
 
 if (!backend || !BACKEND_CONFIG[backend]) {
   throw new Error(`review-with-agent: args.backend must be one of: ${Object.keys(BACKEND_CONFIG).join(', ')}`)
@@ -157,6 +166,7 @@ const preflight = await agent(
       required: ['ok'],
       properties: { ok: { type: 'boolean' }, output: { type: 'string' } },
     },
+    model: REVIEW_AGENT_MODEL,
     label: `preflight:${backend}`,
     phase: 'Preflight',
   },
@@ -233,6 +243,7 @@ if (mode === 'plan') {
     If output is empty or matches /Retry attempts exhausted|Error executing tool|NumericalClassifier/, treat as failed and return {findings: []}.`,
     {
       schema: PLAN_FINDINGS_SCHEMA,
+      model: REVIEW_AGENT_MODEL,
       label: `plan-review:${backend}`,
       phase: 'Lens-fanout',
     },
@@ -490,6 +501,7 @@ ${ctxFiles.length === 0 ? '' : `
         Return {findings: [...]} matching the schema.`,
         {
           schema: PRD_FINDINGS_SCHEMA,
+          model: REVIEW_AGENT_MODEL,
           label: `prd-lens:${lens}`,
           phase: 'Lens-fanout',
         },
@@ -541,6 +553,7 @@ ${ctxFiles.length === 0 ? '' : `
          Return {findings: [...]} per the schema.`,
         {
           schema: MERGED_PRD_SCHEMA,
+          model: REVIEW_AGENT_MODEL,
           label: 'merge-prd',
           phase: 'Synthesize',
         },
@@ -632,6 +645,7 @@ ${ctxFiles.length === 0 ? '' : `
     If output is empty or "LGTM" or matches /Retry attempts exhausted|Error executing tool|NumericalClassifier/, return {findings: []}.`,
     {
       schema: PRD_FINDINGS_SCHEMA,
+      model: REVIEW_AGENT_MODEL,
       label: `prd-review:${backend}`,
       phase: 'Lens-fanout',
     },
@@ -862,6 +876,7 @@ jq -n --argjson p "$pending_json" --argjson f "$failures_json" '{pendingFiles: $
 Return the parsed JSON object verbatim.`,
     {
       schema: PARSER_SCHEMA,
+      model: REVIEW_AGENT_MODEL,
       label: 'parser-preflight',
       phase: 'Lens-fanout',
     },
@@ -901,6 +916,7 @@ jq -n --arg p "$BUNDLE_PATH" '{bundlePath: $p}'
 Return the parsed JSON object verbatim.`,
       {
         schema: BUNDLE_BUILD_SCHEMA,
+        model: REVIEW_AGENT_MODEL,
         label: 'issue-bundle-build',
         phase: 'Lens-fanout',
       },
@@ -1052,6 +1068,7 @@ Return the parsed JSON object verbatim.`,
       Return the lens-result object matching the schema.`,
       {
         schema: ISSUES_LENS_RESULT_SCHEMA,
+        model: REVIEW_AGENT_MODEL,
         label: `issues-lens:${lens}`,
         phase: 'Lens-fanout',
       },
@@ -1118,6 +1135,7 @@ Return the parsed JSON object verbatim.`,
        Return {findings: [...]} per the schema.`,
       {
         schema: MERGED_ISSUES_SCHEMA,
+        model: REVIEW_AGENT_MODEL,
         label: 'merge-issues',
         phase: 'Synthesize',
       },
@@ -1211,6 +1229,7 @@ const prep = await agent(
   Otherwise return the parsed JSON object verbatim.`,
   {
     schema: PREP_SCHEMA,
+    model: REVIEW_AGENT_MODEL,
     label: 'prep-diff',
     phase: 'Prep-diff',
   },
@@ -1223,6 +1242,7 @@ const intent = await agent(
   `Read ${prep.challengerDiffPath}. Write a 1-2 sentence statement of what this change is trying to accomplish.
    Return just the statement as plain text — no preamble.`,
   {
+    model: REVIEW_AGENT_MODEL,
     label: 'intent',
     phase: 'Intent',
   },
@@ -1267,6 +1287,7 @@ async function dispatchLens(lens) {
     8. Return the schema with lens="${lens}".`,
     {
       schema: LENS_RESULT_SCHEMA,
+      model: REVIEW_AGENT_MODEL,
       label: `lens:${lens}`,
       phase: 'Lens-fanout',
     },
@@ -1289,6 +1310,7 @@ async function redLineScan() {
     If no violations found, status='empty', findings=[].`,
     {
       schema: LENS_RESULT_SCHEMA,
+      model: REVIEW_AGENT_MODEL,
       label: 'red-line',
       phase: 'Lens-fanout',
     },
@@ -1350,6 +1372,7 @@ if (totalRawFindings === 0) {
      Return {findings: [<MergedFinding>...]}.`,
     {
       schema: { type: 'object', required: ['findings'], properties: { findings: { type: 'array', items: MERGED_FINDING_SCHEMA } } },
+      model: REVIEW_AGENT_MODEL,
       label: 'merge',
       phase: 'Synthesize',
     },
@@ -1380,6 +1403,7 @@ const verified = toVerify.length === 0 ? [] : await parallel(toVerify.map(f => (
   Return {findingIndex: ${f._idx}, decision, rationale, evidence}.`,
   {
     schema: VERIFY_SCHEMA,
+    model: REVIEW_AGENT_MODEL,
     label: `verify:${f.file}:${f.line}`,
     phase: 'Synthesize',
   },
@@ -1414,6 +1438,7 @@ const summary = await agent(
 
    Keep it tight — one paragraph max, no headers, no bullet list.`,
   {
+    model: REVIEW_AGENT_MODEL,
     label: 'summary',
     phase: 'Synthesize',
   },
