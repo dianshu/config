@@ -10,22 +10,37 @@ export const meta = {
   ],
 }
 
+// Codex models to rotate across — round-robin per parallel dispatch index so
+// no single model takes all the concurrent load. codex CLI rate-limits each
+// model independently, so within a fan-out (5-6 parallel lens dispatches) the
+// split is 50/50 and neither model trips its short-window concurrent cap. Only
+// the codex backend rotates; opencode goes through its own CLI/model config.
+// Workflow scripts can't use Math.random() (throws — would break resume), so
+// rotation is index-based round-robin instead of random — round-robin actually
+// gives perfect 50/50 within a run, which is strictly better for the stated
+// goal of avoiding concurrent-limit bursts.
+const CODEX_MODELS = ['gpt-5.5', 'gpt-5.4']
+const codexModelFor = (i) => CODEX_MODELS[((i % CODEX_MODELS.length) + CODEX_MODELS.length) % CODEX_MODELS.length]
+
 // Backend dispatch commands — single source of truth (replaces shell-var config in codex-review/opencode-review)
+// dispatch / readonlyDispatch / planDispatch are (lensIndex) => shellCommand
+// so the codex backend can splice `-m <model>` per dispatch. opencode ignores
+// the index but keeps the function signature for a uniform call-site API.
 const BACKEND_CONFIG = {
   codex: {
     preflight: 'codex --version 2>/dev/null && command -v jq >/dev/null',
-    dispatch: 'codex exec - --cd "$(pwd)" --ephemeral -s read-only',
-    readonlyDispatch: 'codex exec - --cd "$(pwd)" --ephemeral -s read-only',
-    planDispatch: 'codex exec - --skip-git-repo-check --ephemeral -s read-only',
+    dispatch: (i) => `codex exec - --cd "$(pwd)" --ephemeral -s read-only -m ${codexModelFor(i)}`,
+    readonlyDispatch: (i) => `codex exec - --cd "$(pwd)" --ephemeral -s read-only -m ${codexModelFor(i)}`,
+    planDispatch: (i) => `codex exec - --skip-git-repo-check --ephemeral -s read-only -m ${codexModelFor(i)}`,
     modeLabel: 'codex-adversarial',
     noiseFilter: 'grep -vE "^OpenAI Codex|^----|^workdir:|^model:|^provider:|^approval:|^sandbox:|^reasoning|^session id:|^$"',
     tmpdirPrefix: 'codex-review',
   },
   opencode: {
     preflight: 'opencode --version 2>/dev/null && test -f "$HOME/.config/opencode/opencode.json" && command -v jq >/dev/null',
-    dispatch: 'opencode run --agent review-readonly --format json 2>/dev/null | jq -rs \'[.[] | select(.type=="text")] | last | .part.text // empty\'',
-    readonlyDispatch: 'opencode run --agent review-readonly --format json 2>/dev/null | jq -rs \'[.[] | select(.type=="text")] | last | .part.text // empty\'',
-    planDispatch: 'opencode run --agent review-readonly --format json 2>/dev/null | jq -rs \'[.[] | select(.type=="text")] | last | .part.text // empty\'',
+    dispatch: () => 'opencode run --agent review-readonly --format json 2>/dev/null | jq -rs \'[.[] | select(.type=="text")] | last | .part.text // empty\'',
+    readonlyDispatch: () => 'opencode run --agent review-readonly --format json 2>/dev/null | jq -rs \'[.[] | select(.type=="text")] | last | .part.text // empty\'',
+    planDispatch: () => 'opencode run --agent review-readonly --format json 2>/dev/null | jq -rs \'[.[] | select(.type=="text")] | last | .part.text // empty\'',
     modeLabel: 'opencode-gemini-3.1-pro',
     noiseFilter: 'cat',
     tmpdirPrefix: 'opencode-review',
@@ -235,7 +250,7 @@ if (mode === 'plan') {
     Output each finding as:
     Blocking|Required|Suggestion [Category] description
     PROMPT
-    } | ${BACKEND.planDispatch}
+    } | ${BACKEND.planDispatch(0)}
     \`\`\`
 
     Filter the output with: ${BACKEND.noiseFilter}
@@ -464,7 +479,7 @@ ${ctxFiles.length === 0 ? '' : `
   if (Array.isArray(lensRoster) && lensRoster.length > 0) {
     log(`PRD lens fan-out: dispatching ${lensRoster.length} lenses to ${backend}: ${lensRoster.join(', ')}`)
 
-    async function dispatchPrdLens(lens) {
+    async function dispatchPrdLens(lens, lensIndex) {
       return agent(
         `Dispatch the ${lens} PRD-review lens via the ${backend} CLI.
 
@@ -483,14 +498,14 @@ ${ctxFiles.length === 0 ? '' : `
            cat <<'PROMPT_TAIL'
            ${wontfixBlock.replace(/\n/g, '\n           ')}
            PROMPT_TAIL
-           } | ${BACKEND.planDispatch}`
+           } | ${BACKEND.planDispatch(lensIndex)}`
              : `{ cat <prd_or_tempfile>; cat <<'PROMPT'
            ---
            <lens checklist from step 2>
            ${ctxBlock.replace(/\n/g, '\n           ')}
            ${wontfixBlock.replace(/\n/g, '\n           ')}
            PROMPT
-           } | ${BACKEND.planDispatch}`}
+           } | ${BACKEND.planDispatch(lensIndex)}`}
            \`\`\`
 
         5. Filter banner noise with: ${BACKEND.noiseFilter}
@@ -508,7 +523,7 @@ ${ctxFiles.length === 0 ? '' : `
       )
     }
 
-    const lensResults = await parallel(lensRoster.map(l => () => dispatchPrdLens(l)))
+    const lensResults = await parallel(lensRoster.map((l, i) => () => dispatchPrdLens(l, i)))
 
     // Tag each finding with originating lens, then merge with semantic dedup by (section, anchor)
     const taggedFindings = lensResults.flatMap((r, i) => {
@@ -629,7 +644,7 @@ ${ctxFiles.length === 0 ? '' : `
 
     ${singlePassTail}
     PROMPT_TAIL
-    } | ${BACKEND.planDispatch}`
+    } | ${BACKEND.planDispatch(0)}`
       : `{ cat <prd_or_tempfile>; cat <<'PROMPT'
     ${singlePassHead}
     ${ctxBlock}
@@ -637,7 +652,7 @@ ${ctxFiles.length === 0 ? '' : `
 
     ${singlePassTail}
     PROMPT
-    } | ${BACKEND.planDispatch}`}
+    } | ${BACKEND.planDispatch(0)}`}
     \`\`\`
 
     Filter output with: ${BACKEND.noiseFilter}
@@ -1021,7 +1036,7 @@ Return the parsed JSON object verbatim.`,
   // ----- Step 6: Lens fan-out -----
   log(`issues: dispatching ${effectiveRoster.length} lenses to ${backend} over ${pendingFiles.length} pending issue files: ${effectiveRoster.join(', ')}`)
 
-  async function dispatchIssuesLens(lens) {
+  async function dispatchIssuesLens(lens, lensIndex) {
     return agent(
       `Dispatch the ${lens} issues-review lens via the ${backend} CLI.
 
@@ -1040,7 +1055,7 @@ Return the parsed JSON object verbatim.`,
          cat <<'PROMPT_TAIL'
          ${wontfixBlock.replace(/\n/g, '\n         ')}
          PROMPT_TAIL
-         } | ${BACKEND.planDispatch}`
+         } | ${BACKEND.planDispatch(lensIndex)}`
            : `{ cat <<'PROMPT_HEAD'
          <lens checklist from step 1>
 
@@ -1051,7 +1066,7 @@ Return the parsed JSON object verbatim.`,
          ${ctxBlock.replace(/\n/g, '\n         ')}
          ${wontfixBlock.replace(/\n/g, '\n         ')}
          PROMPT_TAIL
-         } | ${BACKEND.planDispatch}`}
+         } | ${BACKEND.planDispatch(lensIndex)}`}
          \`\`\`
 
       3. Filter banner noise with: ${BACKEND.noiseFilter}
@@ -1075,7 +1090,7 @@ Return the parsed JSON object verbatim.`,
     )
   }
 
-  const lensResults = await parallel(effectiveRoster.map(l => () => dispatchIssuesLens(l)))
+  const lensResults = await parallel(effectiveRoster.map((l, i) => () => dispatchIssuesLens(l, i)))
 
   // Surface failed lenses as synthetic parserFailures so the hard gate fires.
   // Per /run-all-issues semantics, parserPass blocks EXIT — and a silently-failed
@@ -1256,9 +1271,9 @@ if (prep.testFiles && prep.testFiles.length > 0) lenses.push('TestHygiene')
 
 log(`Scale=${prep.scale}, dispatching ${lenses.length} lenses: ${lenses.join(', ')}, redLine=true`)
 
-async function dispatchLens(lens) {
+async function dispatchLens(lens, lensIndex) {
   const inputPath = prep[LENS_INPUT[lens]]
-  const dispatchCmd = LENS_USES_READONLY.has(lens) ? BACKEND.readonlyDispatch : BACKEND.dispatch
+  const dispatchCmd = LENS_USES_READONLY.has(lens) ? BACKEND.readonlyDispatch(lensIndex) : BACKEND.dispatch(lensIndex)
 
   return agent(
     `Dispatch the ${lens} lens via the ${backend} CLI.
@@ -1319,20 +1334,20 @@ async function redLineScan() {
 
 // Dispatch all lenses + red-line in parallel
 const firstPassResults = await parallel([
-  ...lenses.map(lens => () => dispatchLens(lens)),
+  ...lenses.map((lens, i) => () => dispatchLens(lens, i)),
   () => redLineScan(),
 ])
 
 // Workflow-native retry: re-run any lens that returned status='failed'
 const failedLenses = firstPassResults
-  .map((r, i) => r?.status === 'failed' ? { result: r, lens: r.lens, isRedLine: i === lenses.length } : null)
+  .map((r, i) => r?.status === 'failed' ? { result: r, lens: r.lens, isRedLine: i === lenses.length, lensIndex: i } : null)
   .filter(Boolean)
 
 let retryResults = []
 if (failedLenses.length > 0) {
   log(`Retrying ${failedLenses.length} failed lens(es): ${failedLenses.map(f => f.lens).join(', ')}`)
   retryResults = await parallel(
-    failedLenses.map(f => () => f.isRedLine ? redLineScan() : dispatchLens(f.lens))
+    failedLenses.map(f => () => f.isRedLine ? redLineScan() : dispatchLens(f.lens, f.lensIndex))
   )
 }
 

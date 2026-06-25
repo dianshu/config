@@ -34,7 +34,10 @@ Thin wrapper that delegates to the shared `review-with-agent` workflow with
 
 - All Codex dispatches use `-s read-only` sandbox (set in the workflow's
   `BACKEND_CONFIG.codex` block) — Codex never modifies the workspace.
-- Never override the user's model setting (no `--model`).
+- Codex dispatches use round-robin model rotation across `CODEX_MODELS`
+  (default `['gpt-5.5', 'gpt-5.4']`) per parallel lens index, splitting load
+  50/50 within a fan-out so neither model hits its concurrent-request cap.
+  Edit `CODEX_MODELS` in `review.workflow.js` to change the pool.
 - Plan mode uses `--skip-git-repo-check --ephemeral` (set in the workflow);
   do NOT use `--uncommitted` (mutually exclusive with custom prompts).
 - Preflight (`codex --version`) runs as the first workflow phase; abort with

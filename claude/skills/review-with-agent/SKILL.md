@@ -264,6 +264,23 @@ object at the top of `review.workflow.js`. To change preflight checks, dispatch
 commands, or noise filters, edit that file — not env vars in `/codex-review` or
 `/opencode-review`.
 
+### Codex model rotation
+
+The codex backend's `dispatch` / `readonlyDispatch` / `planDispatch` fields are
+`(lensIndex) => shellCommand` functions that splice `-m <model>` into the codex
+CLI invocation per lens index. The model pool lives in the `CODEX_MODELS` const at
+the top of the workflow (default `['gpt-5.5', 'gpt-5.4']`). Within a single review's
+parallel fan-out (5–6 lenses), lens `i` goes to `CODEX_MODELS[i % len]`, so the
+load is split 50/50 across models — neither model's short-window concurrent-request
+cap is hit even at peak Heavy / PRD / issues fan-out. Single-call sites (plan mode,
+PRD single-pass) pass `lensIndex=0`, which doesn't matter for concurrency. Rotation
+is deterministic round-robin rather than `Math.random()` because Workflow scripts
+forbid `Math.random()` (it would break resume) and round-robin actually gives
+strictly better balance than random for this goal. Edit `CODEX_MODELS` to change
+the rotation pool. The opencode backend keeps the same function signature for a
+uniform call-site API but ignores `lensIndex` — its model is set in
+`~/.config/opencode/opencode.json`.
+
 ## What This Skill Does NOT Contain
 
 - Per-lens prompts → see `lenses/<Lens>.md` (6 files)
