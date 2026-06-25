@@ -1,127 +1,111 @@
 ---
 name: continuous-learning
 description: |
-  Continuous learning system that extracts reusable knowledge from work sessions.
-  Use when: (1) /continuous-learning command to review session learnings,
-  (2) "save this as a skill" or "extract a skill from this",
-  (3) "what did we learn?", (4) After non-obvious debugging (>10 min investigation),
-  (5) Error resolution where error message was misleading,
-  (6) Workaround discovered through trial-and-error,
-  (7) Tool integration knowledge not covered by docs.
-  Creates lightweight reusable skills in ~/.claude/skills/.
+  Harvest reusable lessons from a work session and codify each as a Claude Code
+  skill in the current project. Use when: the user runs /continuous-learning or
+  asks "what did we learn?" (sweep the whole session); the user says "save this as
+  a skill" / "extract a skill from this"; or a hard-won lesson just surfaced — a
+  misleading error, a trial-and-error workaround, undocumented tool/API behavior,
+  or a non-obvious fix after long debugging.
 allowed-tools:
   - Read
   - Write
   - Edit
   - Grep
   - Glob
-  - WebSearch
-  - WebFetch
   - Skill
   - AskUserQuestion
 ---
 
 # Continuous Learning
 
-Extracts reusable knowledge from work sessions and codifies it as Claude Code skills. Be selective — not every task produces a skill.
+Harvest **lessons** from a work session and codify each as a skill. A lesson is hard-won, reusable knowledge — not the task's output. Be selective: most sessions yield none.
 
-## When to Extract
+## What counts as a lesson
 
-Extract when **all** apply:
-- **Reusable** — helps with future tasks, not just this one
-- **Non-trivial** — required discovery, not just doc lookup
-- **Specific** — exact trigger conditions and solution can be stated
-- **Verified** — solution actually worked
+Codify only when **all four** hold:
 
-Typical sources: non-obvious debugging, project-specific patterns, tool/API integration knowledge not in docs, misleading error messages, multi-step workflow optimizations.
+- **Reusable** — bears on future tasks, not just this one.
+- **Non-trivial** — took discovery, not a doc lookup.
+- **Specific** — you can state the exact trigger and the fix.
+- **Verified** — the fix actually worked.
 
-## Extraction Process
+Richest sources: non-obvious debugging, misleading error messages, trial-and-error workarounds, project-specific patterns, tool/API behavior the docs don't mention.
 
-### Step 1: Check for existing skills
+## Process
 
-Search before creating:
-- `Glob` `~/.claude/skills/*/SKILL.md` to list all
-- `Grep` keywords across `~/.claude/skills/` and `.claude/skills/`
-- `Grep -F` exact error messages
+### Step 1: Search for an existing home
 
-| Found                                            | Action                                          |
-|--------------------------------------------------|-------------------------------------------------|
-| Nothing related                                  | Create new                                      |
-| Same trigger and same fix                        | Update existing (bump version)                  |
-| Same trigger, different root cause               | Create new, add `See also:` links both ways     |
-| Partial overlap (same domain, different trigger) | Update existing with new "Variant" subsection   |
-| Same domain, different problem                   | Create new, add `See also:` in Notes            |
-| Stale or wrong                                   | Mark deprecated in Notes, link to replacement   |
+First find where this lesson might already live:
 
-Versioning: patch = wording, minor = new scenario, major = breaking change.
+- `Glob` `.claude/skills/*/SKILL.md` (this project) — the dispatch table below operates here.
+- `Grep` the lesson's keywords across that dir; `Grep -F` exact error strings.
+- Also `Glob` `~/.claude/skills/*/SKILL.md` read-only: if the lesson already lives in a user-global skill, cross-link it — never edit it here (promotion is a separate call, Step 5).
 
-### Step 2: Identify the knowledge
+Then dispatch every project-local skill you found:
 
-- What was the problem?
-- What was non-obvious about the solution?
-- What are the exact trigger conditions (errors, symptoms, contexts)?
+| Found                                              | Action                                       |
+|----------------------------------------------------|----------------------------------------------|
+| Nothing related                                    | Create new                                   |
+| Same trigger, same fix                             | Update in place, bump version                |
+| Related but distinct (other root cause or problem) | Create new; cross-link `See also:` both ways |
+| Partial overlap (same domain, new trigger)         | Add a "Variant" subsection to the existing   |
+| Stale or wrong                                     | Mark deprecated, link to the replacement     |
 
-### Step 3: Research best practices (when applicable)
+Version bumps: patch = wording, minor = new scenario, major = breaking change.
 
-Search the web when the topic involves specific technologies, frameworks, or APIs that may have evolved. Skip for project-specific internal patterns or stable generic concepts.
+**Done when** every related skill found maps to one row, and every modify action targets a project-local file.
 
-Search strategy: official docs first, then best practices, then common-issue threads. Always cite sources in a `References` section.
+### Step 2: State the lesson in one sentence
 
-### Step 4: Structure the skill
+Write it as *trigger → the non-obvious insight → the fix that worked*. If you can't say it in one sentence with a concrete trigger, it isn't specific enough — drop it.
 
-```markdown
+### Step 3: Check current practice (only if the lesson touches external tech)
+
+When the lesson involves a framework / API / tool that evolves, reconcile it against current official sources before codifying, using whatever web-research tooling this session provides. Cite each source in a `References` section, and capture only what the docs *don't* already say. Skip entirely for project-internal patterns and stable generic concepts.
+
+**Done when** the lesson is reconciled against the current official source and `References` cites each source consulted.
+
+### Step 4: Draft the skill, the writing-skills way
+
+Read `~/.claude/skills/writing-skills/SKILL.md` — the authority on skill craft — and apply it. Beyond what it covers, three emphases matter most for an extracted lesson:
+
+- **One leading word.** Anchor the new skill on a pretrained token it can think with (writing-skills explains how to pick one).
+- **Description = triggers.** Spend the description on exact errors, symptoms, and tool names — one per distinct branch.
+  - Bad: `Helps with React problems`
+  - Good: `Fix for "ENOENT: no such file" in npm workspaces. Use when npm run fails with ENOENT in a workspace but paths work from root.`
+- **No boilerplate.** Include only what this lesson needs; a two-line fix is two lines. Don't revive the old Problem / Context / Solution / Verification / Example scaffold.
+
+Minimal frontmatter:
+
+```yaml
 ---
-name: [kebab-case-name]
-description: |
-  [Specific use cases, trigger conditions (exact errors/symptoms),
-  what problem this solves. Specific enough that semantic matching
-  surfaces it when relevant.]
+name: kebab-case-name
+description: <what it does> + <exact trigger phrases>
 version: 1.0.0
-date: [YYYY-MM-DD]
-allowed-tools:
-  - [tools needed]
+date: YYYY-MM-DD
+allowed-tools: [only what it uses]
 ---
-
-# [Name]
-
-## Problem
-## Context / Trigger Conditions
-## Solution
-## Verification
-## Example
-## Notes
-## References   (only if web sources cited)
 ```
 
-### Step 5: Write effective descriptions
+**Done when** the draft satisfies writing-skills and all three emphases — one leading word carrying the behavior, a triggers-only description, and no boilerplate sections.
 
-Include: specific symptoms (exact errors), context markers (framework/file/tool names), action phrases ("Use when…").
+### Step 5: Place it in the current project
 
-Bad: `Helps with React problems`
-Good: `Fix for "ENOENT: no such file" in npm workspaces. Use when (1) npm run fails with ENOENT in a workspace, (2) paths work in root but not packages.`
+Save into the **current project**, never the user-global dir. Execute the Step 1 dispatch outcome:
 
-### Step 6: Save to the project
+- **Create new** → `.claude/skills/<name>/SKILL.md` (+ `scripts/` for helpers), or fold a lesson that fits existing docs into `CLAUDE.md` instead of a new skill.
+- **Update in place / Variant** → edit the matched project-local skill and bump its version.
+- **Deprecated** → mark the old skill in place and link the replacement.
 
-Always save into the current project — do NOT judge whether the knowledge is globally applicable, and do NOT write to `~/.claude/skills/`.
+Don't judge whether the lesson is globally useful. Promotion to `~/.claude/skills/` is a separate call the user makes later.
 
-- New skill: `.claude/skills/[name]/SKILL.md` in the current project
-- Helper scripts: `.claude/skills/[name]/scripts/`
-- Project-specific lessons that fit existing docs: update `CLAUDE.md` (or the project's equivalent) instead of creating a new skill
+## Retrospective sweep (`/continuous-learning`)
 
-Promotion to user-wide (`~/.claude/skills/`) is a separate, explicit decision made by the user later — not part of this skill.
+When invoked to review a whole session:
 
-## Retrospective mode (`/continuous-learning`)
-
-1. Review conversation history for extractable knowledge
-2. List candidates with brief justification
-3. Prioritize highest-value, most reusable
-4. Extract top 1–3 candidates
-5. Report what was created and why
-
-## Anti-patterns
-
-- **Over-extraction** — mundane solutions don't need preservation
-- **Vague descriptions** — won't surface when needed
-- **Unverified solutions** — only extract what worked
-- **Documentation duplication** — link to official docs, add what's missing
-- **No version/date** — knowledge becomes stale
+1. Sweep the conversation for lesson candidates.
+2. List them, each with a one-line justification against the four-part bar.
+3. Keep the highest-value, most reusable 1–3; drop the rest.
+4. Run the Process above on each survivor.
+5. Report what you created or updated, and why.
