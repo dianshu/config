@@ -264,21 +264,33 @@ object at the top of `review.workflow.js`. To change preflight checks, dispatch
 commands, or noise filters, edit that file — not env vars in `/codex-review` or
 `/opencode-review`.
 
-### Codex model rotation
+### Codex per-lens model assignment
 
 The codex backend's `dispatch` / `readonlyDispatch` / `planDispatch` fields are
-`(lensIndex) => shellCommand` functions that splice `-m <model>` into the codex
-CLI invocation per lens index. The model pool lives in the `CODEX_MODELS` const at
-the top of the workflow (default `['gpt-5.5', 'gpt-5.4']`). Within a single review's
-parallel fan-out (5–6 lenses), lens `i` goes to `CODEX_MODELS[i % len]`, so the
-load is split 50/50 across models — neither model's short-window concurrent-request
-cap is hit even at peak Heavy / PRD / issues fan-out. Single-call sites (plan mode,
-PRD single-pass) pass `lensIndex=0`, which doesn't matter for concurrency. Rotation
-is deterministic round-robin rather than `Math.random()` because Workflow scripts
-forbid `Math.random()` (it would break resume) and round-robin actually gives
-strictly better balance than random for this goal. Edit `CODEX_MODELS` to change
-the rotation pool. The opencode backend keeps the same function signature for a
-uniform call-site API but ignores `lensIndex` — its model is set in
+`(lensName) => shellCommand` functions that splice `-m <model>` into the codex
+CLI invocation per lens. The lens→model assignment lives in the `LENS_MODEL`
+const at the top of the workflow:
+
+- **gpt-5.5** (heavier reasoning / cross-reference / global view) —
+  `Architect`, `Integration`, `Subtractor`, `Coverer` (prd),
+  `Coverage` (issues), `Slicer` (issues)
+- **gpt-5.4** (checklist / pattern-match / fast turn) —
+  `Challenger`, `DevilsAdvocate`, `TestHygiene`, `Glossarian` (prd),
+  `DependencyAuditor` (issues), `Granularity` (issues),
+  `AcceptanceCriteria` (issues)
+
+Single-call dispatch sites pass synthetic keys (`__plan__`,
+`__prd_single_pass__`) — neither is in `LENS_MODEL`, so they fall back to
+`DEFAULT_CODEX_MODEL` (gpt-5.5). Any new lens added to a roster without an
+entry in `LENS_MODEL` also falls back to the default.
+
+The assignment is **static per-lens**, not round-robin: the same lens always
+goes to the same model so the lens<->model fit is deterministic and easy to
+debug. It also happens to keep typical fan-outs balanced (code Heavy 3:2,
+code Medium 2:2, prd 3:3, issues 2:3) — so the original concurrent-cap goal
+is still met as a side effect, not as the primary mechanism. To re-tune,
+edit `LENS_MODEL`. The opencode backend keeps the same function signature
+for a uniform call-site API but ignores `lensName` — its model is set in
 `~/.config/opencode/opencode.json`.
 
 ## What This Skill Does NOT Contain

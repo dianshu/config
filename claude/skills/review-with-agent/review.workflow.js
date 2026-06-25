@@ -10,28 +10,50 @@ export const meta = {
   ],
 }
 
-// Codex models to rotate across — round-robin per parallel dispatch index so
-// no single model takes all the concurrent load. codex CLI rate-limits each
-// model independently, so within a fan-out (5-6 parallel lens dispatches) the
-// split is 50/50 and neither model trips its short-window concurrent cap. Only
-// the codex backend rotates; opencode goes through its own CLI/model config.
-// Workflow scripts can't use Math.random() (throws — would break resume), so
-// rotation is index-based round-robin instead of random — round-robin actually
-// gives perfect 50/50 within a run, which is strictly better for the stated
-// goal of avoiding concurrent-limit bursts.
-const CODEX_MODELS = ['gpt-5.5', 'gpt-5.4']
-const codexModelFor = (i) => CODEX_MODELS[((i % CODEX_MODELS.length) + CODEX_MODELS.length) % CODEX_MODELS.length]
+// Per-lens codex model assignment — each lens is statically mapped to the
+// model that best matches its task profile (gpt-5.5 for heavy reasoning /
+// cross-reference / global view; gpt-5.4 for checklist / pattern-match /
+// fast turn). The assignment also keeps the typical 5-6-lens fan-out at
+// roughly 50/50 between models (3:2 / 2:3 / 3:3 across code Heavy / issues /
+// prd modes), so the original concurrent-cap goal is still met as a
+// side-effect. To re-tune, edit this map.
+//
+// Lenses NOT in this map — including single-call site keys (__plan__ and
+// __prd_single_pass__) and any future lens added without an entry — fall
+// back to DEFAULT_CODEX_MODEL. Add an entry to opt into the lighter model.
+const LENS_MODEL = {
+  // gpt-5.5 — heavier reasoning, cross-reference, global view
+  Architect:          'gpt-5.5',
+  Integration:        'gpt-5.5',
+  Subtractor:         'gpt-5.5',
+  Coverer:            'gpt-5.5',  // prd: PRD story <-> testing decision coverage matrix
+  Coverage:           'gpt-5.5',  // issues: issue set vs PARENT_PRD coverage
+  Slicer:             'gpt-5.5',  // issues: vertical-slice / independent-delivery judgment
+  // gpt-5.4 — checklist / pattern-match / fast turn
+  Challenger:         'gpt-5.4',
+  DevilsAdvocate:     'gpt-5.4',
+  TestHygiene:        'gpt-5.4',
+  Glossarian:         'gpt-5.4',  // prd: glossary / term-consistency lookup
+  DependencyAuditor:  'gpt-5.4',  // issues: blocked-by DAG traversal
+  Granularity:        'gpt-5.4',  // issues: issue-size heuristic
+  AcceptanceCriteria: 'gpt-5.4',  // issues: AC format + observability checklist
+}
+const DEFAULT_CODEX_MODEL = 'gpt-5.5'
+const codexModelFor = (lensName) => LENS_MODEL[lensName] || DEFAULT_CODEX_MODEL
 
 // Backend dispatch commands — single source of truth (replaces shell-var config in codex-review/opencode-review)
-// dispatch / readonlyDispatch / planDispatch are (lensIndex) => shellCommand
-// so the codex backend can splice `-m <model>` per dispatch. opencode ignores
-// the index but keeps the function signature for a uniform call-site API.
+// dispatch / readonlyDispatch / planDispatch are (lensName) => shellCommand
+// so the codex backend can splice `-m <model>` per lens via the LENS_MODEL
+// map above. Single-call sites pass '__plan__' / '__prd_single_pass__'
+// (no entry in LENS_MODEL -> falls back to DEFAULT_CODEX_MODEL). opencode
+// ignores the lens name but keeps the function signature for a uniform
+// call-site API.
 const BACKEND_CONFIG = {
   codex: {
     preflight: 'codex --version 2>/dev/null && command -v jq >/dev/null',
-    dispatch: (i) => `codex exec - --cd "$(pwd)" --ephemeral -s read-only -m ${codexModelFor(i)}`,
-    readonlyDispatch: (i) => `codex exec - --cd "$(pwd)" --ephemeral -s read-only -m ${codexModelFor(i)}`,
-    planDispatch: (i) => `codex exec - --skip-git-repo-check --ephemeral -s read-only -m ${codexModelFor(i)}`,
+    dispatch: (lens) => `codex exec - --cd "$(pwd)" --ephemeral -s read-only -m ${codexModelFor(lens)}`,
+    readonlyDispatch: (lens) => `codex exec - --cd "$(pwd)" --ephemeral -s read-only -m ${codexModelFor(lens)}`,
+    planDispatch: (lens) => `codex exec - --skip-git-repo-check --ephemeral -s read-only -m ${codexModelFor(lens)}`,
     modeLabel: 'codex-adversarial',
     noiseFilter: 'grep -vE "^OpenAI Codex|^----|^workdir:|^model:|^provider:|^approval:|^sandbox:|^reasoning|^session id:|^$"',
     tmpdirPrefix: 'codex-review',
@@ -250,7 +272,7 @@ if (mode === 'plan') {
     Output each finding as:
     Blocking|Required|Suggestion [Category] description
     PROMPT
-    } | ${BACKEND.planDispatch(0)}
+    } | ${BACKEND.planDispatch('__plan__')}
     \`\`\`
 
     Filter the output with: ${BACKEND.noiseFilter}
@@ -479,7 +501,7 @@ ${ctxFiles.length === 0 ? '' : `
   if (Array.isArray(lensRoster) && lensRoster.length > 0) {
     log(`PRD lens fan-out: dispatching ${lensRoster.length} lenses to ${backend}: ${lensRoster.join(', ')}`)
 
-    async function dispatchPrdLens(lens, lensIndex) {
+    async function dispatchPrdLens(lens) {
       return agent(
         `Dispatch the ${lens} PRD-review lens via the ${backend} CLI.
 
@@ -498,14 +520,14 @@ ${ctxFiles.length === 0 ? '' : `
            cat <<'PROMPT_TAIL'
            ${wontfixBlock.replace(/\n/g, '\n           ')}
            PROMPT_TAIL
-           } | ${BACKEND.planDispatch(lensIndex)}`
+           } | ${BACKEND.planDispatch(lens)}`
              : `{ cat <prd_or_tempfile>; cat <<'PROMPT'
            ---
            <lens checklist from step 2>
            ${ctxBlock.replace(/\n/g, '\n           ')}
            ${wontfixBlock.replace(/\n/g, '\n           ')}
            PROMPT
-           } | ${BACKEND.planDispatch(lensIndex)}`}
+           } | ${BACKEND.planDispatch(lens)}`}
            \`\`\`
 
         5. Filter banner noise with: ${BACKEND.noiseFilter}
@@ -523,7 +545,7 @@ ${ctxFiles.length === 0 ? '' : `
       )
     }
 
-    const lensResults = await parallel(lensRoster.map((l, i) => () => dispatchPrdLens(l, i)))
+    const lensResults = await parallel(lensRoster.map(l => () => dispatchPrdLens(l)))
 
     // Tag each finding with originating lens, then merge with semantic dedup by (section, anchor)
     const taggedFindings = lensResults.flatMap((r, i) => {
@@ -644,7 +666,7 @@ ${ctxFiles.length === 0 ? '' : `
 
     ${singlePassTail}
     PROMPT_TAIL
-    } | ${BACKEND.planDispatch(0)}`
+    } | ${BACKEND.planDispatch('__prd_single_pass__')}`
       : `{ cat <prd_or_tempfile>; cat <<'PROMPT'
     ${singlePassHead}
     ${ctxBlock}
@@ -652,7 +674,7 @@ ${ctxFiles.length === 0 ? '' : `
 
     ${singlePassTail}
     PROMPT
-    } | ${BACKEND.planDispatch(0)}`}
+    } | ${BACKEND.planDispatch('__prd_single_pass__')}`}
     \`\`\`
 
     Filter output with: ${BACKEND.noiseFilter}
@@ -1036,7 +1058,7 @@ Return the parsed JSON object verbatim.`,
   // ----- Step 6: Lens fan-out -----
   log(`issues: dispatching ${effectiveRoster.length} lenses to ${backend} over ${pendingFiles.length} pending issue files: ${effectiveRoster.join(', ')}`)
 
-  async function dispatchIssuesLens(lens, lensIndex) {
+  async function dispatchIssuesLens(lens) {
     return agent(
       `Dispatch the ${lens} issues-review lens via the ${backend} CLI.
 
@@ -1055,7 +1077,7 @@ Return the parsed JSON object verbatim.`,
          cat <<'PROMPT_TAIL'
          ${wontfixBlock.replace(/\n/g, '\n         ')}
          PROMPT_TAIL
-         } | ${BACKEND.planDispatch(lensIndex)}`
+         } | ${BACKEND.planDispatch(lens)}`
            : `{ cat <<'PROMPT_HEAD'
          <lens checklist from step 1>
 
@@ -1066,7 +1088,7 @@ Return the parsed JSON object verbatim.`,
          ${ctxBlock.replace(/\n/g, '\n         ')}
          ${wontfixBlock.replace(/\n/g, '\n         ')}
          PROMPT_TAIL
-         } | ${BACKEND.planDispatch(lensIndex)}`}
+         } | ${BACKEND.planDispatch(lens)}`}
          \`\`\`
 
       3. Filter banner noise with: ${BACKEND.noiseFilter}
@@ -1090,7 +1112,7 @@ Return the parsed JSON object verbatim.`,
     )
   }
 
-  const lensResults = await parallel(effectiveRoster.map((l, i) => () => dispatchIssuesLens(l, i)))
+  const lensResults = await parallel(effectiveRoster.map(l => () => dispatchIssuesLens(l)))
 
   // Surface failed lenses as synthetic parserFailures so the hard gate fires.
   // Per /run-all-issues semantics, parserPass blocks EXIT — and a silently-failed
@@ -1271,9 +1293,9 @@ if (prep.testFiles && prep.testFiles.length > 0) lenses.push('TestHygiene')
 
 log(`Scale=${prep.scale}, dispatching ${lenses.length} lenses: ${lenses.join(', ')}, redLine=true`)
 
-async function dispatchLens(lens, lensIndex) {
+async function dispatchLens(lens) {
   const inputPath = prep[LENS_INPUT[lens]]
-  const dispatchCmd = LENS_USES_READONLY.has(lens) ? BACKEND.readonlyDispatch(lensIndex) : BACKEND.dispatch(lensIndex)
+  const dispatchCmd = LENS_USES_READONLY.has(lens) ? BACKEND.readonlyDispatch(lens) : BACKEND.dispatch(lens)
 
   return agent(
     `Dispatch the ${lens} lens via the ${backend} CLI.
@@ -1334,20 +1356,20 @@ async function redLineScan() {
 
 // Dispatch all lenses + red-line in parallel
 const firstPassResults = await parallel([
-  ...lenses.map((lens, i) => () => dispatchLens(lens, i)),
+  ...lenses.map(lens => () => dispatchLens(lens)),
   () => redLineScan(),
 ])
 
 // Workflow-native retry: re-run any lens that returned status='failed'
 const failedLenses = firstPassResults
-  .map((r, i) => r?.status === 'failed' ? { result: r, lens: r.lens, isRedLine: i === lenses.length, lensIndex: i } : null)
+  .map((r, i) => r?.status === 'failed' ? { result: r, lens: r.lens, isRedLine: i === lenses.length } : null)
   .filter(Boolean)
 
 let retryResults = []
 if (failedLenses.length > 0) {
   log(`Retrying ${failedLenses.length} failed lens(es): ${failedLenses.map(f => f.lens).join(', ')}`)
   retryResults = await parallel(
-    failedLenses.map(f => () => f.isRedLine ? redLineScan() : dispatchLens(f.lens, f.lensIndex))
+    failedLenses.map(f => () => f.isRedLine ? redLineScan() : dispatchLens(f.lens))
   )
 }
 
