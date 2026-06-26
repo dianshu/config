@@ -121,7 +121,8 @@ REST_TMP="${CH_META#*|}"
 LARGE_FILES_LIST="${REST_TMP%|*}"
 BUDGET_TRUNCATED="${REST_TMP##*|}"
 
-TEST_PATTERN='(^|/)(tests?|__tests__|spec|specs|e2e|androidTest|unitTest|E2ETests?)/|(\.|_)(test|spec)\.[^/]+$|_test\.go$|Tests?\.(swift|kt|java|cs|m|mm)$|Spec\.swift$|(^|/)test_[^/]+\.py$'
+# Test-file path regex — single source of truth, shared with diff-scale.sh.
+. ~/.claude/scripts/test-file-pattern.sh
 TEST_FILES=$(list_files "" | grep -E "$TEST_PATTERN" || true)
 
 # Build the JSON output. Use printf+jq for safe string escaping.

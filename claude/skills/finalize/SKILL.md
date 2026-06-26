@@ -21,7 +21,7 @@ No third option — every issue gets one of these two labels before the step tha
 
 ## Flow
 
-1. **Code review (once)** — run `~/.claude/scripts/diff-scale.sh` to classify the change, then invoke `/code-review` with the matching effort level. Mapping (one tier above review-with-agent's lens map, since `/code-review` is a single pass without independent lenses to compensate):
+1. **Code review (once)** — run `~/.claude/scripts/diff-scale.sh` to classify the change (scale reflects production change size — test files are excluded from the count), then invoke `/code-review` with the matching effort level. Mapping (one tier above review-with-agent's lens map, since `/code-review` is a single pass without independent lenses to compensate):
 
    | Scale (script output) | `/code-review` argument |
    |---|---|

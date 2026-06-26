@@ -99,7 +99,11 @@ cannot prompt the user mid-run.
 ## Lens Roster (by scale)
 
 Scale is computed by `~/.claude/scripts/diff-scale.sh` (single source of truth,
-shared with `/finalize`):
+shared with `/finalize`). It measures **production change size**: test files
+(unit/e2e/spec) are excluded from the line/dir counts, so a small production
+change wrapped in a large test diff is not misclassified as Heavy. Tests are
+still reviewed — **Test Hygiene** is added whenever a test file is touched,
+independent of scale (see below):
 
 | Scale  | Condition           | Lenses                                                          |
 |--------|---------------------|-----------------------------------------------------------------|
