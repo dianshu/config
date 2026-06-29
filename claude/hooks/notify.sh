@@ -12,8 +12,8 @@ transcript=$(echo "$payload" | python3 -c "import json,sys;print(json.load(sys.s
 project=$(basename "$cwd")
 ts=$(date +%H:%M)
 
-# Recap model — override via CC_NOTIFY_RECAP_MODEL in user.env. Empty = skip recap.
-recap_model="${CC_NOTIFY_RECAP_MODEL:-claude-haiku-4.5}"
+# Recap model — hardwired to gpt-5.4-mini (reasoning model, served only via /v1/responses).
+recap_model="gpt-5.4-mini"
 
 (
     recap=""
@@ -81,19 +81,20 @@ print('\n'.join(out)[-4000:])
                 req=$(M="$recap_model" R="$recent" python3 -c "
 import json,os
 prompt='以下是对话最近内容。用最多12个汉字概括对话当前状态（在做什么/在等什么）。只输出概括本身，不要标点结尾，不要前缀。\n\n'+os.environ['R']
-print(json.dumps({'model':os.environ['M'],'max_tokens':60,'messages':[{'role':'user','content':prompt}]}))
+print(json.dumps({'model':os.environ['M'],'input':prompt,'max_output_tokens':300,'reasoning':{'effort':'low'}}))
 ")
-                short_recap=$(curl -sS --max-time 20 -X POST "$ANTHROPIC_BASE_URL/v1/messages" \
-                    -H "x-api-key: $ANTHROPIC_AUTH_TOKEN" \
+                short_recap=$(curl -sS --max-time 25 -X POST "$ANTHROPIC_BASE_URL/v1/responses" \
                     -H "authorization: Bearer $ANTHROPIC_AUTH_TOKEN" \
-                    -H "anthropic-version: 2023-06-01" \
                     -H "content-type: application/json" \
                     -d "$req" 2>/dev/null | python3 -c "
 import json,sys
 try:
-    d=json.load(sys.stdin); c=d.get('content')
-    if isinstance(c,list) and c and isinstance(c[0],dict):
-        print(c[0].get('text','').strip()[:200])
+    d=json.load(sys.stdin); t=''
+    for o in d.get('output',[]):
+        if o.get('type')=='message':
+            for c in o.get('content',[]):
+                if c.get('type')=='output_text': t+=c.get('text','')
+    print(t.strip()[:200])
 except: pass
 " 2>/dev/null)
             fi
