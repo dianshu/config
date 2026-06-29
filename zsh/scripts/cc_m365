@@ -28,6 +28,22 @@ workdir=$(mktemp -d "/tmp/agency-mcp.XXXXXX") || { print -u2 "mktemp failed"; ex
 cd "$workdir" || { print -u2 "cd $workdir failed"; exit 1; }
 print -r -- "Working in: $workdir"
 
+# 2.5 预先写项目级 .claude/settings.json,把这些 MCP 全部 allow,免去运行时弹窗
+mkdir -p .claude
+typeset -a allow_entries
+for name in $servers; do
+  allow_entries+=("      \"mcp__$name\",")
+done
+allow_entries[-1]=${allow_entries[-1]%,}
+print -r -- "{
+  \"permissions\": {
+    \"allow\": [
+${(F)allow_entries}
+    ]
+  }
+}" > .claude/settings.json
+print -r -- "Pre-allowed ${#servers} MCP server(s) in .claude/settings.json"
+
 # 3. 逐个以 project scope 装进 Claude Code(写当前目录 .mcp.json)
 print -r -- "Installing ${#servers} MCP server(s) into project config (.mcp.json):"
 for name in $servers; do
