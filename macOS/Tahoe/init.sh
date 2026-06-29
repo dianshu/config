@@ -88,7 +88,7 @@ brew_install() {
     fi
     for pkg in "$@"; do
         if brew ls --versions $cask "$pkg" &>/dev/null; then
-            brew upgrade $cask "$pkg"
+            brew upgrade -f $cask "$pkg"
         else
             brew install $cask "$pkg"
         fi
