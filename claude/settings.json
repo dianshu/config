@@ -51,7 +51,7 @@
       "Bash(git push --force:*)",
       "Bash(git reset --hard:*)"
     ],
-    "defaultMode": "auto",
+    "defaultMode": "acceptEdits",
     "additionalDirectories": [
       "~/",
       "/tmp/"
