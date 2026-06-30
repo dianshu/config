@@ -57,6 +57,7 @@ Use `subagent_type: general-purpose` for all. Issue all sub-agent `Agent` calls 
 - Mail MCP is available for `GetMessage`, `SearchMessages*` (read-only).
 - Email list assigned to you (verbatim):
   <bucketed list of {id, subject, from, receivedDateTime}>
+- **HARD RULE — no synthesized fields:** Every ID, date, count, hostname, IP, etc. you report must come from an actual API/tool response OR verbatim email text. Never infer or pattern-match. If the email lists items the source-of-truth API doesn't return, say so explicitly — don't carry them forward.
 - Output format:
   - Markdown, lead with a one-line verdict: `✅ all clear` / `⚠️ N need action` / `🚨 sub-agent failed: <reason>`
   - Then for EACH email: `- [<verdict-icon>] **<subject>** — <one-line reason with concrete evidence>` where verdict-icon ∈ {✅ can-ignore, ⚠️ needs-action, ℹ️ worth-noting}.
