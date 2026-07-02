@@ -55,6 +55,7 @@ sudo usermod -aG docker "${USER}"
 if command -v brew &>/dev/null; then
     echo "Homebrew already installed, updating..."
     brew update
+    brew upgrade -y
 else
     echo "Installing Homebrew..."
     NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" < /dev/null
@@ -73,9 +74,9 @@ brew_install() {
     fi
     for pkg in "$@"; do
         if brew ls --versions $cask "$pkg" &>/dev/null; then
-            brew upgrade $cask "$pkg"
+            brew upgrade -f -y $cask "$pkg"
         else
-            brew install $cask "$pkg"
+            brew install -y $cask "$pkg"
         fi
     done
 }
